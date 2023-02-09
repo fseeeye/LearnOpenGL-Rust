@@ -6,3 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+
+[dev-dependencies]
+bytemuck = "1.13.0"
+gl33 = "0.2.1"
+beryllium = "0.9.0"
+image = "0.24.5"
+nalgebra = "0.32.1"
