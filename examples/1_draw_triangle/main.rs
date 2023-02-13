@@ -35,11 +35,57 @@ fn main() {
         .expect("Failed to create window & OpenGL Context.");
 
     unsafe {
+        type Vertex = [f32; 3]; // x, y, z in Normalized Device Context (NDC) coordinates
+        const TRIANGLE: [Vertex; 3] = [[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]];
+
         // Load Gl Functions from window
         gl33::global_loader::load_global_gl(&(|func_name| win.get_proc_address(func_name)));
 
         // Specify clear color
         glClearColor(0.2, 0.3, 0.3, 1.0);
+
+        /* Vertex Array Object */
+        // Generate VAO
+        let mut vao = 0;
+        glGenVertexArrays(1, &mut vao);
+        assert_ne!(vao, 0);
+        // Bind VAO
+        glBindVertexArray(vao);
+
+        /* Vertex Buffer Object */
+        // Generate VBO
+        let mut vbo = 0;
+        glGenBuffers(1, &mut vbo);
+        assert_ne!(vbo, 0);
+        // Bind VBO
+        glBindBuffer(gl33::GL_ARRAY_BUFFER, vbo);
+        // Set buffer data
+        glBufferData(
+            gl33::GL_ARRAY_BUFFER,
+            core::mem::size_of_val(&TRIANGLE) as isize,
+            TRIANGLE.as_ptr().cast(),
+            gl33::GL_STATIC_DRAW,
+        );
+
+        /* Vertex Attribute */
+        glVertexAttribPointer(
+            // attribute index 0 is the target
+            0, 
+            // attribute is : 3 * float
+            3,
+            gl33::GL_FLOAT,
+             // coordinate already normalized
+            gl33::GL_FALSE.0 as u8,
+            // TODO: handle overflow
+            core::mem::size_of::<Vertex>().try_into().unwrap(), 
+            // We have to convert the pointer location using usize values and then cast to a const pointer 
+            // once we have our usize. We do not want to make a null pointer and then offset it with the `offset` 
+            // method. That's gonna generate an out of bounds pointer, which is UB. We could try to remember to use the 
+            // `wrapping_offset` method, or we could just do all the math in usize and then cast at the end.
+            // I prefer the latter option.
+            0 as *const _,
+        );
+        glEnableVertexAttribArray(0);
     }
 
     // Main Loop
