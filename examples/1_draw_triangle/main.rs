@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::ffi::CString;
+
 /// This example is only about how to draw a simple triangle.
 /// It is involved about:
 /// * Vertex Array Object
@@ -8,14 +10,13 @@
 /// * Draw call: `glDrawArrays()`
 /// It isn't involved about "Index Buffer" and "uniform" keyword in shader.
 
+use gl::types::*;
+
 use beryllium::events::Event;
 use beryllium::init::InitFlags;
 #[cfg(target_os = "macos")]
 use beryllium::video::GlContextFlags;
 use beryllium::video::{CreateWinArgs, GlProfile, GlSwapInterval};
-
-use gl33::{global_loader::*, GL_LINK_STATUS};
-
 
 const SHADER_INFO_BUFF_SIZE: usize = 1024;
 
@@ -23,16 +24,16 @@ fn check_shader_compile(shader_obj: u32, info_buff_size: usize) {
     let mut compile_success = 0;
 
     unsafe {
-        glGetShaderiv(shader_obj, gl33::GL_COMPILE_STATUS, &mut compile_success);
+        gl::GetShaderiv(shader_obj, gl::COMPILE_STATUS, &mut compile_success);
         if compile_success == 0 {
             let mut log_buf: Vec<u8> = Vec::with_capacity(info_buff_size);
             let mut log_len = 0;
 
-            glGetShaderInfoLog(
+            gl::GetShaderInfoLog(
                 shader_obj,
                 info_buff_size as i32,
                 &mut log_len,
-                log_buf.as_mut_ptr(),
+                log_buf.as_mut_ptr() as *mut GLchar,
             );
             log_buf.set_len(log_len.try_into().unwrap());
 
@@ -48,15 +49,15 @@ fn check_shader_link(shader_program: u32) {
     let mut link_success = 0;
 
     unsafe {
-        glGetProgramiv(shader_program, GL_LINK_STATUS, &mut link_success);
+        gl::GetProgramiv(shader_program, gl::LINK_STATUS, &mut link_success);
         if link_success == 0 {
             let mut log_buf: Vec<u8> = Vec::with_capacity(SHADER_INFO_BUFF_SIZE);
             let mut log_len = 0;
-            glGetProgramInfoLog(
+            gl::GetProgramInfoLog(
                 shader_program,
                 SHADER_INFO_BUFF_SIZE as i32,
                 &mut log_len,
-                log_buf.as_mut_ptr(),
+                log_buf.as_mut_ptr() as *mut GLchar,
             );
             log_buf.set_len(log_len.try_into().unwrap());
             panic!(
@@ -100,43 +101,47 @@ fn main() {
     const TRIANGLE: [Vertex; 3] = [[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]];
     unsafe {
         // Load Gl Functions from window
-        gl33::global_loader::load_global_gl(&(|func_name| win.get_proc_address(func_name)));
+        gl::load_with(|symbol| {
+            // ref: https://stackoverflow.com/questions/49203561/how-do-i-convert-a-str-to-a-const-u8
+            let c_str = CString::new(symbol).unwrap(); // with NUL-terminated string
+            win.get_proc_address(c_str.as_ptr() as *const u8)
+    });
 
         // Specify clear color
-        glClearColor(0.2, 0.3, 0.3, 1.0);
+        gl::ClearColor(0.2, 0.3, 0.3, 1.0);
 
         /* Vertex Array Object */
         // Generate VAO
         let mut vao = 0;
-        glGenVertexArrays(1, &mut vao);
+        gl::GenVertexArrays(1, &mut vao);
         assert_ne!(vao, 0);
         // Bind VAO
-        glBindVertexArray(vao);
+        gl::BindVertexArray(vao);
 
         /* Vertex Buffer Object */
         // Generate VBO
         let mut vbo = 0;
-        glGenBuffers(1, &mut vbo);
+        gl::GenBuffers(1, &mut vbo);
         assert_ne!(vbo, 0);
         // Bind VBO
-        glBindBuffer(gl33::GL_ARRAY_BUFFER, vbo);
+        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
         // Set buffer data
-        glBufferData(
-            gl33::GL_ARRAY_BUFFER,
+        gl::BufferData(
+            gl::ARRAY_BUFFER,
             core::mem::size_of_val(&TRIANGLE) as isize,
             TRIANGLE.as_ptr().cast(),
-            gl33::GL_STATIC_DRAW,
+            gl::STATIC_DRAW,
         );
 
         /* Vertex Attribute */
-        glVertexAttribPointer(
+        gl::VertexAttribPointer(
             // attribute index 0 is the target
             0,
             // attribute is : 3 * float
             3,
-            gl33::GL_FLOAT,
+            gl::FLOAT,
             // coordinate already normalized
-            gl33::GL_FALSE.0 as u8,
+            gl::FALSE,
             // TODO: handle overflow
             core::mem::size_of::<Vertex>().try_into().unwrap(),
             // We have to convert the pointer location using usize values and then cast to a const pointer
@@ -146,7 +151,7 @@ fn main() {
             // I prefer the latter option.
             0 as _,
         );
-        glEnableVertexAttribArray(0);
+        gl::EnableVertexAttribArray(0);
 
         /* Shader */
         const VERTEX_SHADER: &str = r#"
@@ -167,17 +172,17 @@ fn main() {
         }"#;
 
         // Make vertex & fragment shader
-        let vertex_shader = glCreateShader(gl33::GL_VERTEX_SHADER);
+        let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
         assert_ne!(vertex_shader, 0);
-        glShaderSource(
+        gl::ShaderSource(
             vertex_shader,
             1,
             &(VERTEX_SHADER.as_bytes().as_ptr().cast()),
             &(VERTEX_SHADER.len().try_into().unwrap()),
         );
-        let fragment_shader = glCreateShader(gl33::GL_FRAGMENT_SHADER);
+        let fragment_shader = gl::CreateShader(gl::FRAGMENT_SHADER);
         assert_ne!(fragment_shader, 0);
-        glShaderSource(
+        gl::ShaderSource(
             fragment_shader,
             1,
             &(FRAGMENT_SHADER.as_bytes().as_ptr().cast()),
@@ -185,28 +190,28 @@ fn main() {
         );
 
         // Compile vertex & fragment shader
-        glCompileShader(vertex_shader);
-        glCompileShader(fragment_shader);
+        gl::CompileShader(vertex_shader);
+        gl::CompileShader(fragment_shader);
 
         // Check shader object compile result
         check_shader_compile(vertex_shader, SHADER_INFO_BUFF_SIZE);
         check_shader_compile(fragment_shader, SHADER_INFO_BUFF_SIZE);
 
         // Create/Attach/Link shader program
-        let shader_program = glCreateProgram();
-        glAttachShader(shader_program, vertex_shader);
-        glAttachShader(shader_program, fragment_shader);
-        glLinkProgram(shader_program);
+        let shader_program = gl::CreateProgram();
+        gl::AttachShader(shader_program, vertex_shader);
+        gl::AttachShader(shader_program, fragment_shader);
+        gl::LinkProgram(shader_program);
 
         // Check shader program link result
         check_shader_link(shader_program);
 
         // Delete shader object after link
-        glDeleteShader(vertex_shader);
-        glDeleteShader(fragment_shader);
+        gl::DeleteShader(vertex_shader);
+        gl::DeleteShader(fragment_shader);
 
         // Bind shader program
-        glUseProgram(shader_program);
+        gl::UseProgram(shader_program);
     }
 
     // Main Loop
@@ -222,10 +227,10 @@ fn main() {
         // On Update
         unsafe {
             // Clear bits
-            glClear(gl33::GL_COLOR_BUFFER_BIT);
+            gl::Clear(gl::COLOR_BUFFER_BIT);
 
             // Draw call
-            glDrawArrays(gl33::GL_TRIANGLES, 0, TRIANGLE.len().try_into().unwrap());
+            gl::DrawArrays(gl::TRIANGLES, 0, TRIANGLE.len().try_into().unwrap());
         }
         // Swap buffers of window
         win.swap_window();
