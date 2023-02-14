@@ -16,6 +16,57 @@ use beryllium::video::{CreateWinArgs, GlProfile, GlSwapInterval};
 
 use gl33::{global_loader::*, GL_LINK_STATUS};
 
+
+const SHADER_INFO_BUFF_SIZE: usize = 1024;
+
+fn check_shader_compile(shader_obj: u32, info_buff_size: usize) {
+    let mut compile_success = 0;
+
+    unsafe {
+        glGetShaderiv(shader_obj, gl33::GL_COMPILE_STATUS, &mut compile_success);
+        if compile_success == 0 {
+            let mut log_buf: Vec<u8> = Vec::with_capacity(info_buff_size);
+            let mut log_len = 0;
+
+            glGetShaderInfoLog(
+                shader_obj,
+                info_buff_size as i32,
+                &mut log_len,
+                log_buf.as_mut_ptr(),
+            );
+            log_buf.set_len(log_len.try_into().unwrap());
+
+            panic!(
+                "Vertex Shader Compile Error: {}",
+                String::from_utf8_lossy(&log_buf)
+            );
+        }
+    }
+}
+
+fn check_shader_link(shader_program: u32) {
+    let mut link_success = 0;
+
+    unsafe {
+        glGetProgramiv(shader_program, GL_LINK_STATUS, &mut link_success);
+        if link_success == 0 {
+            let mut log_buf: Vec<u8> = Vec::with_capacity(SHADER_INFO_BUFF_SIZE);
+            let mut log_len = 0;
+            glGetProgramInfoLog(
+                shader_program,
+                SHADER_INFO_BUFF_SIZE as i32,
+                &mut log_len,
+                log_buf.as_mut_ptr(),
+            );
+            log_buf.set_len(log_len.try_into().unwrap());
+            panic!(
+                "Fragment Shader Compile Error: {}",
+                String::from_utf8_lossy(&log_buf)
+            );
+        }
+    }
+}
+
 fn main() {
     let sdl = beryllium::Sdl::init(InitFlags::EVERYTHING);
 
@@ -98,7 +149,6 @@ fn main() {
         glEnableVertexAttribArray(0);
 
         /* Shader */
-        const SHADER_INFO_BUFF_SIZE: usize = 1024;
         const VERTEX_SHADER: &str = r#"
         #version 330 core
 
@@ -138,46 +188,9 @@ fn main() {
         glCompileShader(vertex_shader);
         glCompileShader(fragment_shader);
 
-        // Check vertex shader compile result
-        let mut compile_success = 0;
-        glGetShaderiv(vertex_shader, gl33::GL_COMPILE_STATUS, &mut compile_success);
-        if compile_success == 0 {
-            let mut log_buf: Vec<u8> = Vec::with_capacity(SHADER_INFO_BUFF_SIZE);
-            let mut log_len = 0;
-            glGetShaderInfoLog(
-                vertex_shader,
-                SHADER_INFO_BUFF_SIZE as i32,
-                &mut log_len,
-                log_buf.as_mut_ptr(),
-            );
-            log_buf.set_len(log_len.try_into().unwrap());
-            panic!(
-                "Vertex Shader Compile Error: {}",
-                String::from_utf8_lossy(&log_buf)
-            );
-        }
-
-        let mut compile_success = 0;
-        glGetShaderiv(
-            fragment_shader,
-            gl33::GL_COMPILE_STATUS,
-            &mut compile_success,
-        );
-        if compile_success == 0 {
-            let mut log_buf: Vec<u8> = Vec::with_capacity(SHADER_INFO_BUFF_SIZE);
-            let mut log_len = 0;
-            glGetShaderInfoLog(
-                vertex_shader,
-                SHADER_INFO_BUFF_SIZE as i32,
-                &mut log_len,
-                log_buf.as_mut_ptr(),
-            );
-            log_buf.set_len(log_len.try_into().unwrap());
-            panic!(
-                "Fragment Shader Compile Error: {}",
-                String::from_utf8_lossy(&log_buf)
-            );
-        }
+        // Check shader object compile result
+        check_shader_compile(vertex_shader, SHADER_INFO_BUFF_SIZE);
+        check_shader_compile(fragment_shader, SHADER_INFO_BUFF_SIZE);
 
         // Create/Attach/Link shader program
         let shader_program = glCreateProgram();
@@ -185,24 +198,8 @@ fn main() {
         glAttachShader(shader_program, fragment_shader);
         glLinkProgram(shader_program);
 
-        // Check link result
-        let mut link_success = 0;
-        glGetProgramiv(shader_program, GL_LINK_STATUS, &mut link_success);
-        if link_success == 0 {
-            let mut log_buf: Vec<u8> = Vec::with_capacity(SHADER_INFO_BUFF_SIZE);
-            let mut log_len = 0;
-            glGetShaderInfoLog(
-                vertex_shader,
-                SHADER_INFO_BUFF_SIZE as i32,
-                &mut log_len,
-                log_buf.as_mut_ptr(),
-            );
-            log_buf.set_len(log_len.try_into().unwrap());
-            panic!(
-                "Fragment Shader Compile Error: {}",
-                String::from_utf8_lossy(&log_buf)
-            );
-        }
+        // Check shader program link result
+        check_shader_link(shader_program);
 
         // Delete shader object after link
         glDeleteShader(vertex_shader);
