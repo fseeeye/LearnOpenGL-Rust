@@ -84,13 +84,12 @@ fn main() {
     glfw.set_swap_interval(glfw::SwapInterval::Sync(1)); // Enable Vsync
     win.set_all_polling(true); // start polling
 
-    // Prepare for drawing
+    // Load Gl Functions from window
+    gl::load_with(|symbol| win.get_proc_address(symbol));
+
     type Vertex = [f32; 3]; // x, y, z in Normalized Device Context (NDC) coordinates
     const TRIANGLE: [Vertex; 3] = [[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]];
     unsafe {
-        // Load Gl Functions from window
-        gl::load_with(|symbol| win.get_proc_address(symbol));
-
         // Specify clear color
         gl::ClearColor(0.2, 0.3, 0.3, 1.0);
 
