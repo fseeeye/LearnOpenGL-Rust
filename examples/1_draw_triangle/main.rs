@@ -1,7 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::ffi::CString;
-
 /// This example is only about how to draw a simple triangle.
 /// It is involved about:
 /// * Vertex Array Object
@@ -9,14 +7,9 @@ use std::ffi::CString;
 /// * Shader and `in` & `out` keyword
 /// * Draw call: `glDrawArrays()`
 /// It isn't involved about "Index Buffer" and "uniform" keyword in shader.
-
 use gl::types::*;
 
-use beryllium::events::Event;
-use beryllium::init::InitFlags;
-#[cfg(target_os = "macos")]
-use beryllium::video::GlContextFlags;
-use beryllium::video::{CreateWinArgs, GlProfile, GlSwapInterval};
+use glfw::Context;
 
 const SHADER_INFO_BUFF_SIZE: usize = 1024;
 
@@ -69,43 +62,34 @@ fn check_shader_link(shader_program: u32) {
 }
 
 fn main() {
-    let sdl = beryllium::Sdl::init(InitFlags::EVERYTHING);
+    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
     // Setting up GL Context in window: use OpenGL 3.3 with core profile
-    sdl.set_gl_context_major_version(3).unwrap();
-    sdl.set_gl_context_minor_version(3).unwrap();
-    sdl.set_gl_profile(GlProfile::Core).unwrap();
+    glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
+    glfw.window_hint(glfw::WindowHint::OpenGlProfile(
+        glfw::OpenGlProfileHint::Core,
+    ));
     #[cfg(target_os = "macos")]
     {
-        sdl.set_gl_context_flags(GlContextFlags::FORWARD_COMPATIBLE)
-            .unwrap();
+        glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
     }
 
-    // Make Window
-    let win_args = CreateWinArgs {
-        title: "Hello World",
-        width: 800,
-        height: 600,
-        allow_high_dpi: true,
-        borderless: false,
-        resizable: true,
-    };
-    let win = sdl
-        .create_gl_window(win_args)
-        .expect("Failed to create window & OpenGL Context.");
+    // Make window
+    let (mut win, events) = glfw
+        .create_window(800, 600, "Simple Triangle", glfw::WindowMode::Windowed)
+        .unwrap();
 
-    // Enable Vsync
-    win.set_swap_interval(GlSwapInterval::Vsync).unwrap();
+    // Setup window
+    win.make_current(); // `glfwMakeContextCurrent`
+    glfw.set_swap_interval(glfw::SwapInterval::Sync(1)); // Enable Vsync
+    win.set_all_polling(true); // start polling
 
+    // Prepare for drawing
     type Vertex = [f32; 3]; // x, y, z in Normalized Device Context (NDC) coordinates
     const TRIANGLE: [Vertex; 3] = [[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]];
     unsafe {
         // Load Gl Functions from window
-        gl::load_with(|symbol| {
-            // ref: https://stackoverflow.com/questions/49203561/how-do-i-convert-a-str-to-a-const-u8
-            let c_str = CString::new(symbol).unwrap(); // with NUL-terminated string
-            win.get_proc_address(c_str.as_ptr() as *const u8)
-    });
+        gl::load_with(|symbol| win.get_proc_address(symbol));
 
         // Specify clear color
         gl::ClearColor(0.2, 0.3, 0.3, 1.0);
@@ -216,15 +200,23 @@ fn main() {
 
     // Main Loop
     'main_loop: loop {
-        // Handle events of this frame
-        while let Some((event, _timestamp)) = sdl.poll_events() {
+        if win.should_close() {
+            break;
+        }
+
+        /* Handle events of this frame */
+        glfw.poll_events();
+        for (_timestamp, event) in glfw::flush_messages(&events) {
             match event {
-                Event::Quit => break 'main_loop,
+                glfw::WindowEvent::Close => break 'main_loop,
+                glfw::WindowEvent::Size(w, h) => {
+                    println!("Resizing to ({}, {})", w, h);
+                }
                 _ => (),
             }
         }
 
-        // On Update
+        /* On Update (Drawing) */
         unsafe {
             // Clear bits
             gl::Clear(gl::COLOR_BUFFER_BIT);
@@ -233,6 +225,6 @@ fn main() {
             gl::DrawArrays(gl::TRIANGLES, 0, TRIANGLE.len().try_into().unwrap());
         }
         // Swap buffers of window
-        win.swap_window();
+        win.swap_buffers();
     }
 }
