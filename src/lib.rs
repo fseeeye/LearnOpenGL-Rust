@@ -1,7 +1,9 @@
 mod buffer;
-mod vao;
 mod shader;
+mod vao;
+mod window;
 
 pub use buffer::*;
-pub use vao::*;
 pub use shader::*;
+pub use vao::*;
+pub use window::*;

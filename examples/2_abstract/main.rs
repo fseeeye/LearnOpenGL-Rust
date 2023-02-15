@@ -1,80 +1,36 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use learn::{Buffer, VertexBufferLayout, BufferType, BufferUsage, ShaderProgram, VertexArray, Window};
 /// This example is about how to abstract safe gl funcs.
 /// TODO:
 /// * Add glGetError() after any gl funcs calling.
 use learn_opengl_rs as learn;
-use learn::{Buffer, BufferType, BufferUsage, VertexArray, ShaderProgram};
-
-use glfw::Context;
 
 fn main() {
-    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
+    // Create Window
+    let mut win = Window::new("Simple Triangle", 800, 600, glfw::WindowMode::Windowed)
+        .expect("Failed to create window.");
+    win.setup();
+    win.load_gl();
 
-    // Setting up GL Context in window: use OpenGL 3.3 with core profile
-    glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
-    glfw.window_hint(glfw::WindowHint::OpenGlProfile(
-        glfw::OpenGlProfileHint::Core,
-    ));
-    #[cfg(target_os = "macos")]
-    {
-        glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
-    }
-
-    // Make window
-    let (mut win, events) = glfw
-        .create_window(800, 600, "Simple Triangle", glfw::WindowMode::Windowed)
-        .unwrap();
-
-    // Setup window
-    win.make_current(); // `glfwMakeContextCurrent`
-    glfw.set_swap_interval(glfw::SwapInterval::Sync(1)); // Enable Vsync
-    win.set_all_polling(true); // start polling
-
-    // Load Gl Functions from window
-    gl::load_with(|symbol| win.get_proc_address(symbol));
-
+    // Vertex data
     type Vertex = [f32; 3]; // x, y, z in Normalized Device Context (NDC) coordinates
     const TRIANGLE: [Vertex; 3] = [[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]];
-    unsafe {
-        // Specify clear color
-        gl::ClearColor(0.2, 0.3, 0.3, 1.0);
-    }
 
     /* Vertex Array Object */
-    let vao = VertexArray::new().expect("Failed to make a VAO.");
+    let mut vao = VertexArray::new().expect("Failed to make a VAO.");
     vao.bind();
 
     /* Vertex Buffer Object */
-    let vbo = Buffer::new().expect("Failed to make a VBO");
-    vbo.bind(BufferType::Array);
-    vbo.set_buffer_data(
-        bytemuck::cast_slice(&TRIANGLE),
-        BufferType::Array,
-        BufferUsage::StaticDraw,
-    );
+    Buffer::set_clear_color(0.2, 0.3, 0.3, 1.0);
+    let vbo = Buffer::new(BufferType::Array).expect("Failed to make a VBO");
+    vbo.bind();
+    vbo.set_buffer_data(bytemuck::cast_slice(&TRIANGLE), BufferUsage::StaticDraw);
 
-    unsafe {
-        /* Vertex Attribute */
-        gl::VertexAttribPointer(
-            // attribute index 0 is the target
-            0,
-            // attribute is : 3 * float
-            3,
-            gl::FLOAT,
-            // coordinate already normalized
-            gl::FALSE,
-            // TODO: handle overflow
-            core::mem::size_of::<Vertex>().try_into().unwrap(),
-            // We have to convert the pointer location using usize values and then cast to a const pointer
-            // once we have our usize. We do not want to make a null pointer and then offset it with the `offset`
-            // method. That's gonna generate an out of bounds pointer, which is UB. We could try to remember to use the
-            // `wrapping_offset` method, or we could just do all the math in usize and then cast at the end.
-            // I prefer the latter option.
-            0 as _,
-        );
-        gl::EnableVertexAttribArray(0);
-    }
+    // Set vbo and its layout to VAO
+    let mut buffer_layout  = VertexBufferLayout::new();
+    buffer_layout.push(gl::FLOAT, 3); // Vertex is [f32; 3]
+    vao.add_vertex_buffer(&vbo, &buffer_layout);
 
     /* Shader */
     const VERTEX_SHADER: &str = r#"
@@ -94,8 +50,8 @@ fn main() {
         final_color = vec4(1.0, 0.5, 0.2, 1.0);
     }"#;
 
-    let program = ShaderProgram::from_vert_frag(VERTEX_SHADER, FRAGMENT_SHADER).unwrap();
-    program.bind();
+    let shader_program = ShaderProgram::from_vert_frag(VERTEX_SHADER, FRAGMENT_SHADER).unwrap();
+    shader_program.bind();
 
     // Main Loop
     'main_loop: loop {
@@ -104,8 +60,7 @@ fn main() {
         }
 
         /* Handle events of this frame */
-        glfw.poll_events();
-        for (_timestamp, event) in glfw::flush_messages(&events) {
+        for (_timestamp, event) in win.poll_events() {
             match event {
                 glfw::WindowEvent::Close => break 'main_loop,
                 glfw::WindowEvent::Size(w, h) => {
@@ -127,5 +82,5 @@ fn main() {
         win.swap_buffers();
     }
 
-    program.delete();
+    shader_program.delete();
 }

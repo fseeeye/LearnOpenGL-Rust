@@ -7,9 +7,9 @@ edition = "2021"
 
 [dependencies]
 gl = "0.14.0" # OpenGL bindings
+glfw = "0.51.0" # Window: C++ GLFW wrapper
 
 [dev-dependencies]
-glfw = "0.51.0" # Window: C++ GLFW wrapper
 nalgebra = "0.32.1" # Linear algebra
 bytemuck = "1.13.0" # bit cast
 image = "0.24.5" # image processing

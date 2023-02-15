@@ -168,7 +168,7 @@ impl ShaderProgram {
     /// Create Program Object from vertex & fragment shader source
     pub fn from_vert_frag(vert: &str, frag: &str) -> Result<Self, String> {
         let program = Self::new().ok_or_else(|| "Couldn't allocate a program".to_string())?;
-        
+
         // Create vertex & fragment shader
         let mut vertex_shader = Shader::from_source(ShaderType::Vertex, vert)
             .map_err(|e| format!("Vertex Compile Error: {}", e))?;
@@ -180,16 +180,15 @@ impl ShaderProgram {
         program.attach_shader(&frag_shader);
 
         // Link all attached shader stages into program
-        let link_rst =  program.link_program();
-        
+        let link_rst = program.link_program();
+
         // Delete shaders after link completed
         vertex_shader.delete();
         frag_shader.delete();
-        
+
         match link_rst {
             Ok(_) => Ok(program),
             Err(msg) => Err(msg),
         }
     }
 }
-
