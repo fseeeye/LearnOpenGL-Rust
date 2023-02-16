@@ -15,22 +15,30 @@ fn main() {
 
     // Vertex data
     type Vertex = [f32; 3]; // x, y, z in Normalized Device Context (NDC) coordinates
-    const TRIANGLE: [Vertex; 3] = [[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]];
+    type TriIndexes = [u32; 3]; // vertex indexes for a triangle primitive
+    const VERTICES: [Vertex; 4] = [[0.5, 0.5, 0.0], [0.5, -0.5, 0.0], [-0.5, -0.5, 0.0], [-0.5, 0.5, 0.0]];
+    const INDICES: [TriIndexes; 2] = [[1, 2, 3], [0, 1, 3]];
+    
+    Buffer::set_clear_color(0.2, 0.3, 0.3, 1.0);
 
     /* Vertex Array Object */
     let mut vao = VertexArray::new().expect("Failed to make a VAO.");
     vao.bind();
 
     /* Vertex Buffer Object */
-    Buffer::set_clear_color(0.2, 0.3, 0.3, 1.0);
     let vbo = Buffer::new(BufferType::Array).expect("Failed to make a VBO");
     vbo.bind();
-    vbo.set_buffer_data(bytemuck::cast_slice(&TRIANGLE), BufferUsage::StaticDraw);
+    vbo.set_buffer_data(bytemuck::cast_slice(&VERTICES), BufferUsage::StaticDraw);
 
     // Set vbo and its layout to VAO
     let mut buffer_layout  = VertexBufferLayout::new();
     buffer_layout.push(gl::FLOAT, 3); // Vertex is [f32; 3]
     vao.add_vertex_buffer(&vbo, &buffer_layout);
+
+    /* Index Buffer Object */
+    let ibo = Buffer::new(BufferType::ElementArray).expect("Failed to make a IBO");
+    ibo.bind();
+    ibo.set_buffer_data(bytemuck::cast_slice(&INDICES), BufferUsage::StaticDraw);
 
     /* Shader */
     const VERTEX_SHADER: &str = r#"
@@ -76,7 +84,7 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
             // Draw call
-            gl::DrawArrays(gl::TRIANGLES, 0, TRIANGLE.len().try_into().unwrap());
+            gl::DrawElements(gl::TRIANGLES, INDICES.len() as i32 * 3, gl::UNSIGNED_INT, 0 as *const _);
         }
         // Swap buffers of window
         win.swap_buffers();
