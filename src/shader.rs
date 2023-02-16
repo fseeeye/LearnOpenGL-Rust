@@ -39,10 +39,10 @@ impl Shader {
     }
 
     fn check_compile_result(&self) -> Result<(), String> {
-        let mut is_success = 0;
+        let mut is_success = gl::FALSE as GLint;
         unsafe { gl::GetShaderiv(self.id, gl::COMPILE_STATUS, &mut is_success) }
 
-        if is_success == 0 {
+        if is_success == gl::FALSE as GLint {
             let mut log_cap = 0;
             unsafe { gl::GetShaderiv(self.id, gl::INFO_LOG_LENGTH, &mut log_cap) }
             let mut log_buf: Vec<u8> = Vec::with_capacity(log_cap as usize);

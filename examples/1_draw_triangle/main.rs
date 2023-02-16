@@ -7,57 +7,65 @@
 /// * Shader and `in` & `out` keyword
 /// * Draw call: `glDrawArrays()`
 /// It isn't involved about "Index Buffer" and "uniform" keyword in shader.
-use gl::types::*;
 
+use gl::types::*;
 use glfw::Context;
 
-const SHADER_INFO_BUFF_SIZE: usize = 1024;
+fn check_shader_compile(shader_obj: u32) {
+    let mut is_success = gl::FALSE as GLint;
+    unsafe { gl::GetShaderiv(shader_obj, gl::COMPILE_STATUS, &mut is_success) }
 
-fn check_shader_compile(shader_obj: u32, info_buff_size: usize) {
-    let mut compile_success = 0;
+    if is_success == gl::FALSE as GLint {
+        let mut log_cap = 0;
+        unsafe { gl::GetShaderiv(shader_obj, gl::INFO_LOG_LENGTH, &mut log_cap) }
+        let mut log_buf: Vec<u8> = Vec::with_capacity(log_cap as usize);
 
-    unsafe {
-        gl::GetShaderiv(shader_obj, gl::COMPILE_STATUS, &mut compile_success);
-        if compile_success == 0 {
-            let mut log_buf: Vec<u8> = Vec::with_capacity(info_buff_size);
-            let mut log_len = 0;
-
+        let mut log_len = 0i32;
+        unsafe {
             gl::GetShaderInfoLog(
                 shader_obj,
-                info_buff_size as i32,
+                log_buf.capacity() as i32,
                 &mut log_len,
                 log_buf.as_mut_ptr() as *mut GLchar,
             );
-            log_buf.set_len(log_len.try_into().unwrap());
-
-            panic!(
-                "Vertex Shader Compile Error: {}",
-                String::from_utf8_lossy(&log_buf)
-            );
+            log_buf.set_len(log_len as usize);
         }
+
+        panic!(
+            "Shader compile error: {}",
+            String::from_utf8_lossy(&log_buf)
+        );
+    } else {
+        println!("Create shader({}) successfully!", shader_obj);
     }
 }
 
 fn check_shader_link(shader_program: u32) {
-    let mut link_success = 0;
+    let mut is_success = gl::FALSE as GLint;
+    unsafe { gl::GetProgramiv(shader_program, gl::LINK_STATUS, &mut is_success) }
 
-    unsafe {
-        gl::GetProgramiv(shader_program, gl::LINK_STATUS, &mut link_success);
-        if link_success == 0 {
-            let mut log_buf: Vec<u8> = Vec::with_capacity(SHADER_INFO_BUFF_SIZE);
-            let mut log_len = 0;
+    if is_success == gl::FALSE as GLint {
+        let mut log_cap = 0;
+        unsafe { gl::GetProgramiv(shader_program, gl::INFO_LOG_LENGTH, &mut log_cap) }
+        let mut log_buf: Vec<u8> = Vec::with_capacity(log_cap as usize);
+
+        let mut log_len = 0i32;
+        unsafe {
             gl::GetProgramInfoLog(
                 shader_program,
-                SHADER_INFO_BUFF_SIZE as i32,
+                log_buf.capacity() as i32,
                 &mut log_len,
                 log_buf.as_mut_ptr() as *mut GLchar,
             );
-            log_buf.set_len(log_len.try_into().unwrap());
-            panic!(
-                "Fragment Shader Compile Error: {}",
-                String::from_utf8_lossy(&log_buf)
-            );
+            log_buf.set_len(log_len as usize);
         }
+
+        panic!(
+            "Shader Program link error: {}",
+            String::from_utf8_lossy(&log_buf)
+        );
+    } else {
+        println!("Create shader program({}) successfully!", shader_program);
     }
 }
 
@@ -177,8 +185,8 @@ fn main() {
         gl::CompileShader(fragment_shader);
 
         // Check shader object compile result
-        check_shader_compile(vertex_shader, SHADER_INFO_BUFF_SIZE);
-        check_shader_compile(fragment_shader, SHADER_INFO_BUFF_SIZE);
+        check_shader_compile(vertex_shader);
+        check_shader_compile(fragment_shader);
 
         // Create/Attach/Link shader program
         let shader_program = gl::CreateProgram();
