@@ -12,11 +12,12 @@ My OpenGL Learning code in Rust, depends on OpenGL3.3 & GLFW.
 $ cargo run --example <xxx>
 ```
 
-## OpenGL Examples
+### Examples
 
 description for all examples:
-1. Draw Triangle: draw a solid color triangle on window.
-2. Abstract: how to wrap some OpenGL API into safe funcs.
+1. **Draw Triangle**: draw a solid color triangle on window.
+2. **Draw Quad**: draw a solid color quad on window.
+3. **Abstract**: how to wrap OpenGL API into safe funcs.
 
 ## Dependencies
 * [gl](https://crates.io/crates/gl) : OpenGL bindings.
