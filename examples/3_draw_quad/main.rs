@@ -96,7 +96,10 @@ fn main() {
     gl::load_with(|symbol| win.get_proc_address(symbol));
 
     type Vertex = [f32; 3]; // x, y, z in Normalized Device Context (NDC) coordinates
-    const TRIANGLE_VERTICES: [Vertex; 3] = [[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]];
+    type TriIndexes = [u32; 3]; // vertex indexes for a triangle primitive
+    const VERTICES: [Vertex; 4] = [[0.5, 0.5, 0.0], [0.5, -0.5, 0.0], [-0.5, -0.5, 0.0], [-0.5, 0.5, 0.0]];
+    const INDICES: [TriIndexes; 2] = [[1, 2, 3], [0, 1, 3]];
+
     unsafe {
         // Specify clear color
         gl::ClearColor(0.2, 0.3, 0.3, 1.0);
@@ -119,8 +122,8 @@ fn main() {
         // Set buffer data
         gl::BufferData(
             gl::ARRAY_BUFFER,
-            core::mem::size_of_val(&TRIANGLE_VERTICES) as isize,
-            TRIANGLE_VERTICES.as_ptr().cast(),
+            core::mem::size_of_val(&VERTICES) as isize,
+            VERTICES.as_ptr().cast(),
             gl::STATIC_DRAW,
         );
 
@@ -143,6 +146,21 @@ fn main() {
             0 as _,
         );
         gl::EnableVertexAttribArray(0);
+
+        /* Index Buffer Object */
+        // Generate IBO
+        let mut ibo = 0;
+        gl::GenBuffers(1, &mut ibo);
+        assert_ne!(ibo, 0);
+        // Bind IBO as ELEMENT_ARRAY_BUFFER
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ibo);
+        // Set buffer data
+        gl::BufferData(
+            gl::ELEMENT_ARRAY_BUFFER,
+            core::mem::size_of_val(&INDICES) as isize,
+            INDICES.as_ptr().cast(),
+            gl::STATIC_DRAW,
+        );
 
         /* Shader */
         const VERTEX_SHADER: &str = r#"
@@ -229,7 +247,7 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
             // Draw call
-            gl::DrawArrays(gl::TRIANGLES, 0, TRIANGLE_VERTICES.len().try_into().unwrap());
+            gl::DrawElements(gl::TRIANGLES, INDICES.len() as i32 * 3, gl::UNSIGNED_INT, 0 as *const _);
         }
         // Swap buffers of window
         win.swap_buffers();
