@@ -9,7 +9,7 @@ pub enum ShaderType {
 
 /// Wrapper of [Shader Object](https://www.khronos.org/opengl/wiki/GLSL_Object#Shader_objects)
 #[derive(Clone)]
-struct Shader {
+pub struct Shader {
     id: GLuint,
 }
 
@@ -72,14 +72,12 @@ impl Shader {
         self.check_compile_result()
     }
 
-    /// Delete the shader
+    /// Calling this method forces the destructor to be called, destroying the shader.
     /// wrap `glDeleteShader`
-    pub fn delete(&mut self) {
-        unsafe { gl::DeleteShader(self.id) }
-    }
+    pub fn delete(self) {}
 
     /// Create/Attach/Link shader program from source
-    pub(self) fn from_source(shader_type: ShaderType, src: &str) -> Result<Self, String> {
+    pub fn from_source(shader_type: ShaderType, src: &str) -> Result<Self, String> {
         let shader =
             Self::new(shader_type.clone()).ok_or("Unable to create Shader Object".to_string())?;
         shader.set_source(src);
@@ -88,6 +86,20 @@ impl Shader {
         }
 
         Ok(shader)
+    }
+
+    /// Create/Attach/Link shader program from shader file
+    pub fn from_file(shader_type: ShaderType, path: &str) -> Result<Self, String> {
+        let source = std::fs::read_to_string(path)
+            .map_err(|e| format!("Failed to read shader file: {:?}", e))?;
+
+        return Self::from_source(shader_type, &source);
+    }
+}
+
+impl Drop for Shader {
+    fn drop(&mut self) {
+        unsafe { gl::DeleteShader(self.id) }
     }
 }
 
@@ -165,30 +177,50 @@ impl ShaderProgram {
         unsafe { gl::DeleteProgram(self.id) };
     }
 
-    /// Create Program Object from vertex & fragment shader source
-    pub fn from_vert_frag(vert: &str, frag: &str) -> Result<Self, String> {
+    /// Create Shader Program from vertex & fragment Shader Objects.
+    /// This calling will consume Shader Objects.
+    pub fn create(vert_shader: Shader, frag_shader: Shader) -> Result<Self, String> {
         let program = Self::new().ok_or_else(|| "Couldn't allocate a program".to_string())?;
 
-        // Create vertex & fragment shader
-        let mut vertex_shader = Shader::from_source(ShaderType::Vertex, vert)
-            .map_err(|e| format!("Vertex Compile Error: {}", e))?;
-        let mut frag_shader = Shader::from_source(ShaderType::Fragment, frag)
-            .map_err(|e| format!("Fragment Compile Error: {}", e))?;
-
         // Attach vertex & fragment shader to program
-        program.attach_shader(&vertex_shader);
+        program.attach_shader(&vert_shader);
         program.attach_shader(&frag_shader);
 
         // Link all attached shader stages into program
         let link_rst = program.link_program();
 
         // Delete shaders after link completed
-        vertex_shader.delete();
+        // tip: Of course, this operation does not need to be written out because it will be done on destructing. But
+        //      for learning, I think it's necessary to write it out.
+        vert_shader.delete();
         frag_shader.delete();
 
         match link_rst {
             Ok(_) => Ok(program),
             Err(msg) => Err(msg),
         }
+    }
+
+    /// Create Program Object from vertex & fragment shader source
+    /// tip: you can use `include_str!` to embed small shader file content.
+    pub fn create_from_source(vert: &str, frag: &str) -> Result<Self, String> {
+        // Create vertex & fragment shader
+        let vert_shader = Shader::from_source(ShaderType::Vertex, vert)
+            .map_err(|e| format!("Vertex Compile Error: {}", e))?;
+        let frag_shader = Shader::from_source(ShaderType::Fragment, frag)
+            .map_err(|e| format!("Fragment Compile Error: {}", e))?;
+
+        Self::create(vert_shader, frag_shader)
+    }
+
+    /// Create Program Object from vertex & fragment shader file
+    pub fn create_from_file(vert_path: &str, frag_path: &str) -> Result<Self, String> {
+        // Create vertex & fragment shader
+        let vert_shader = Shader::from_file(ShaderType::Vertex, vert_path)
+            .map_err(|e| format!("Vertex Compile Error: {}", e))?;
+        let frag_shader = Shader::from_file(ShaderType::Fragment, frag_path)
+            .map_err(|e| format!("Fragment Compile Error: {}", e))?;
+
+        Self::create(vert_shader, frag_shader)
     }
 }

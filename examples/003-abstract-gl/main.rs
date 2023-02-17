@@ -1,6 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use learn::{Buffer, VertexBufferLayout, BufferType, BufferUsage, ShaderProgram, VertexArray, Window};
+use learn::{
+    Buffer, BufferType, BufferUsage, ShaderProgram, VertexArray, VertexBufferLayout, Window,
+};
 /// This example is about how to abstract safe gl funcs.
 /// TODO:
 /// * Add glGetError() after any gl funcs calling.
@@ -16,9 +18,14 @@ fn main() {
     // Vertex data
     type Vertex = [f32; 3]; // x, y, z in Normalized Device Context (NDC) coordinates
     type TriIndexes = [u32; 3]; // vertex indexes for a triangle primitive
-    const VERTICES: [Vertex; 4] = [[0.5, 0.5, 0.0], [0.5, -0.5, 0.0], [-0.5, -0.5, 0.0], [-0.5, 0.5, 0.0]];
+    const VERTICES: [Vertex; 4] = [
+        [0.5, 0.5, 0.0],
+        [0.5, -0.5, 0.0],
+        [-0.5, -0.5, 0.0],
+        [-0.5, 0.5, 0.0],
+    ];
     const INDICES: [TriIndexes; 2] = [[1, 2, 3], [0, 1, 3]];
-    
+
     Buffer::set_clear_color(0.2, 0.3, 0.3, 1.0);
 
     /* Vertex Array Object */
@@ -31,7 +38,7 @@ fn main() {
     vbo.set_buffer_data(bytemuck::cast_slice(&VERTICES), BufferUsage::StaticDraw);
 
     // Set vbo and its layout to VAO
-    let mut buffer_layout  = VertexBufferLayout::new();
+    let mut buffer_layout = VertexBufferLayout::new();
     buffer_layout.push(gl::FLOAT, 3); // Vertex is [f32; 3]
     vao.add_vertex_buffer(&vbo, &buffer_layout);
 
@@ -41,24 +48,11 @@ fn main() {
     ibo.set_buffer_data(bytemuck::cast_slice(&INDICES), BufferUsage::StaticDraw);
 
     /* Shader */
-    const VERTEX_SHADER: &str = r#"
-    #version 330 core
-
-    layout (location = 0) in vec3 pos;
-
-    void main() {
-        gl_Position = vec4(pos.x, pos.y, pos.z, 1.0);
-    }"#;
-    const FRAGMENT_SHADER: &str = r#"
-    #version 330 core
-
-    out vec4 final_color;
-
-    void main() {
-        final_color = vec4(1.0, 0.5, 0.2, 1.0);
-    }"#;
-
-    let shader_program = ShaderProgram::from_vert_frag(VERTEX_SHADER, FRAGMENT_SHADER).unwrap();
+    let shader_program = ShaderProgram::create_from_source(
+        include_str!("../../assets/shaders/solid.vert.glsl"),
+        include_str!("../../assets/shaders/solid.frag.glsl"),
+    )
+    .unwrap();
     shader_program.bind();
 
     // Main Loop
@@ -84,7 +78,12 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
             // Draw call
-            gl::DrawElements(gl::TRIANGLES, INDICES.len() as i32 * 3, gl::UNSIGNED_INT, 0 as *const _);
+            gl::DrawElements(
+                gl::TRIANGLES,
+                INDICES.len() as i32 * 3,
+                gl::UNSIGNED_INT,
+                0 as *const _,
+            );
         }
         // Swap buffers of window
         win.swap_buffers();
