@@ -3,12 +3,19 @@
 use learn::{
     Buffer, BufferType, BufferUsage, ShaderProgram, VertexArray, VertexBufferLayout, Window,
 };
+
 /// This example is about how to abstract safe gl funcs.
 /// TODO:
 /// * Add glGetError() after any gl funcs calling.
 use learn_opengl_rs as learn;
 
 fn main() {
+    let subscriber = tracing_subscriber::FmtSubscriber::builder()
+        .with_max_level(tracing::Level::TRACE)
+        .finish();
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("Failed to set default subscriber");
+
     // Create Window
     let mut win = Window::new("Simple Triangle", 800, 600, glfw::WindowMode::Windowed)
         .expect("Failed to create window.");

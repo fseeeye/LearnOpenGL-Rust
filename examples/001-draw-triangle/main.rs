@@ -69,6 +69,12 @@ fn check_shader_link(shader_program: u32) {
 }
 
 fn main() {
+    let subscriber = tracing_subscriber::FmtSubscriber::builder()
+        .with_max_level(tracing::Level::TRACE)
+        .finish();
+    tracing::subscriber::set_global_default(subscriber)
+        .expect("Failed to set default subscriber");
+
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
     // Setting up GL Context in window: use OpenGL 3.3 with core profile

@@ -1,7 +1,9 @@
-use std::sync::mpsc;
+use std::{sync::mpsc, ffi::CStr};
 
 use glfw::Context;
+use tracing::{info, instrument};
 
+#[derive(Debug)]
 pub struct Window {
     glfw: glfw::Glfw,
     inner_win: glfw::Window,
@@ -44,9 +46,18 @@ impl Window {
         self.inner_win.set_all_polling(true);
     }
 
+    /// Load Gl Functions from window
+    #[instrument]
     pub fn load_gl(&mut self) {
-        // Load Gl Functions from window
         gl::load_with(|symbol| self.inner_win.get_proc_address(symbol));
+
+        unsafe {
+            let gl_vendor = CStr::from_ptr(gl::GetString(gl::VENDOR) as _).to_str().unwrap();
+            let gl_renderer = CStr::from_ptr(gl::GetString(gl::RENDERER) as _).to_str().unwrap();
+            let gl_version = CStr::from_ptr(gl::GetString(gl::VERSION) as _).to_str().unwrap();
+
+            info!(Vendor = gl_vendor, Renderer = gl_renderer, Version = gl_version, "Load OpenGL sucessfully!");
+        }
     }
 
     pub fn swap_buffers(&mut self) {
