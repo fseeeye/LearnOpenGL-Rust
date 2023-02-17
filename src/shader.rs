@@ -161,7 +161,7 @@ impl ShaderProgram {
     /// Tip: `glDeleteProgram` _does not_ immediately delete the program. If the program is
     /// currently in use it won't be deleted until it's not the active program.
     /// When a program is finally deleted and attached shaders are unattached.
-    pub fn delete(self) {
+    pub fn close(self) {
         unsafe { gl::DeleteProgram(self.id) };
     }
 

@@ -90,5 +90,6 @@ fn main() {
         win.swap_buffers();
     }
 
-    shader_program.delete();
+    shader_program.close();
+    win.close();
 }
