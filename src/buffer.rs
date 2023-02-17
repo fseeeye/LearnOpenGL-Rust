@@ -98,6 +98,12 @@ pub struct VertexBufferLayout {
     stride: GLsizei,
 }
 
+impl Default for VertexBufferLayout {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VertexBufferLayout {
     pub fn new() -> Self {
         VertexBufferLayout {
@@ -111,7 +117,7 @@ impl VertexBufferLayout {
             gl::FLOAT => {
                 let element = VertexBufferElement {
                     ele_type,
-                    count: count,
+                    count,
                     should_normalized: gl::FALSE,
                 };
                 self.stride += count * element.get_type_size() as i32;
