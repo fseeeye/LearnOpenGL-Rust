@@ -16,14 +16,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-miri-${{ hashFiles('**/Cargo.toml') }}
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-miri-${{ hashFiles('**/Cargo.toml') }}
     - uses: dtolnay/rust-toolchain@stable
     - name: Build
       run: cargo build --release --all-features --all-targets --verbose
@@ -36,14 +36,14 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-cargo-miri-${{ hashFiles('**/Cargo.toml') }}
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-miri-${{ hashFiles('**/Cargo.toml') }}
     - uses: dtolnay/rust-toolchain@stable
     - name: Fmt
       run: cargo fmt --all -- --check
