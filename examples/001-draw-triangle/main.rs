@@ -7,7 +7,6 @@
 /// * Shader and `in` & `out` keyword
 /// * Draw call: `glDrawArrays()`
 /// It isn't involved about "Index Buffer" and "uniform" keyword in shader.
-
 use gl::types::*;
 use glfw::Context;
 
@@ -146,22 +145,8 @@ fn main() {
         gl::EnableVertexAttribArray(0);
 
         /* Shader */
-        const VERTEX_SHADER: &str = r#"
-        #version 330 core
-
-        layout (location = 0) in vec3 pos;
-
-        void main() {
-            gl_Position = vec4(pos.x, pos.y, pos.z, 1.0);
-        }"#;
-        const FRAGMENT_SHADER: &str = r#"
-        #version 330 core
-
-        out vec4 final_color;
-
-        void main() {
-            final_color = vec4(1.0, 0.5, 0.2, 1.0);
-        }"#;
+        const VERTEX_SHADER: &str = include_str!("../../assets/shaders/solid.vert.glsl");
+        const FRAGMENT_SHADER: &str = include_str!("../../assets/shaders/solid.frag.glsl");
 
         // Make vertex & fragment shader
         let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
@@ -230,13 +215,19 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
             // Draw call
-            gl::DrawArrays(gl::TRIANGLES, 0, TRIANGLE_VERTICES.len().try_into().unwrap());
+            gl::DrawArrays(
+                gl::TRIANGLES,
+                0,
+                TRIANGLE_VERTICES.len().try_into().unwrap(),
+            );
         }
         // Swap buffers of window
         win.swap_buffers();
     }
 
-    unsafe { gl::DeleteProgram(shader_program); }
+    unsafe {
+        gl::DeleteProgram(shader_program);
+    }
     win.close();
     drop(glfw); // this will call `glfwTerminate`
 }

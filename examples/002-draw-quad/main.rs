@@ -7,7 +7,6 @@
 /// * Shader and `in` & `out` keyword
 /// * Draw call: `glDrawArrays()`
 /// It isn't involved about "Index Buffer" and "uniform" keyword in shader.
-
 use gl::types::*;
 use glfw::Context;
 
@@ -97,7 +96,12 @@ fn main() {
 
     type Vertex = [f32; 3]; // x, y, z in Normalized Device Context (NDC) coordinates
     type TriIndexes = [u32; 3]; // vertex indexes for a triangle primitive
-    const VERTICES: [Vertex; 4] = [[0.5, 0.5, 0.0], [0.5, -0.5, 0.0], [-0.5, -0.5, 0.0], [-0.5, 0.5, 0.0]];
+    const VERTICES: [Vertex; 4] = [
+        [0.5, 0.5, 0.0],
+        [0.5, -0.5, 0.0],
+        [-0.5, -0.5, 0.0],
+        [-0.5, 0.5, 0.0],
+    ];
     const INDICES: [TriIndexes; 2] = [[1, 2, 3], [0, 1, 3]];
     let shader_program: u32;
 
@@ -164,22 +168,8 @@ fn main() {
         );
 
         /* Shader */
-        const VERTEX_SHADER: &str = r#"
-        #version 330 core
-
-        layout (location = 0) in vec3 pos;
-
-        void main() {
-            gl_Position = vec4(pos.x, pos.y, pos.z, 1.0);
-        }"#;
-        const FRAGMENT_SHADER: &str = r#"
-        #version 330 core
-
-        out vec4 final_color;
-
-        void main() {
-            final_color = vec4(1.0, 0.5, 0.2, 1.0);
-        }"#;
+        const VERTEX_SHADER: &str = include_str!("../../assets/shaders/solid.vert.glsl");
+        const FRAGMENT_SHADER: &str = include_str!("../../assets/shaders/solid.frag.glsl");
 
         // Make vertex & fragment shader
         let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
@@ -248,13 +238,20 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
             // Draw call
-            gl::DrawElements(gl::TRIANGLES, INDICES.len() as i32 * 3, gl::UNSIGNED_INT, 0 as *const _);
+            gl::DrawElements(
+                gl::TRIANGLES,
+                INDICES.len() as i32 * 3,
+                gl::UNSIGNED_INT,
+                0 as *const _,
+            );
         }
         // Swap buffers of window
         win.swap_buffers();
     }
 
-    unsafe { gl::DeleteProgram(shader_program); }
+    unsafe {
+        gl::DeleteProgram(shader_program);
+    }
     win.close();
     drop(glfw); // this will call `glfwTerminate`
 }

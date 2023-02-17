@@ -1,4 +1,4 @@
-use crate::buffer::{Buffer, VertexBufferLayout, BufferType};
+use crate::buffer::{Buffer, BufferType, VertexBufferLayout};
 
 use gl::types::*;
 
