@@ -15,9 +15,9 @@ $ cargo run --example <xxx>
 ### Examples
 
 description for all examples:
-1. **Draw Triangle**: draw a solid color triangle on window.
-2. **Draw Quad**: draw a solid color quad on window.
-3. **Abstract**: how to wrap OpenGL API into safe funcs.
+1. **Draw Triangle**: Draw a solid color triangle on window.
+2. **Draw Quad**: Draw a solid color quad on window.
+3. **Abstract OpenGL**: Wrap OpenGL API into safe Rust funcs and Use this funcs to rewrite Example 2.
 
 ## Dependencies
 * [gl](https://crates.io/crates/gl) : OpenGL bindings.
