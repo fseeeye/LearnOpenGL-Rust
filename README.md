@@ -1,4 +1,5 @@
 # LearnOpenGL-Rust
+
 My OpenGL Learning code in Rust, depends on OpenGL3.3 & GLFW.
 
 ## Pre-requisities
@@ -8,18 +9,18 @@ My OpenGL Learning code in Rust, depends on OpenGL3.3 & GLFW.
 
 ## Get Started
 
-```bash
-$ cargo run --example <xxx>
-```
+* Run OpenGL examples bellow by: `cargo run --example <xxx>`
 
 ### Examples
 
 description for all examples:
-1. **Draw Triangle**: Draw a solid color triangle on window.
-2. **Draw Quad**: Draw a solid color quad on window.
-3. **Abstract OpenGL**: Wrap OpenGL API into safe Rust funcs and Use this funcs to rewrite Example 2.
+
+1. [**Draw Triangle**](https://github.com/fseeeye/LearnOpenGL-Rust/tree/main/examples/001-draw-triangle): Draw a solid color triangle on window.
+2. [**Draw Quad**](https://github.com/fseeeye/LearnOpenGL-Rust/tree/main/examples/002-draw-quad): Draw a solid color quad on window.
+3. [**Abstract OpenGL**](https://github.com/fseeeye/LearnOpenGL-Rust/tree/main/examples/003-abstract-gl): Wrap OpenGL API into safe Rust funcs and Use this funcs to rewrite Example 2.
 
 ## Dependencies
+
 * [gl](https://crates.io/crates/gl) : OpenGL bindings.
 * [glfw](https://crates.io/crates/glfw) : Window - C++ GLFW3 bindings and idiomatic wrapper.
 * [nalgebra](https://crates.io/crates/nalgebra) : General-purpose linear algebra library with transformations and statically-sized or dynamically-sized matrices.
@@ -27,5 +28,6 @@ description for all examples:
 * [image](https://crates.io/crates/image) : basic image processing functions and methods for converting to and from various image formats.
 
 ## Ref
+
 * [LearnOpenGL.com](https://learnopengl.com/)
 * [Learn OpenGl Rust](https://rust-tutorials.github.io/learn-opengl/)
