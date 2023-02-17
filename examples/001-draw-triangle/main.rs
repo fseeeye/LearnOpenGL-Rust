@@ -97,6 +97,7 @@ fn main() {
 
     type Vertex = [f32; 3]; // x, y, z in Normalized Device Context (NDC) coordinates
     const TRIANGLE_VERTICES: [Vertex; 3] = [[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]];
+    let shader_program: u32;
     unsafe {
         // Specify clear color
         gl::ClearColor(0.2, 0.3, 0.3, 1.0);
@@ -189,7 +190,7 @@ fn main() {
         check_shader_compile(fragment_shader);
 
         // Create/Attach/Link shader program
-        let shader_program = gl::CreateProgram();
+        shader_program = gl::CreateProgram();
         gl::AttachShader(shader_program, vertex_shader);
         gl::AttachShader(shader_program, fragment_shader);
         gl::LinkProgram(shader_program);
@@ -234,4 +235,8 @@ fn main() {
         // Swap buffers of window
         win.swap_buffers();
     }
+
+    unsafe { gl::DeleteProgram(shader_program); }
+    win.close();
+    drop(glfw); // this will call `glfwTerminate`
 }

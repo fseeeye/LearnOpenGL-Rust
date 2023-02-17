@@ -99,6 +99,7 @@ fn main() {
     type TriIndexes = [u32; 3]; // vertex indexes for a triangle primitive
     const VERTICES: [Vertex; 4] = [[0.5, 0.5, 0.0], [0.5, -0.5, 0.0], [-0.5, -0.5, 0.0], [-0.5, 0.5, 0.0]];
     const INDICES: [TriIndexes; 2] = [[1, 2, 3], [0, 1, 3]];
+    let shader_program: u32;
 
     unsafe {
         // Specify clear color
@@ -207,7 +208,7 @@ fn main() {
         check_shader_compile(fragment_shader);
 
         // Create/Attach/Link shader program
-        let shader_program = gl::CreateProgram();
+        shader_program = gl::CreateProgram();
         gl::AttachShader(shader_program, vertex_shader);
         gl::AttachShader(shader_program, fragment_shader);
         gl::LinkProgram(shader_program);
@@ -252,4 +253,8 @@ fn main() {
         // Swap buffers of window
         win.swap_buffers();
     }
+
+    unsafe { gl::DeleteProgram(shader_program); }
+    win.close();
+    drop(glfw); // this will call `glfwTerminate`
 }
