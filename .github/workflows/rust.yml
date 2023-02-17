@@ -19,6 +19,8 @@ jobs:
     - uses: dtolnay/rust-toolchain@master
       with:
         toolchain: ${{ env.NIGHTLY_TOOLCHAIN }}
+    - name: install libxrandr
+      run: sudo apt-get update; sudo apt-get install --no-install-recommends libxrandr-dev
     - name: Build
       run: cargo build --release --all-features --all-targets --verbose
     - name: Run tests
