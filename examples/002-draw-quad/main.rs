@@ -9,6 +9,7 @@
 /// It isn't involved about "Index Buffer" and "uniform" keyword in shader.
 use gl::types::*;
 use glfw::Context;
+use tracing::{debug, trace};
 
 fn check_shader_compile(shader_obj: u32) {
     let mut is_success = gl::FALSE as GLint;
@@ -35,7 +36,7 @@ fn check_shader_compile(shader_obj: u32) {
             String::from_utf8_lossy(&log_buf)
         );
     } else {
-        println!("Create shader({}) successfully!", shader_obj);
+        debug!("Create shader({}) successfully!", shader_obj);
     }
 }
 
@@ -64,7 +65,7 @@ fn check_shader_link(shader_program: u32) {
             String::from_utf8_lossy(&log_buf)
         );
     } else {
-        println!("Create shader program({}) successfully!", shader_program);
+        debug!("Create shader program({}) successfully!", shader_program);
     }
 }
 
@@ -72,9 +73,8 @@ fn main() {
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
         .with_max_level(tracing::Level::TRACE)
         .finish();
-    tracing::subscriber::set_global_default(subscriber)
-        .expect("Failed to set default subscriber");
-    
+    tracing::subscriber::set_global_default(subscriber).expect("Failed to set default subscriber");
+
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
 
     // Setting up GL Context in window: use OpenGL 3.3 with core profile
@@ -232,7 +232,7 @@ fn main() {
             match event {
                 glfw::WindowEvent::Close => break 'main_loop,
                 glfw::WindowEvent::Size(w, h) => {
-                    println!("Resizing to ({}, {})", w, h);
+                    trace!("Resizing to ({}, {})", w, h);
                 }
                 _ => (),
             }
