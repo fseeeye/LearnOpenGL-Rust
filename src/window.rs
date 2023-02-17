@@ -62,4 +62,9 @@ impl Window {
     pub fn should_close(&self) -> bool {
         self.inner_win.should_close()
     }
+
+    pub fn close(self) {
+        self.inner_win.close();
+        drop(self.glfw);
+    }
 }
