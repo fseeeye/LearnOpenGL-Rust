@@ -81,9 +81,7 @@ impl Shader {
         let shader =
             Self::new(shader_type).ok_or("Unable to create Shader Object".to_string())?;
         shader.set_source(src);
-        if let Err(msg) = shader.compile() {
-            return Err(msg);
-        }
+        shader.compile()?;
 
         Ok(shader)
     }

@@ -85,7 +85,7 @@ pub struct VertexBufferElement {
 impl VertexBufferElement {
     pub fn get_type_size(&self) -> usize {
         match self.ele_type {
-            gl::FLOAT => return std::mem::size_of::<f32>(),
+            gl::FLOAT => std::mem::size_of::<f32>(),
             _ => {
                 unimplemented!()
             }
