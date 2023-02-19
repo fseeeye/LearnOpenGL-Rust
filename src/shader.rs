@@ -78,8 +78,7 @@ impl Shader {
 
     /// Create/Attach/Link shader program from source
     pub fn from_source(shader_type: ShaderType, src: &str) -> Result<Self, String> {
-        let shader =
-            Self::new(shader_type).ok_or("Unable to create Shader Object".to_string())?;
+        let shader = Self::new(shader_type).ok_or("Unable to create Shader Object".to_string())?;
         shader.set_source(src);
         shader.compile()?;
 
