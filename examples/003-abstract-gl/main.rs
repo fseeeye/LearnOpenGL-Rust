@@ -4,6 +4,7 @@ use learn::{
     Buffer, BufferType, BufferUsage, ShaderProgram, VertexArray, VertexBufferLayout, Window,
 };
 use tracing::trace;
+use glfw::Context;
 
 /// This example is about how to abstract safe gl funcs.
 /// TODO:
@@ -64,14 +65,20 @@ fn main() {
 
     // Main Loop
     'main_loop: loop {
-        if win.should_close() {
+        if win.inner_win.should_close() {
             break;
         }
 
         /* Handle events of this frame */
-        for (_timestamp, event) in win.poll_events() {
-            match event {
+        win.glfw.poll_events();
+        for (_timestamp, event) in glfw::flush_messages(&win.events) {
+            match event {   
                 glfw::WindowEvent::Close => break 'main_loop,
+                glfw::WindowEvent::Key(key, _scancode, action, _modifier) => {
+                    if key == glfw::Key::Escape && action == glfw::Action::Press {
+                        win.inner_win.set_should_close(true);
+                    }
+                }
                 glfw::WindowEvent::Size(w, h) => {
                     trace!("Resizing to ({}, {})", w, h);
                 }
@@ -93,7 +100,7 @@ fn main() {
             );
         }
         // Swap buffers of window
-        win.swap_buffers();
+        win.inner_win.swap_buffers();
     }
 
     shader_program.close();

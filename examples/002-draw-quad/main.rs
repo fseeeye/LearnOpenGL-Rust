@@ -231,6 +231,11 @@ fn main() {
         for (_timestamp, event) in glfw::flush_messages(&events) {
             match event {
                 glfw::WindowEvent::Close => break 'main_loop,
+                glfw::WindowEvent::Key(key, _scancode, action, _modifier) => {
+                    if key == glfw::Key::Escape && action == glfw::Action::Press {
+                        win.set_should_close(true);
+                    }
+                }
                 glfw::WindowEvent::Size(w, h) => {
                     trace!("Resizing to ({}, {})", w, h);
                 }

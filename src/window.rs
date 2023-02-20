@@ -5,9 +5,9 @@ use tracing::{info, instrument};
 
 #[derive(Debug)]
 pub struct Window {
-    glfw: glfw::Glfw,
-    inner_win: glfw::Window,
-    events: mpsc::Receiver<(f64, glfw::WindowEvent)>,
+    pub glfw: glfw::Glfw,
+    pub inner_win: glfw::Window,
+    pub events: mpsc::Receiver<(f64, glfw::WindowEvent)>,
 }
 
 impl Window {
@@ -72,20 +72,6 @@ impl Window {
                 "Load OpenGL sucessfully!"
             );
         }
-    }
-
-    pub fn swap_buffers(&mut self) {
-        self.inner_win.swap_buffers();
-    }
-
-    pub fn poll_events(&mut self) -> glfw::FlushedMessages<(f64, glfw::WindowEvent)> {
-        self.glfw.poll_events();
-
-        glfw::flush_messages(&self.events)
-    }
-
-    pub fn should_close(&self) -> bool {
-        self.inner_win.should_close()
     }
 
     pub fn close(self) {
