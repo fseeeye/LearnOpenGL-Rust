@@ -85,7 +85,7 @@ pub struct VertexBufferElement {
 impl VertexBufferElement {
     pub fn get_type_size(&self) -> usize {
         match self.ele_type {
-            gl::FLOAT => return std::mem::size_of::<f32>(),
+            gl::FLOAT => std::mem::size_of::<f32>(),
             _ => {
                 unimplemented!()
             }
@@ -96,6 +96,12 @@ impl VertexBufferElement {
 pub struct VertexBufferLayout {
     elements: Vec<VertexBufferElement>,
     stride: GLsizei,
+}
+
+impl Default for VertexBufferLayout {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl VertexBufferLayout {
@@ -111,7 +117,7 @@ impl VertexBufferLayout {
             gl::FLOAT => {
                 let element = VertexBufferElement {
                     ele_type,
-                    count: count,
+                    count,
                     should_normalized: gl::FALSE,
                 };
                 self.stride += count * element.get_type_size() as i32;

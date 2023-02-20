@@ -11,8 +11,11 @@ pub struct Window {
 }
 
 impl Window {
-    pub fn new(title: &str, width: u32, height: u32, mode: glfw::WindowMode) -> Result<Self, ()> {
-        let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).map_err(|_a| ())?;
+    pub fn new(title: &str, width: u32, height: u32, mode: glfw::WindowMode) -> Option<Self> {
+        let mut glfw = match glfw::init(glfw::FAIL_ON_ERRORS) {
+            Ok(glfw) => glfw,
+            Err(_) => return None,
+        };
 
         // Setting up GL Context in window: use OpenGL 3.3 with core profile
         glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
@@ -27,7 +30,7 @@ impl Window {
         // Make window
         let (win, events) = glfw.create_window(width, height, title, mode).unwrap();
 
-        Ok(Self {
+        Some(Self {
             glfw,
             inner_win: win,
             events,

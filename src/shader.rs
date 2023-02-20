@@ -78,12 +78,9 @@ impl Shader {
 
     /// Create/Attach/Link shader program from source
     pub fn from_source(shader_type: ShaderType, src: &str) -> Result<Self, String> {
-        let shader =
-            Self::new(shader_type.clone()).ok_or("Unable to create Shader Object".to_string())?;
+        let shader = Self::new(shader_type).ok_or("Unable to create Shader Object".to_string())?;
         shader.set_source(src);
-        if let Err(msg) = shader.compile() {
-            return Err(msg);
-        }
+        shader.compile()?;
 
         Ok(shader)
     }
@@ -91,9 +88,9 @@ impl Shader {
     /// Create/Attach/Link shader program from shader file
     pub fn from_file(shader_type: ShaderType, path: &str) -> Result<Self, String> {
         let source = std::fs::read_to_string(path)
-            .map_err(|e| format!("Failed to read shader file: {:?}", e))?;
+            .map_err(|e| format!("Failed to read shader file: {e}"))?;
 
-        return Self::from_source(shader_type, &source);
+        Self::from_source(shader_type, &source)
     }
 }
 
@@ -206,9 +203,9 @@ impl ShaderProgram {
     pub fn create_from_source(vert: &str, frag: &str) -> Result<Self, String> {
         // Create vertex & fragment shader
         let vert_shader = Shader::from_source(ShaderType::Vertex, vert)
-            .map_err(|e| format!("Vertex Compile Error: {}", e))?;
+            .map_err(|e| format!("Vertex Compile Error: {e}"))?;
         let frag_shader = Shader::from_source(ShaderType::Fragment, frag)
-            .map_err(|e| format!("Fragment Compile Error: {}", e))?;
+            .map_err(|e| format!("Fragment Compile Error: {e}"))?;
 
         Self::create(vert_shader, frag_shader)
     }
@@ -217,9 +214,9 @@ impl ShaderProgram {
     pub fn create_from_file(vert_path: &str, frag_path: &str) -> Result<Self, String> {
         // Create vertex & fragment shader
         let vert_shader = Shader::from_file(ShaderType::Vertex, vert_path)
-            .map_err(|e| format!("Vertex Compile Error: {}", e))?;
+            .map_err(|e| format!("Vertex Compile Error: {e}"))?;
         let frag_shader = Shader::from_file(ShaderType::Fragment, frag_path)
-            .map_err(|e| format!("Fragment Compile Error: {}", e))?;
+            .map_err(|e| format!("Fragment Compile Error: {e}"))?;
 
         Self::create(vert_shader, frag_shader)
     }
