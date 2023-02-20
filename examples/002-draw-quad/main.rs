@@ -227,7 +227,6 @@ fn main() {
         }
 
         /* Handle events of this frame */
-        glfw.poll_events();
         for (_timestamp, event) in glfw::flush_messages(&events) {
             match event {
                 glfw::WindowEvent::Close => break 'main_loop,
@@ -256,6 +255,9 @@ fn main() {
                 0 as *const _,
             );
         }
+        
+        // check and call events
+        glfw.poll_events();
         // Swap buffers of window
         win.swap_buffers();
     }
