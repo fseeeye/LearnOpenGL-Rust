@@ -57,8 +57,8 @@ fn main() {
 
     /* Shader */
     let shader_program = ShaderProgram::create_from_source(
-        include_str!("../../assets/shaders/solid.vert.glsl"),
-        include_str!("../../assets/shaders/solid.frag.glsl"),
+        include_str!("../../assets/shaders/solid.vert"),
+        include_str!("../../assets/shaders/solid.frag"),
     )
     .unwrap();
     shader_program.bind();

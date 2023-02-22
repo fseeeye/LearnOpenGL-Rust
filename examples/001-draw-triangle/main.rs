@@ -151,8 +151,8 @@ fn main() {
         gl::EnableVertexAttribArray(0);
 
         /* Shader */
-        const VERTEX_SHADER: &str = include_str!("../../assets/shaders/solid.vert.glsl");
-        const FRAGMENT_SHADER: &str = include_str!("../../assets/shaders/solid.frag.glsl");
+        const VERTEX_SHADER: &str = include_str!("../../assets/shaders/solid.vert");
+        const FRAGMENT_SHADER: &str = include_str!("../../assets/shaders/solid.frag");
 
         // Make vertex & fragment shader
         let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
