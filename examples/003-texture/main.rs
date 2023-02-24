@@ -1,14 +1,10 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-/// This example is only about how to draw a simple triangle.
-/// It is involved about:
-/// * Vertex Array Object
-/// * Vertex Buffer Object
-/// * Shader and `in` & `out` keyword
-/// * Draw call: `glDrawArrays()`
-/// It isn't involved about "Index Buffer" and "uniform" keyword in shader.
+/// This example is about how to use `Texture` in OpenGL.
 use learn::Window;
 use learn_opengl_rs as learn;
+
+use std::ffi::CString;
 
 use gl::types::*;
 use glfw::Context;
@@ -74,7 +70,7 @@ fn check_shader_link(shader_program: u32) {
 
 fn main() {
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
-        .with_max_level(tracing::Level::DEBUG)
+        .with_max_level(tracing::Level::TRACE)
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set default subscriber");
 
@@ -86,61 +82,66 @@ fn main() {
 
     // Prepare vars
     type Vertex = [f32; 3]; // x, y, z in Normalized Device Context (NDC) coordinates
-    const TRIANGLE_VERTICES: [Vertex; 3] = [[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]];
+    type TriIndexes = [u32; 3]; // vertex indexes for a triangle primitive
+    const VERTICES: [Vertex; 4] = [
+        [0.5, 0.5, 0.0],
+        [0.5, -0.5, 0.0],
+        [-0.5, -0.5, 0.0],
+        [-0.5, 0.5, 0.0],
+    ];
+    const INDICES: [TriIndexes; 2] = [[1, 2, 3], [0, 1, 3]];
     let shader_program: u32;
+    let uniform_color_name = CString::new("dyn_color").unwrap();
+    let uniform_color_location: i32;
 
     unsafe {
-        // Specify clear color
         gl::ClearColor(0.2, 0.3, 0.3, 1.0);
 
         /* Vertex Array Object */
-        // Generate VAO
         let mut vao = 0;
         gl::GenVertexArrays(1, &mut vao);
         assert_ne!(vao, 0);
-        // Bind VAO
         gl::BindVertexArray(vao);
 
         /* Vertex Buffer Object */
-        // Generate VBO
         let mut vbo = 0;
         gl::GenBuffers(1, &mut vbo);
         assert_ne!(vbo, 0);
-        // Bind VBO as ARRAY_BUFFER
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        // Set buffer data
         gl::BufferData(
             gl::ARRAY_BUFFER,
-            core::mem::size_of_val(&TRIANGLE_VERTICES) as isize,
-            TRIANGLE_VERTICES.as_ptr().cast(),
+            core::mem::size_of_val(&VERTICES) as isize,
+            VERTICES.as_ptr().cast(),
             gl::STATIC_DRAW,
         );
 
         /* Vertex Attribute */
         gl::VertexAttribPointer(
-            // attribute index 0 is the target
             0,
-            // attribute is : 3 * float
             3,
             gl::FLOAT,
-            // coordinate already normalized
             gl::FALSE,
-            // TODO: handle overflow
             core::mem::size_of::<Vertex>().try_into().unwrap(),
-            // We have to convert the pointer location using usize values and then cast to a const pointer
-            // once we have our usize. We do not want to make a null pointer and then offset it with the `offset`
-            // method. That's gonna generate an out of bounds pointer, which is UB. We could try to remember to use the
-            // `wrapping_offset` method, or we could just do all the math in usize and then cast at the end.
-            // I prefer the latter option.
             0 as _,
         );
         gl::EnableVertexAttribArray(0);
 
-        /* Shader */
-        const VERTEX_SHADER: &str = include_str!("../../assets/shaders/001-solid.vert");
-        const FRAGMENT_SHADER: &str = include_str!("../../assets/shaders/001-solid.frag");
+        /* Index Buffer Object */
+        let mut ibo = 0;
+        gl::GenBuffers(1, &mut ibo);
+        assert_ne!(ibo, 0);
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ibo);
+        gl::BufferData(
+            gl::ELEMENT_ARRAY_BUFFER,
+            core::mem::size_of_val(&INDICES) as isize,
+            INDICES.as_ptr().cast(),
+            gl::STATIC_DRAW,
+        );
 
-        // Make vertex & fragment shader
+        /* Shader */
+        const VERTEX_SHADER: &str = include_str!("../../assets/shaders/002-uniform.vert");
+        const FRAGMENT_SHADER: &str = include_str!("../../assets/shaders/002-uniform.frag");
+
         let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
         assert_ne!(vertex_shader, 0);
         gl::ShaderSource(
@@ -158,28 +159,25 @@ fn main() {
             &(FRAGMENT_SHADER.len().try_into().unwrap()),
         );
 
-        // Compile vertex & fragment shader
         gl::CompileShader(vertex_shader);
         gl::CompileShader(fragment_shader);
 
-        // Check shader object compile result
         check_shader_compile(vertex_shader);
         check_shader_compile(fragment_shader);
 
-        // Create/Attach/Link shader program
         shader_program = gl::CreateProgram();
         gl::AttachShader(shader_program, vertex_shader);
         gl::AttachShader(shader_program, fragment_shader);
         gl::LinkProgram(shader_program);
 
-        // Check shader program link result
         check_shader_link(shader_program);
 
-        // Delete shader object after link
         gl::DeleteShader(vertex_shader);
         gl::DeleteShader(fragment_shader);
 
-        // Bind shader program
+        uniform_color_location =
+            gl::GetUniformLocation(shader_program, uniform_color_name.as_ptr());
+
         gl::UseProgram(shader_program);
     }
 
@@ -207,15 +205,21 @@ fn main() {
         }
 
         /* On Update (Drawing) */
+        let time = win.glfw.get_time() as f32;
+        let color = (time.sin() / 2.0) + 0.5;
         unsafe {
+            // Send uniform value - 'dynamic color'
+            gl::Uniform4f(uniform_color_location, color, color, color, color);
+
             // Clear bits
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
             // Draw call
-            gl::DrawArrays(
+            gl::DrawElements(
                 gl::TRIANGLES,
-                0,
-                TRIANGLE_VERTICES.len().try_into().unwrap(),
+                INDICES.len() as i32 * 3,
+                gl::UNSIGNED_INT,
+                std::ptr::null(),
             );
         }
 
