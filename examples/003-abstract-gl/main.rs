@@ -108,7 +108,7 @@ fn main() {
                 gl::TRIANGLES,
                 INDICES.len() as i32 * 3,
                 gl::UNSIGNED_INT,
-                0 as *const _,
+                std::ptr::null(),
             );
         }
 
