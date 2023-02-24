@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::ffi::CString;
+
 /// This example is only about how to draw a simple triangle.
 /// It is involved about:
 /// * Vertex Array Object
@@ -100,6 +102,7 @@ fn main() {
     // Load Gl Functions from window
     gl::load_with(|symbol| win.get_proc_address(symbol));
 
+    // Prepare vars
     type Vertex = [f32; 3]; // x, y, z in Normalized Device Context (NDC) coordinates
     type TriIndexes = [u32; 3]; // vertex indexes for a triangle primitive
     const VERTICES: [Vertex; 4] = [
@@ -110,6 +113,8 @@ fn main() {
     ];
     const INDICES: [TriIndexes; 2] = [[1, 2, 3], [0, 1, 3]];
     let shader_program: u32;
+    let uniform_color_name = CString::new("dyn_color").unwrap();
+    let uniform_color_location: i32;
 
     unsafe {
         // Specify clear color
@@ -174,8 +179,8 @@ fn main() {
         );
 
         /* Shader */
-        const VERTEX_SHADER: &str = include_str!("../../assets/shaders/solid.vert");
-        const FRAGMENT_SHADER: &str = include_str!("../../assets/shaders/solid.frag");
+        const VERTEX_SHADER: &str = include_str!("../../assets/shaders/002-uniform.vert");
+        const FRAGMENT_SHADER: &str = include_str!("../../assets/shaders/002-uniform.frag");
 
         // Make vertex & fragment shader
         let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
@@ -216,7 +221,11 @@ fn main() {
         gl::DeleteShader(vertex_shader);
         gl::DeleteShader(fragment_shader);
 
-        // Bind shader program
+        // Get uniform location
+        uniform_color_location =
+            gl::GetUniformLocation(shader_program, uniform_color_name.as_ptr());
+
+        // Unbind shader program
         gl::UseProgram(shader_program);
     }
 
@@ -227,6 +236,7 @@ fn main() {
         }
 
         /* Handle events of this frame */
+        win.glfw.poll_events(); // check and call events
         for (_timestamp, event) in glfw::flush_messages(&events) {
             match event {
                 glfw::WindowEvent::Close => break 'main_loop,
@@ -243,7 +253,12 @@ fn main() {
         }
 
         /* On Update (Drawing) */
+        let time = win.glfw.get_time() as f32;
+        let color = (time.sin() / 2.0) + 0.5;
         unsafe {
+            // Send uniform value - 'dynamic color'
+            gl::Uniform4f(uniform_color_location, color, color, color, color);
+
             // Clear bits
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
@@ -255,9 +270,7 @@ fn main() {
                 0 as *const _,
             );
         }
-        
-        // check and call events
-        glfw.poll_events();
+
         // Swap buffers of window
         win.swap_buffers();
     }

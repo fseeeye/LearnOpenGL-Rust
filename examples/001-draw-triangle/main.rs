@@ -100,9 +100,11 @@ fn main() {
     // Load Gl Functions from window
     gl::load_with(|symbol| win.get_proc_address(symbol));
 
+    // Prepare vars
     type Vertex = [f32; 3]; // x, y, z in Normalized Device Context (NDC) coordinates
     const TRIANGLE_VERTICES: [Vertex; 3] = [[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]];
     let shader_program: u32;
+
     unsafe {
         // Specify clear color
         gl::ClearColor(0.2, 0.3, 0.3, 1.0);
@@ -151,8 +153,8 @@ fn main() {
         gl::EnableVertexAttribArray(0);
 
         /* Shader */
-        const VERTEX_SHADER: &str = include_str!("../../assets/shaders/solid.vert");
-        const FRAGMENT_SHADER: &str = include_str!("../../assets/shaders/solid.frag");
+        const VERTEX_SHADER: &str = include_str!("../../assets/shaders/001-solid.vert");
+        const FRAGMENT_SHADER: &str = include_str!("../../assets/shaders/001-solid.frag");
 
         // Make vertex & fragment shader
         let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
@@ -204,6 +206,7 @@ fn main() {
         }
 
         /* Handle events of this frame */
+        win.glfw.poll_events(); // check and call events
         for (_timestamp, event) in glfw::flush_messages(&events) {
             match event {
                 glfw::WindowEvent::Close => break 'main_loop,
@@ -232,8 +235,6 @@ fn main() {
             );
         }
 
-        // check and call events
-        glfw.poll_events();
         // Swap buffers of window
         win.swap_buffers();
     }

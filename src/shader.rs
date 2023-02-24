@@ -1,4 +1,7 @@
+use std::ffi::CStr;
+
 use gl::types::*;
+use tracing::info;
 
 /// enum of Shader types
 #[derive(Clone)]
@@ -60,6 +63,7 @@ impl Shader {
 
             Err(String::from_utf8_lossy(&log_buf).into_owned())
         } else {
+            info!("Create shader({}) successfully!", self.id);
             Ok(())
         }
     }
@@ -117,63 +121,6 @@ impl ShaderProgram {
         }
     }
 
-    /// Attach a Shader Object to this Program Object.
-    /// wrap `glAttachShader`
-    fn attach_shader(&self, shader: &Shader) {
-        unsafe { gl::AttachShader(self.id, shader.id) };
-    }
-
-    fn check_link_result(&self) -> Result<(), String> {
-        let mut is_success = 0;
-        unsafe { gl::GetProgramiv(self.id, gl::LINK_STATUS, &mut is_success) }
-
-        if is_success == 0 {
-            let mut log_cap = 0;
-            unsafe { gl::GetProgramiv(self.id, gl::INFO_LOG_LENGTH, &mut log_cap) }
-
-            let mut log_buf: Vec<u8> = Vec::with_capacity(log_cap as usize);
-
-            let mut log_len = 0i32;
-            unsafe {
-                gl::GetProgramInfoLog(
-                    self.id,
-                    log_buf.capacity() as i32,
-                    &mut log_len,
-                    log_buf.as_mut_ptr() as *mut GLchar,
-                );
-                log_buf.set_len(log_len as usize);
-            }
-
-            Err(String::from_utf8_lossy(&log_buf).into_owned())
-        } else {
-            Ok(())
-        }
-    }
-
-    /// Link all compiled&attached shader objects into a this program.
-    /// wrap `glLinkProgram`
-    fn link_program(&self) -> Result<(), String> {
-        unsafe { gl::LinkProgram(self.id) };
-
-        self.check_link_result()
-    }
-
-    /// Sets the program as the program to use when drawing.
-    /// wrap `glUseProgram`
-    pub fn bind(&self) {
-        unsafe { gl::UseProgram(self.id) };
-    }
-
-    /// Marks the program for deletion.
-    /// wrap `glDeleteProgram`.
-    ///
-    /// Tip: `glDeleteProgram` _does not_ immediately delete the program. If the program is
-    /// currently in use it won't be deleted until it's not the active program.
-    /// When a program is finally deleted and attached shaders are unattached.
-    pub fn close(self) {
-        unsafe { gl::DeleteProgram(self.id) };
-    }
-
     /// Create Shader Program from vertex & fragment Shader Objects.
     /// This calling will consume Shader Objects.
     pub fn create(vert_shader: Shader, frag_shader: Shader) -> Result<Self, String> {
@@ -219,5 +166,70 @@ impl ShaderProgram {
             .map_err(|e| format!("Fragment Compile Error: {e}"))?;
 
         Self::create(vert_shader, frag_shader)
+    }
+
+    /// Attach a Shader Object to this Program Object.
+    /// wrap `glAttachShader`
+    fn attach_shader(&self, shader: &Shader) {
+        unsafe { gl::AttachShader(self.id, shader.id) };
+    }
+
+    fn check_link_result(&self) -> Result<(), String> {
+        let mut is_success = 0;
+        unsafe { gl::GetProgramiv(self.id, gl::LINK_STATUS, &mut is_success) }
+
+        if is_success == 0 {
+            let mut log_cap = 0;
+            unsafe { gl::GetProgramiv(self.id, gl::INFO_LOG_LENGTH, &mut log_cap) }
+
+            let mut log_buf: Vec<u8> = Vec::with_capacity(log_cap as usize);
+
+            let mut log_len = 0i32;
+            unsafe {
+                gl::GetProgramInfoLog(
+                    self.id,
+                    log_buf.capacity() as i32,
+                    &mut log_len,
+                    log_buf.as_mut_ptr() as *mut GLchar,
+                );
+                log_buf.set_len(log_len as usize);
+            }
+
+            Err(String::from_utf8_lossy(&log_buf).into_owned())
+        } else {
+            info!("Create shader program({}) successfully!", self.id);
+            Ok(())
+        }
+    }
+
+    /// Link all compiled&attached shader objects into a this program.
+    /// wrap `glLinkProgram`
+    fn link_program(&self) -> Result<(), String> {
+        unsafe { gl::LinkProgram(self.id) };
+
+        self.check_link_result()
+    }
+
+    /// Sets the program as the program to use when drawing.
+    /// wrap `glUseProgram`
+    pub fn bind(&self) {
+        unsafe { gl::UseProgram(self.id) };
+    }
+
+    /// Marks the program for deletion.
+    /// wrap `glDeleteProgram`.
+    ///
+    /// Tip: `glDeleteProgram` _does not_ immediately delete the program. If the program is
+    /// currently in use it won't be deleted until it's not the active program.
+    /// When a program is finally deleted and attached shaders are unattached.
+    pub fn close(self) {
+        unsafe { gl::DeleteProgram(self.id) };
+    }
+
+    // Send uniform data
+    // wrap `glUniform*`
+    pub fn set_uniform_4f(&self, uniform_name: &CStr, v0: f32, v1: f32, v2: f32, v3: f32) {
+        let location = unsafe { gl::GetUniformLocation(self.id, uniform_name.as_ptr()) };
+        unsafe { gl::Uniform4f(location, v0, v1, v2, v3) }
     }
 }

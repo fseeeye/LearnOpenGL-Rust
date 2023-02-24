@@ -1,10 +1,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::ffi::CString;
+
+use glfw::Context;
 use learn::{
     Buffer, BufferType, BufferUsage, ShaderProgram, VertexArray, VertexBufferLayout, Window,
 };
 use tracing::trace;
-use glfw::Context;
 
 /// This example is about how to abstract safe gl funcs.
 /// TODO:
@@ -57,11 +59,13 @@ fn main() {
 
     /* Shader */
     let shader_program = ShaderProgram::create_from_source(
-        include_str!("../../assets/shaders/solid.vert"),
-        include_str!("../../assets/shaders/solid.frag"),
+        include_str!("../../assets/shaders/002-uniform.vert"),
+        include_str!("../../assets/shaders/002-uniform.frag"),
     )
     .unwrap();
     shader_program.bind();
+
+    let uniform_color_name = CString::new("dyn_color").unwrap();
 
     // Main Loop
     'main_loop: loop {
@@ -70,8 +74,9 @@ fn main() {
         }
 
         /* Handle events of this frame */
+        win.glfw.poll_events(); // check and call events
         for (_timestamp, event) in glfw::flush_messages(&win.events) {
-            match event {   
+            match event {
                 glfw::WindowEvent::Close => break 'main_loop,
                 glfw::WindowEvent::Key(key, _scancode, action, _modifier) => {
                     if key == glfw::Key::Escape && action == glfw::Action::Press {
@@ -89,7 +94,15 @@ fn main() {
         unsafe {
             // Clear bits
             gl::Clear(gl::COLOR_BUFFER_BIT);
+        }
 
+        // Send uniform value - 'dynamic color'
+        let time = win.glfw.get_time() as f32;
+        let color = (time.sin() / 2.0) + 0.5;
+        shader_program.bind();
+        shader_program.set_uniform_4f(uniform_color_name.as_c_str(), color, color, color, color);
+
+        unsafe {
             // Draw call
             gl::DrawElements(
                 gl::TRIANGLES,
@@ -99,8 +112,6 @@ fn main() {
             );
         }
 
-        // check and call events
-        win.glfw.poll_events();
         // Swap buffers of window
         win.inner_win.swap_buffers();
     }

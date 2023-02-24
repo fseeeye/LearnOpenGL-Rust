@@ -1,7 +1,7 @@
 use std::{ffi::CStr, sync::mpsc};
 
 use glfw::Context;
-use tracing::{info, instrument};
+use tracing::info;
 
 #[derive(Debug)]
 pub struct Window {
@@ -50,7 +50,6 @@ impl Window {
     }
 
     /// Load Gl Functions from window
-    #[instrument]
     pub fn load_gl(&mut self) {
         gl::load_with(|symbol| self.inner_win.get_proc_address(symbol));
 
