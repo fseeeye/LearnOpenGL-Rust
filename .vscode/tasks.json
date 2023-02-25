@@ -1,0 +1,40 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cargo",
+			"command": "build",
+			"args": [
+				"--all-targets"
+			],
+			"problemMatcher": [
+				"$rustc"
+			],
+			"group": "build",
+			"label": "build all-targets",
+			"dependsOn": "clippy all-targets"
+		},
+		{
+			"type": "cargo",
+			"command": "clippy",
+			"args": [
+				"--all-targets"
+			],
+			"problemMatcher": [
+				"$rustc"
+			],
+			"group": "build",
+			"label": "clippy all-targets",
+			"dependsOn": "fmt"
+		},
+		{
+			"type": "cargo",
+			"command": "fmt",
+			"problemMatcher": [
+				"$rustc"
+			],
+			"group": "build",
+			"label": "fmt"
+		},
+	]
+}

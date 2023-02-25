@@ -1,7 +1,6 @@
 use std::ffi::CStr;
 
 use gl::types::*;
-use tracing::info;
 
 /// enum of Shader types
 #[derive(Clone)]
@@ -41,19 +40,20 @@ impl Shader {
         }
     }
 
-    fn check_compile_result(&self) -> Result<(), String> {
+    /// Check Shader Object compiling result
+    pub fn check_compile_result(shader_id: u32) -> Result<(), String> {
         let mut is_success = gl::FALSE as GLint;
-        unsafe { gl::GetShaderiv(self.id, gl::COMPILE_STATUS, &mut is_success) }
+        unsafe { gl::GetShaderiv(shader_id, gl::COMPILE_STATUS, &mut is_success) }
 
         if is_success == gl::FALSE as GLint {
             let mut log_cap = 0;
-            unsafe { gl::GetShaderiv(self.id, gl::INFO_LOG_LENGTH, &mut log_cap) }
+            unsafe { gl::GetShaderiv(shader_id, gl::INFO_LOG_LENGTH, &mut log_cap) }
             let mut log_buf: Vec<u8> = Vec::with_capacity(log_cap as usize);
 
             let mut log_len = 0i32;
             unsafe {
                 gl::GetShaderInfoLog(
-                    self.id,
+                    shader_id,
                     log_buf.capacity() as i32,
                     &mut log_len,
                     log_buf.as_mut_ptr() as *mut GLchar,
@@ -63,7 +63,6 @@ impl Shader {
 
             Err(String::from_utf8_lossy(&log_buf).into_owned())
         } else {
-            info!("Create shader({}) successfully!", self.id);
             Ok(())
         }
     }
@@ -73,7 +72,7 @@ impl Shader {
     fn compile(&self) -> Result<(), String> {
         unsafe { gl::CompileShader(self.id) }
 
-        self.check_compile_result()
+        Self::check_compile_result(self.id)
     }
 
     /// Calling this method forces the destructor to be called, destroying the shader.
@@ -168,26 +167,21 @@ impl ShaderProgram {
         Self::create(vert_shader, frag_shader)
     }
 
-    /// Attach a Shader Object to this Program Object.
-    /// wrap `glAttachShader`
-    fn attach_shader(&self, shader: &Shader) {
-        unsafe { gl::AttachShader(self.id, shader.id) };
-    }
-
-    fn check_link_result(&self) -> Result<(), String> {
+    /// Check Shader Program linking result
+    pub fn check_link_result(program_id: u32) -> Result<(), String> {
         let mut is_success = 0;
-        unsafe { gl::GetProgramiv(self.id, gl::LINK_STATUS, &mut is_success) }
+        unsafe { gl::GetProgramiv(program_id, gl::LINK_STATUS, &mut is_success) }
 
         if is_success == 0 {
             let mut log_cap = 0;
-            unsafe { gl::GetProgramiv(self.id, gl::INFO_LOG_LENGTH, &mut log_cap) }
+            unsafe { gl::GetProgramiv(program_id, gl::INFO_LOG_LENGTH, &mut log_cap) }
 
             let mut log_buf: Vec<u8> = Vec::with_capacity(log_cap as usize);
 
             let mut log_len = 0i32;
             unsafe {
                 gl::GetProgramInfoLog(
-                    self.id,
+                    program_id,
                     log_buf.capacity() as i32,
                     &mut log_len,
                     log_buf.as_mut_ptr() as *mut GLchar,
@@ -197,9 +191,14 @@ impl ShaderProgram {
 
             Err(String::from_utf8_lossy(&log_buf).into_owned())
         } else {
-            info!("Create shader program({}) successfully!", self.id);
             Ok(())
         }
+    }
+
+    /// Attach a Shader Object to this Program Object.
+    /// wrap `glAttachShader`
+    fn attach_shader(&self, shader: &Shader) {
+        unsafe { gl::AttachShader(self.id, shader.id) };
     }
 
     /// Link all compiled&attached shader objects into a this program.
@@ -207,7 +206,7 @@ impl ShaderProgram {
     fn link_program(&self) -> Result<(), String> {
         unsafe { gl::LinkProgram(self.id) };
 
-        self.check_link_result()
+        Self::check_link_result(self.id)
     }
 
     /// Sets the program as the program to use when drawing.
