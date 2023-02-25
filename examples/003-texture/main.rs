@@ -17,6 +17,11 @@ fn main() {
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set default subscriber");
 
+    // Load Texture
+    // let img = image::open("../assets/textures/container.jpg").unwrap();
+    // let (width, height) = img.dimensions();
+    // let bytes = img.into_bytes().as_ptr();
+
     /* Window */
     let mut win = learn::Window::new("Simple Triangle", 800, 600, glfw::WindowMode::Windowed)
         .expect("Failed to create window.");
