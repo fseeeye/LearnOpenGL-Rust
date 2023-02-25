@@ -188,6 +188,8 @@ fn main() {
         // Delete shader object after link
         gl::DeleteShader(vertex_shader);
         gl::DeleteShader(fragment_shader);
+
+        gl::UseProgram(shader_program);
     }
 
     // Specify clear color

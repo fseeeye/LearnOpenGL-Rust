@@ -4,7 +4,7 @@ use std::ffi::CString;
 
 use glfw::Context;
 use learn::{
-    Buffer, BufferType, BufferUsage, ShaderProgram, VertexArray, VertexBufferLayout, Window,
+    Buffer, BufferType, BufferUsage, ShaderProgram, VertexArray, VertexDescription, Window,
 };
 use tracing::trace;
 
@@ -36,21 +36,19 @@ fn main() {
     ];
     const INDICES: [TriIndexes; 2] = [[1, 2, 3], [0, 1, 3]];
 
-    Buffer::set_clear_color(0.2, 0.3, 0.3, 1.0);
-
     /* Vertex Array Object */
-    let mut vao = VertexArray::new().expect("Failed to make a VAO.");
+    let vao = VertexArray::new().expect("Failed to make a VAO.");
     vao.bind();
 
     /* Vertex Buffer Object */
-    let vbo = Buffer::new(BufferType::Array).expect("Failed to make a VBO");
+    let mut vbo = Buffer::new(BufferType::Array).expect("Failed to make a VBO");
     vbo.bind();
     vbo.set_buffer_data(bytemuck::cast_slice(&VERTICES), BufferUsage::StaticDraw);
 
-    // Set vbo and its layout to VAO
-    let mut buffer_layout = VertexBufferLayout::new();
-    buffer_layout.push(gl::FLOAT, 3); // Vertex is [f32; 3]
-    vao.add_vertex_buffer(&vbo, &buffer_layout);
+    /* Vertex Attribute description */
+    let mut vertex_desc = VertexDescription::new();
+    vertex_desc.push(gl::FLOAT, 3); // Vertex is [f32; 3]
+    vbo.set_vertex_description(&vertex_desc, Some(&vao));
 
     /* Index Buffer Object */
     let ibo = Buffer::new(BufferType::ElementArray).expect("Failed to make a IBO");
@@ -63,9 +61,11 @@ fn main() {
         include_str!("../../assets/shaders/002-uniform.frag"),
     )
     .unwrap();
-    shader_program.bind();
 
     let uniform_color_name = CString::new("dyn_color").unwrap();
+    let uniform_color_location = shader_program.get_uniform_location(&uniform_color_name);
+
+    Buffer::set_clear_color(0.2, 0.3, 0.3, 1.0);
 
     // Main Loop
     'main_loop: loop {
@@ -96,11 +96,10 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
 
-        // Send uniform value - 'dynamic color'
+        shader_program.bind();
         let time = win.glfw.get_time() as f32;
         let color = (time.sin() / 2.0) + 0.5;
-        shader_program.bind();
-        shader_program.set_uniform_4f(uniform_color_name.as_c_str(), color, color, color, color);
+        shader_program.set_uniform_4f(uniform_color_location, color, color, color, color);
 
         unsafe {
             // Draw call

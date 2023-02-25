@@ -1,5 +1,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use learn::{
+    Buffer, BufferBit, BufferType, BufferUsage, ShaderProgram, VertexArray, VertexDescription,
+};
 /// This example is about how to use `Texture` in OpenGL.
 use learn_opengl_rs as learn;
 
@@ -32,126 +35,37 @@ fn main() {
     const INDICES: [TriIndexes; 2] = [[1, 2, 3], [0, 1, 3]];
 
     /* Vertex Array Object */
-    let mut vao = 0;
-    unsafe {
-        gl::GenVertexArrays(1, &mut vao);
-    }
-    assert_ne!(vao, 0);
-    unsafe { gl::BindVertexArray(vao) }
+    let vao = VertexArray::new().expect("Failed to make a VAO.");
+    vao.bind();
 
     /* Vertex Buffer Object */
-    let mut vbo = 0;
-    unsafe {
-        gl::GenBuffers(1, &mut vbo);
-    }
-    assert_ne!(vbo, 0);
-    unsafe {
-        gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
-        gl::BufferData(
-            gl::ARRAY_BUFFER,
-            core::mem::size_of_val(&VERTICES) as isize,
-            VERTICES.as_ptr().cast(),
-            gl::STATIC_DRAW,
-        );
-    }
+    let mut vbo = Buffer::new(BufferType::Array).expect("Failed to make a VBO");
+    vbo.bind();
+    vbo.set_buffer_data(bytemuck::cast_slice(&VERTICES), BufferUsage::StaticDraw);
 
-    /* Vertex Attribute */
-    unsafe {
-        gl::VertexAttribPointer(
-            0,
-            3,
-            gl::FLOAT,
-            gl::FALSE,
-            core::mem::size_of::<Vertex>().try_into().unwrap(),
-            0 as _,
-        );
-        gl::EnableVertexAttribArray(0);
-    }
+    /* Vertex Attribute description */
+    let mut vertex_desc = VertexDescription::new();
+    vertex_desc.push(gl::FLOAT, 3); // Vertex is [f32; 3]
+    vbo.set_vertex_description(&vertex_desc, Some(&vao));
 
     /* Index Buffer Object */
-    let mut ibo = 0;
-    unsafe {
-        gl::GenBuffers(1, &mut ibo);
-    }
-    assert_ne!(ibo, 0);
-    unsafe {
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ibo);
-        gl::BufferData(
-            gl::ELEMENT_ARRAY_BUFFER,
-            core::mem::size_of_val(&INDICES) as isize,
-            INDICES.as_ptr().cast(),
-            gl::STATIC_DRAW,
-        );
-    }
+    let ibo = Buffer::new(BufferType::ElementArray).expect("Failed to make a IBO");
+    ibo.bind();
+    ibo.set_buffer_data(bytemuck::cast_slice(&INDICES), BufferUsage::StaticDraw);
 
     /* Shader */
-    const VERTEX_SHADER: &str = include_str!("../../assets/shaders/002-uniform.vert");
-    const FRAGMENT_SHADER: &str = include_str!("../../assets/shaders/002-uniform.frag");
-
-    let vertex_shader = unsafe { gl::CreateShader(gl::VERTEX_SHADER) };
-    assert_ne!(vertex_shader, 0);
-    unsafe {
-        gl::ShaderSource(
-            vertex_shader,
-            1,
-            &(VERTEX_SHADER.as_bytes().as_ptr().cast()),
-            &(VERTEX_SHADER.len().try_into().unwrap()),
-        );
-    }
-    let fragment_shader = unsafe { gl::CreateShader(gl::FRAGMENT_SHADER) };
-    assert_ne!(fragment_shader, 0);
-    unsafe {
-        gl::ShaderSource(
-            fragment_shader,
-            1,
-            &(FRAGMENT_SHADER.as_bytes().as_ptr().cast()),
-            &(FRAGMENT_SHADER.len().try_into().unwrap()),
-        );
-    }
-
-    unsafe {
-        gl::CompileShader(vertex_shader);
-        gl::CompileShader(fragment_shader);
-    }
-    match learn::Shader::check_compile_result(vertex_shader) {
-        Ok(_) => {}
-        Err(e) => {
-            panic!("Vertex Shader({}) compile error: {}", vertex_shader, e)
-        }
-    }
-    match learn::Shader::check_compile_result(fragment_shader) {
-        Ok(_) => {}
-        Err(e) => {
-            panic!("Fragment Shader({}) compile error: {}", fragment_shader, e)
-        }
-    }
-
-    /* Shader Program */
-    let shader_program = unsafe { gl::CreateProgram() };
-    unsafe {
-        gl::AttachShader(shader_program, vertex_shader);
-        gl::AttachShader(shader_program, fragment_shader);
-        gl::LinkProgram(shader_program);
-    }
-    match learn::ShaderProgram::check_link_result(shader_program) {
-        Ok(_) => {}
-        Err(e) => {
-            panic!("Shader Program({}) link error: {}", shader_program, e)
-        }
-    }
-
-    unsafe {
-        gl::DeleteShader(vertex_shader);
-        gl::DeleteShader(fragment_shader);
-    }
+    let shader_program = ShaderProgram::create_from_source(
+        include_str!("../../assets/shaders/002-uniform.vert"),
+        include_str!("../../assets/shaders/002-uniform.frag"),
+    )
+    .unwrap();
 
     let uniform_color_name = CString::new("dyn_color").unwrap();
-    let uniform_color_location =
-        unsafe { gl::GetUniformLocation(shader_program, uniform_color_name.as_ptr()) };
+    let uniform_color_location = shader_program.get_uniform_location(&uniform_color_name);
 
-    unsafe { gl::UseProgram(shader_program) }
+    shader_program.bind();
 
-    unsafe { gl::ClearColor(0.2, 0.3, 0.3, 1.0) }
+    Buffer::set_clear_color(0.2, 0.3, 0.3, 1.0);
 
     /* Main Loop */
     'main_loop: loop {
@@ -177,18 +91,18 @@ fn main() {
         }
 
         /* On Update (Drawing) */
+        Buffer::clear(BufferBit::ColorBufferBit as gl::types::GLbitfield);
+
+        shader_program.bind();
         let time = win.glfw.get_time() as f32;
         let color = (time.sin() / 2.0) + 0.5;
+        shader_program.set_uniform_4f(uniform_color_location, color, color, color, color);
+
+        vao.bind();
+
+        ibo.bind();
+
         unsafe {
-            gl::Clear(gl::COLOR_BUFFER_BIT);
-
-            gl::UseProgram(shader_program);
-            gl::Uniform4f(uniform_color_location, color, color, color, color);
-
-            gl::BindVertexArray(vao);
-
-            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ibo);
-
             gl::DrawElements(
                 gl::TRIANGLES,
                 INDICES.len() as i32 * 3,
@@ -197,9 +111,10 @@ fn main() {
             );
         }
 
+        // Swap buffers of window
         win.inner_win.swap_buffers();
     }
 
-    unsafe { gl::DeleteProgram(shader_program) }
+    shader_program.close();
     win.close();
 }

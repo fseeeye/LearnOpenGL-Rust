@@ -105,7 +105,7 @@ impl Drop for Shader {
 
 /// Wrapper of [Program Object](https://www.khronos.org/opengl/wiki/GLSL_Object#Program_objects)
 pub struct ShaderProgram {
-    id: GLuint,
+    pub id: GLuint,
 }
 
 impl ShaderProgram {
@@ -225,10 +225,15 @@ impl ShaderProgram {
         unsafe { gl::DeleteProgram(self.id) };
     }
 
-    // Send uniform data
-    // wrap `glUniform*`
-    pub fn set_uniform_4f(&self, uniform_name: &CStr, v0: f32, v1: f32, v2: f32, v3: f32) {
-        let location = unsafe { gl::GetUniformLocation(self.id, uniform_name.as_ptr()) };
-        unsafe { gl::Uniform4f(location, v0, v1, v2, v3) }
+    /// wrap `glGetUniformLocation`
+    pub fn get_uniform_location(&self, uniform_name: &CStr) -> i32 {
+        unsafe { gl::GetUniformLocation(self.id, uniform_name.as_ptr()) }
+    }
+
+    /// Send uniform data, it'll call `bind()` automatically.
+    /// wrap `glUniform*`
+    pub fn set_uniform_4f(&self, uniform_location: i32, v0: f32, v1: f32, v2: f32, v3: f32) {
+        self.bind();
+        unsafe { gl::Uniform4f(uniform_location, v0, v1, v2, v3) }
     }
 }
