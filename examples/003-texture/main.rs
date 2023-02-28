@@ -30,17 +30,15 @@ fn main() {
         [0.5, 0.5, 0.0, 1.0, 1.0],
         [0.5, -0.5, 0.0, 1.0, 0.0],
         [-0.5, -0.5, 0.0, 0.0, 0.0],
-        [-0.5, 0.5, 0.0, 1.0, 0.0],
+        [-0.5, 0.5, 0.0, 0.0, 1.0],
     ];
     const INDICES: [TriIndexes; 2] = [[1, 2, 3], [0, 1, 3]];
 
     /* Vertex Array Object */
     let vao = VertexArray::new().expect("Failed to make a VAO.");
-    vao.bind();
 
     /* Vertex Buffer Object */
     let mut vbo = Buffer::new(BufferType::Array).expect("Failed to make a VBO");
-    vbo.bind();
     vbo.set_buffer_data(bytemuck::cast_slice(&VERTICES), BufferUsage::StaticDraw);
 
     /* Vertex Attribute description */
@@ -51,7 +49,6 @@ fn main() {
 
     /* Index Buffer Object */
     let ibo = Buffer::new(BufferType::ElementArray).expect("Failed to make a IBO");
-    ibo.bind();
     ibo.set_buffer_data(bytemuck::cast_slice(&INDICES), BufferUsage::StaticDraw);
 
     /* Texture */
@@ -107,8 +104,6 @@ fn main() {
     )
     .unwrap();
 
-    shader_program.bind();
-
     Buffer::set_clear_color(0.2, 0.3, 0.3, 1.0);
 
     /* Main Loop */
@@ -141,12 +136,12 @@ fn main() {
 
         // Bind Texture beform draw call
         unsafe {
-            gl::ActiveTexture(gl::TEXTURE0);
+            /*gl::ActiveTexture(gl::TEXTURE0);*/
             gl::BindTexture(gl::TEXTURE_2D, texture_container);
-            gl::Uniform1i(
+            /*gl::Uniform1i(
                 gl::GetUniformLocation(shader_program.id, "t_container".as_ptr() as _),
                 0,
-            );
+            );*/
         }
 
         vao.bind();

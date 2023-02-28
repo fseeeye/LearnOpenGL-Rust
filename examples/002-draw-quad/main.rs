@@ -40,11 +40,9 @@ fn main() {
 
     /* Vertex Array Object */
     let vao = VertexArray::new().expect("Failed to make a VAO.");
-    vao.bind();
 
     /* Vertex Buffer Object */
     let mut vbo = Buffer::new(BufferType::Array).expect("Failed to make a VBO");
-    vbo.bind();
     vbo.set_buffer_data(bytemuck::cast_slice(&VERTICES), BufferUsage::StaticDraw);
 
     /* Vertex Attribute description */
@@ -82,8 +80,6 @@ fn main() {
     let uniform_color_name = CString::new("dyn_color").unwrap();
     let uniform_color_location =
         unsafe { gl::GetUniformLocation(shader_program.id, uniform_color_name.as_ptr()) };
-
-    shader_program.bind();
 
     Buffer::set_clear_color(0.2, 0.3, 0.3, 1.0);
 
