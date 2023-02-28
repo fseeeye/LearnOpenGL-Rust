@@ -6,9 +6,9 @@ use learn::{
 /// This example is about how to use `Texture` in OpenGL.
 use learn_opengl_rs as learn;
 
-use std::ffi::CString;
-
+use gl::types::*;
 use glfw::Context;
+use image::GenericImageView;
 use tracing::trace;
 
 fn main() {
@@ -17,11 +17,6 @@ fn main() {
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set default subscriber");
 
-    // Load Texture
-    // let img = image::open("../assets/textures/container.jpg").unwrap();
-    // let (width, height) = img.dimensions();
-    // let bytes = img.into_bytes().as_ptr();
-
     /* Window */
     let mut win = learn::Window::new("Simple Triangle", 800, 600, glfw::WindowMode::Windowed)
         .expect("Failed to create window.");
@@ -29,13 +24,13 @@ fn main() {
     win.load_gl();
 
     /* Vertex data */
-    type Vertex = [f32; 3]; // x, y, z in Normalized Device Context (NDC) coordinates
+    type Vertex = [f32; 3 + 2]; // NDC coords(3) + texture coords(3)
     type TriIndexes = [u32; 3]; // vertex indexes for a triangle primitive
     const VERTICES: [Vertex; 4] = [
-        [0.5, 0.5, 0.0],
-        [0.5, -0.5, 0.0],
-        [-0.5, -0.5, 0.0],
-        [-0.5, 0.5, 0.0],
+        [0.5, 0.5, 0.0, 1.0, 1.0],
+        [0.5, -0.5, 0.0, 1.0, 0.0],
+        [-0.5, -0.5, 0.0, 0.0, 0.0],
+        [-0.5, 0.5, 0.0, 1.0, 0.0],
     ];
     const INDICES: [TriIndexes; 2] = [[1, 2, 3], [0, 1, 3]];
 
@@ -50,7 +45,8 @@ fn main() {
 
     /* Vertex Attribute description */
     let mut vertex_desc = VertexDescription::new();
-    vertex_desc.push(gl::FLOAT, 3); // Vertex is [f32; 3]
+    vertex_desc.push(gl::FLOAT, 3); // push NDC coords
+    vertex_desc.push(gl::FLOAT, 2); // push texture coords
     vbo.set_vertex_description(&vertex_desc, Some(&vao));
 
     /* Index Buffer Object */
@@ -58,15 +54,58 @@ fn main() {
     ibo.bind();
     ibo.set_buffer_data(bytemuck::cast_slice(&INDICES), BufferUsage::StaticDraw);
 
+    /* Texture */
+    let mut texture_container = 0;
+    {
+        // Load Texture
+        let img = image::open("assets/textures/container.jpg").unwrap();
+        let (width, height) = img.dimensions();
+        let bytes = img.into_bytes().as_ptr();
+
+        // Generate Texture
+        unsafe { gl::GenTextures(1, &mut texture_container) }
+        assert_ne!(texture_container, 0);
+        // Bind Texture
+        unsafe { gl::BindTexture(gl::TEXTURE_2D, texture_container) }
+        // Set Texture wrapping & filtering
+        unsafe {
+            gl::TexParameteri(
+                gl::TEXTURE_2D,
+                gl::TEXTURE_WRAP_S,
+                gl::CLAMP_TO_EDGE as GLint,
+            );
+            gl::TexParameteri(
+                gl::TEXTURE_2D,
+                gl::TEXTURE_WRAP_T,
+                gl::CLAMP_TO_EDGE as GLint,
+            );
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as GLint);
+        }
+        // Send Texture image data
+        unsafe {
+            gl::TexImage2D(
+                gl::TEXTURE_2D,
+                0,
+                gl::RGB as GLint,
+                width.try_into().unwrap(),
+                height.try_into().unwrap(),
+                0,
+                gl::RGB,
+                gl::UNSIGNED_BYTE,
+                bytes as _,
+            );
+        }
+        // Generate mipmap
+        unsafe { gl::GenerateMipmap(gl::TEXTURE_2D) }
+    }
+
     /* Shader */
     let shader_program = ShaderProgram::create_from_source(
-        include_str!("../../assets/shaders/002-uniform.vert"),
-        include_str!("../../assets/shaders/002-uniform.frag"),
+        include_str!("../../assets/shaders/003-texture.vert"),
+        include_str!("../../assets/shaders/003-texture.frag"),
     )
     .unwrap();
-
-    let uniform_color_name = CString::new("dyn_color").unwrap();
-    let uniform_color_location = shader_program.get_uniform_location(&uniform_color_name);
 
     shader_program.bind();
 
@@ -99,9 +138,16 @@ fn main() {
         Buffer::clear(BufferBit::ColorBufferBit as gl::types::GLbitfield);
 
         shader_program.bind();
-        let time = win.glfw.get_time() as f32;
-        let color = (time.sin() / 2.0) + 0.5;
-        shader_program.set_uniform_4f(uniform_color_location, color, color, color, color);
+
+        // Bind Texture beform draw call
+        unsafe {
+            gl::ActiveTexture(gl::TEXTURE0);
+            gl::BindTexture(gl::TEXTURE_2D, texture_container);
+            gl::Uniform1i(
+                gl::GetUniformLocation(shader_program.id, "t_container".as_ptr() as _),
+                0,
+            );
+        }
 
         vao.bind();
 

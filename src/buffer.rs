@@ -105,7 +105,6 @@ impl Buffer {
 
         for (index, element) in pointers.iter().enumerate() {
             unsafe {
-                gl::EnableVertexAttribArray(index as u32);
                 gl::VertexAttribPointer(
                     // attribute index
                     index as u32,
@@ -124,6 +123,7 @@ impl Buffer {
                     // I prefer the latter option.
                     offset as *const _,
                 );
+                gl::EnableVertexAttribArray(index as u32);
             }
 
             offset += element.count as u32 * element.get_type_size() as u32;
