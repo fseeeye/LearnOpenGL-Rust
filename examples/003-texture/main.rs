@@ -55,27 +55,25 @@ fn main() {
     let mut texture_container = 0;
     {
         // Load Texture
-        let img = image::open("assets/textures/container.jpg").unwrap();
+        let img = image::open("assets/textures/container.jpg")
+            .unwrap()
+            .flipv();
         let (width, height) = img.dimensions();
-        let bytes = img.into_bytes().as_ptr();
+        let pixels = img.into_bytes();
 
         // Generate Texture
         unsafe { gl::GenTextures(1, &mut texture_container) }
         assert_ne!(texture_container, 0);
-        // Bind Texture
-        unsafe { gl::BindTexture(gl::TEXTURE_2D, texture_container) }
+        // Active Texture unit
+        unsafe { gl::ActiveTexture(gl::TEXTURE0) } // unnecessary for TEXTURE 0
+                                                   // Bind Texture
+        unsafe {
+            gl::BindTexture(gl::TEXTURE_2D, texture_container);
+        }
         // Set Texture wrapping & filtering
         unsafe {
-            gl::TexParameteri(
-                gl::TEXTURE_2D,
-                gl::TEXTURE_WRAP_S,
-                gl::CLAMP_TO_EDGE as GLint,
-            );
-            gl::TexParameteri(
-                gl::TEXTURE_2D,
-                gl::TEXTURE_WRAP_T,
-                gl::CLAMP_TO_EDGE as GLint,
-            );
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as GLint);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as GLint);
         }
@@ -90,7 +88,50 @@ fn main() {
                 0,
                 gl::RGB,
                 gl::UNSIGNED_BYTE,
-                bytes as _,
+                pixels.as_ptr().cast(),
+            );
+        }
+        // Generate mipmap
+        unsafe { gl::GenerateMipmap(gl::TEXTURE_2D) }
+    }
+
+    let mut texture_face = 0;
+    {
+        // Load Texture
+        let img = image::open("assets/textures/awesomeface.png")
+            .unwrap()
+            .flipv();
+        let (width, height) = img.dimensions();
+        let pixels = img.into_bytes();
+
+        // Generate Texture
+        unsafe { gl::GenTextures(1, &mut texture_face) }
+        assert_ne!(texture_face, 0);
+        // Active Texture unit
+        unsafe { gl::ActiveTexture(gl::TEXTURE1) }
+        // Bind Texture
+        unsafe {
+            gl::BindTexture(gl::TEXTURE_2D, texture_face);
+        }
+        // Set Texture wrapping & filtering
+        unsafe {
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as GLint);
+        }
+        // Send Texture image data
+        unsafe {
+            gl::TexImage2D(
+                gl::TEXTURE_2D,
+                0,
+                gl::RGBA as GLint,
+                width.try_into().unwrap(),
+                height.try_into().unwrap(),
+                0,
+                gl::RGBA,
+                gl::UNSIGNED_BYTE,
+                pixels.as_ptr().cast(),
             );
         }
         // Generate mipmap
@@ -103,6 +144,19 @@ fn main() {
         include_str!("../../assets/shaders/003-texture.frag"),
     )
     .unwrap();
+
+    unsafe {
+        shader_program.bind();
+        // Bind sampler uniform var to spec texture unit
+        gl::Uniform1i(
+            gl::GetUniformLocation(shader_program.id, "t_container".as_ptr().cast()),
+            0,
+        ); // unnecessary for TEXTURE 0
+        gl::Uniform1i(
+            gl::GetUniformLocation(shader_program.id, "t_face".as_ptr().cast()),
+            1,
+        );
+    }
 
     Buffer::set_clear_color(0.2, 0.3, 0.3, 1.0);
 
@@ -133,16 +187,6 @@ fn main() {
         Buffer::clear(BufferBit::ColorBufferBit as gl::types::GLbitfield);
 
         shader_program.bind();
-
-        // Bind Texture beform draw call
-        unsafe {
-            /*gl::ActiveTexture(gl::TEXTURE0);*/
-            gl::BindTexture(gl::TEXTURE_2D, texture_container);
-            /*gl::Uniform1i(
-                gl::GetUniformLocation(shader_program.id, "t_container".as_ptr() as _),
-                0,
-            );*/
-        }
 
         vao.bind();
 
