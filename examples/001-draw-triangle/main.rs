@@ -7,6 +7,8 @@
 /// * Shader and `in` & `out` keyword
 /// * Draw call: `glDrawArrays()`
 /// It isn't involved about "Index Buffer" and "uniform" keyword in shader.
+use learn_opengl_rs as learn;
+
 use gl::types::*;
 use glfw::Context;
 use tracing::{debug, trace};
@@ -71,66 +73,51 @@ fn check_shader_link(shader_program: u32) {
 
 fn main() {
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
-        .with_max_level(tracing::Level::DEBUG)
+        .with_max_level(tracing::Level::TRACE)
         .finish();
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set default subscriber");
 
-    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
+    /* Window */
+    let mut win = learn::Window::new("Simple Triangle", 800, 600, glfw::WindowMode::Windowed)
+        .expect("Failed to create window.");
+    win.setup();
+    win.load_gl();
 
-    // Setting up GL Context in window: use OpenGL 3.3 with core profile
-    glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
-    glfw.window_hint(glfw::WindowHint::OpenGlProfile(
-        glfw::OpenGlProfileHint::Core,
-    ));
-    #[cfg(target_os = "macos")]
-    {
-        glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
-    }
-
-    // Make window
-    let (mut win, events) = glfw
-        .create_window(800, 600, "Simple Triangle", glfw::WindowMode::Windowed)
-        .unwrap();
-
-    // Setup window
-    win.make_current(); // `glfwMakeContextCurrent`
-    glfw.set_swap_interval(glfw::SwapInterval::Sync(1)); // Enable Vsync
-    win.set_all_polling(true); // start polling
-
-    // Load Gl Functions from window
-    gl::load_with(|symbol| win.get_proc_address(symbol));
-
+    /* Vertex data */
     type Vertex = [f32; 3]; // x, y, z in Normalized Device Context (NDC) coordinates
-    const TRIANGLE_VERTICES: [Vertex; 3] = [[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]];
-    let shader_program: u32;
+    const VERTICES: [Vertex; 3] = [[-0.5, -0.5, 0.0], [0.5, -0.5, 0.0], [0.0, 0.5, 0.0]];
+
+    /* Vertex Array Object */
+    // Generate VAO
+    let mut vao = 0;
     unsafe {
-        // Specify clear color
-        gl::ClearColor(0.2, 0.3, 0.3, 1.0);
-
-        /* Vertex Array Object */
-        // Generate VAO
-        let mut vao = 0;
         gl::GenVertexArrays(1, &mut vao);
-        assert_ne!(vao, 0);
-        // Bind VAO
-        gl::BindVertexArray(vao);
+    }
+    assert_ne!(vao, 0);
+    // Bind VAO
+    unsafe { gl::BindVertexArray(vao) }
 
-        /* Vertex Buffer Object */
-        // Generate VBO
-        let mut vbo = 0;
+    /* Vertex Buffer Object */
+    // Generate VBO
+    let mut vbo = 0;
+    unsafe {
         gl::GenBuffers(1, &mut vbo);
-        assert_ne!(vbo, 0);
+    }
+    assert_ne!(vbo, 0);
+    unsafe {
         // Bind VBO as ARRAY_BUFFER
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
         // Set buffer data
         gl::BufferData(
             gl::ARRAY_BUFFER,
-            core::mem::size_of_val(&TRIANGLE_VERTICES) as isize,
-            TRIANGLE_VERTICES.as_ptr().cast(),
+            core::mem::size_of_val(&VERTICES) as isize,
+            VERTICES.as_ptr().cast(),
             gl::STATIC_DRAW,
         );
+    }
 
-        /* Vertex Attribute */
+    /* Vertex Attribute */
+    unsafe {
         gl::VertexAttribPointer(
             // attribute index 0 is the target
             0,
@@ -149,65 +136,81 @@ fn main() {
             0 as _,
         );
         gl::EnableVertexAttribArray(0);
+    }
 
-        /* Shader */
-        const VERTEX_SHADER: &str = include_str!("../../assets/shaders/solid.vert.glsl");
-        const FRAGMENT_SHADER: &str = include_str!("../../assets/shaders/solid.frag.glsl");
+    /* Shader */
+    const VERTEX_SHADER: &str = include_str!("../../assets/shaders/001-solid.vert");
+    const FRAGMENT_SHADER: &str = include_str!("../../assets/shaders/001-solid.frag");
 
-        // Make vertex & fragment shader
-        let vertex_shader = gl::CreateShader(gl::VERTEX_SHADER);
-        assert_ne!(vertex_shader, 0);
+    // Make vertex & fragment shader
+    let vertex_shader = unsafe { gl::CreateShader(gl::VERTEX_SHADER) };
+    assert_ne!(vertex_shader, 0);
+    unsafe {
         gl::ShaderSource(
             vertex_shader,
             1,
             &(VERTEX_SHADER.as_bytes().as_ptr().cast()),
             &(VERTEX_SHADER.len().try_into().unwrap()),
         );
-        let fragment_shader = gl::CreateShader(gl::FRAGMENT_SHADER);
-        assert_ne!(fragment_shader, 0);
+    }
+    let fragment_shader = unsafe { gl::CreateShader(gl::FRAGMENT_SHADER) };
+    assert_ne!(fragment_shader, 0);
+    unsafe {
         gl::ShaderSource(
             fragment_shader,
             1,
             &(FRAGMENT_SHADER.as_bytes().as_ptr().cast()),
             &(FRAGMENT_SHADER.len().try_into().unwrap()),
         );
+    }
 
+    unsafe {
         // Compile vertex & fragment shader
         gl::CompileShader(vertex_shader);
         gl::CompileShader(fragment_shader);
+    }
+    // Check shader object compile result
+    check_shader_compile(vertex_shader);
+    check_shader_compile(fragment_shader);
 
-        // Check shader object compile result
-        check_shader_compile(vertex_shader);
-        check_shader_compile(fragment_shader);
-
-        // Create/Attach/Link shader program
-        shader_program = gl::CreateProgram();
+    /* Shader Program */
+    // Create/Attach/Link shader program
+    let shader_program = unsafe { gl::CreateProgram() };
+    unsafe {
         gl::AttachShader(shader_program, vertex_shader);
         gl::AttachShader(shader_program, fragment_shader);
         gl::LinkProgram(shader_program);
+    }
+    // Check shader program link result
+    check_shader_link(shader_program);
 
-        // Check shader program link result
-        check_shader_link(shader_program);
-
+    unsafe {
         // Delete shader object after link
         gl::DeleteShader(vertex_shader);
         gl::DeleteShader(fragment_shader);
 
-        // Bind shader program
         gl::UseProgram(shader_program);
     }
 
-    // Main Loop
+    // Specify clear color
+    unsafe { gl::ClearColor(0.2, 0.3, 0.3, 1.0) }
+
+    /* Main Loop */
     'main_loop: loop {
-        if win.should_close() {
+        if win.inner_win.should_close() {
             break;
         }
 
         /* Handle events of this frame */
-        glfw.poll_events();
-        for (_timestamp, event) in glfw::flush_messages(&events) {
+        win.glfw.poll_events();
+        for (_timestamp, event) in glfw::flush_messages(&win.events) {
             match event {
                 glfw::WindowEvent::Close => break 'main_loop,
+                glfw::WindowEvent::Key(key, _scancode, action, _modifier) => {
+                    if key == glfw::Key::Escape && action == glfw::Action::Press {
+                        win.inner_win.set_should_close(true);
+                    }
+                }
                 glfw::WindowEvent::Size(w, h) => {
                     trace!("Resizing to ({}, {})", w, h);
                 }
@@ -220,20 +223,19 @@ fn main() {
             // Clear bits
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
+            // Bind shader program
+            gl::UseProgram(shader_program);
+
+            // Bind VAO
+            gl::BindVertexArray(vao);
+
             // Draw call
-            gl::DrawArrays(
-                gl::TRIANGLES,
-                0,
-                TRIANGLE_VERTICES.len().try_into().unwrap(),
-            );
+            gl::DrawArrays(gl::TRIANGLES, 0, VERTICES.len().try_into().unwrap());
         }
-        // Swap buffers of window
-        win.swap_buffers();
+
+        win.inner_win.swap_buffers();
     }
 
-    unsafe {
-        gl::DeleteProgram(shader_program);
-    }
+    unsafe { gl::DeleteProgram(shader_program) }
     win.close();
-    drop(glfw); // this will call `glfwTerminate`
 }

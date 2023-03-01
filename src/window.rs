@@ -1,13 +1,13 @@
 use std::{ffi::CStr, sync::mpsc};
 
 use glfw::Context;
-use tracing::{info, instrument};
+use tracing::info;
 
 #[derive(Debug)]
 pub struct Window {
-    glfw: glfw::Glfw,
-    inner_win: glfw::Window,
-    events: mpsc::Receiver<(f64, glfw::WindowEvent)>,
+    pub glfw: glfw::Glfw,
+    pub inner_win: glfw::Window,
+    pub events: mpsc::Receiver<(f64, glfw::WindowEvent)>,
 }
 
 impl Window {
@@ -50,7 +50,6 @@ impl Window {
     }
 
     /// Load Gl Functions from window
-    #[instrument]
     pub fn load_gl(&mut self) {
         gl::load_with(|symbol| self.inner_win.get_proc_address(symbol));
 
@@ -72,20 +71,6 @@ impl Window {
                 "Load OpenGL sucessfully!"
             );
         }
-    }
-
-    pub fn swap_buffers(&mut self) {
-        self.inner_win.swap_buffers();
-    }
-
-    pub fn poll_events(&mut self) -> glfw::FlushedMessages<(f64, glfw::WindowEvent)> {
-        self.glfw.poll_events();
-
-        glfw::flush_messages(&self.events)
-    }
-
-    pub fn should_close(&self) -> bool {
-        self.inner_win.should_close()
     }
 
     pub fn close(self) {

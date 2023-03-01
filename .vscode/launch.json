@@ -1,0 +1,84 @@
+{
+    // ref: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in library 'learn-opengl-rs'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--lib",
+                    "--package=learn-opengl-rs"
+                ],
+                "filter": {
+                    "name": "learn-opengl-rs",
+                    "kind": "lib"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": ["rust"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example '001-draw-triangle'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=001-draw-triangle",
+                    "--package=learn-opengl-rs"
+                ],
+                "filter": {
+                    "name": "001-draw-triangle",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": ["rust"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests in example '001-draw-triangle'",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run",
+                    "--example=001-draw-triangle",
+                    "--package=learn-opengl-rs"
+                ],
+                "filter": {
+                    "name": "001-draw-triangle",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": ["rust"]
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example '003-texture'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=003-texture",
+                    "--package=learn-opengl-rs"
+                ],
+                "filter": {
+                    "name": "003-texture",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": ["rust"]
+        },
+    ]
+}
