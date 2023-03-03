@@ -1,5 +1,6 @@
 use std::{ffi::CStr, sync::mpsc};
 
+use anyhow::bail;
 use glfw::Context;
 use tracing::info;
 
@@ -11,10 +12,15 @@ pub struct Window {
 }
 
 impl Window {
-    pub fn new(title: &str, width: u32, height: u32, mode: glfw::WindowMode) -> Option<Self> {
+    pub fn new(
+        title: &str,
+        width: u32,
+        height: u32,
+        mode: glfw::WindowMode,
+    ) -> anyhow::Result<Self> {
         let mut glfw = match glfw::init(glfw::FAIL_ON_ERRORS) {
             Ok(glfw) => glfw,
-            Err(_) => return None,
+            Err(e) => bail!("GLFW window init error: {e}"),
         };
 
         // Setting up GL Context in window: use OpenGL 3.3 with core profile
@@ -30,7 +36,7 @@ impl Window {
         // Make window
         let (win, events) = glfw.create_window(width, height, title, mode).unwrap();
 
-        Some(Self {
+        Ok(Self {
             glfw,
             inner_win: win,
             events,

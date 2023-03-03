@@ -2,16 +2,11 @@
 
 use anyhow::Ok;
 use learn::{
-    Buffer, BufferBit, BufferType, BufferUsage, ShaderProgram, VertexArray, VertexDescription,
+    Buffer, BufferBit, BufferType, BufferUsage, ShaderProgram, Texture, TextureFormat, TextureUnit,
+    VertexArray, VertexDescription,
 };
-/// This example is about how to draw a simple quad.
-/// It is involved about:
-/// * Index Buffer Object
-/// * Shader uniform
-/// * Draw call: `DrawElements()`
+/// This example is about how to use `Texture` in OpenGL.
 use learn_opengl_rs as learn;
-
-use std::ffi::CString;
 
 use glfw::Context;
 use tracing::trace;
@@ -28,13 +23,13 @@ fn main() -> anyhow::Result<()> {
     win.load_gl();
 
     /* Vertex data */
-    type Vertex = [f32; 3]; // x, y, z in Normalized Device Context (NDC) coordinates
+    type Vertex = [f32; 3 + 2]; // NDC coords(3) + texture coords(3)
     type TriIndexes = [u32; 3]; // vertex indexes for a triangle primitive
     const VERTICES: [Vertex; 4] = [
-        [0.5, 0.5, 0.0],
-        [0.5, -0.5, 0.0],
-        [-0.5, -0.5, 0.0],
-        [-0.5, 0.5, 0.0],
+        [0.5, 0.5, 0.0, 1.0, 1.0],
+        [0.5, -0.5, 0.0, 1.0, 0.0],
+        [-0.5, -0.5, 0.0, 0.0, 0.0],
+        [-0.5, 0.5, 0.0, 0.0, 1.0],
     ];
     const INDICES: [TriIndexes; 2] = [[1, 2, 3], [0, 1, 3]];
 
@@ -47,38 +42,35 @@ fn main() -> anyhow::Result<()> {
 
     /* Vertex Attribute description */
     let mut vertex_desc = VertexDescription::new();
-    vertex_desc.push(gl::FLOAT, 3); // Vertex is [f32; 3]
+    vertex_desc.push(gl::FLOAT, 3); // push NDC coords
+    vertex_desc.push(gl::FLOAT, 2); // push texture coords
     vbo.set_vertex_description(&vertex_desc, Some(&vao));
 
     /* Index Buffer Object */
-    // Generate IBO
-    let mut ibo = 0;
-    unsafe {
-        gl::GenBuffers(1, &mut ibo);
-    }
-    assert_ne!(ibo, 0);
-    unsafe {
-        // Bind IBO as ELEMENT_ARRAY_BUFFER
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ibo);
-        // Set buffer data
-        gl::BufferData(
-            gl::ELEMENT_ARRAY_BUFFER,
-            core::mem::size_of_val(&INDICES) as isize,
-            INDICES.as_ptr().cast(),
-            gl::STATIC_DRAW,
-        );
-    }
+    let ibo = Buffer::new(BufferType::ElementArray)?;
+    ibo.set_buffer_data(bytemuck::cast_slice(&INDICES), BufferUsage::StaticDraw);
 
     /* Shader */
     let shader_program = ShaderProgram::create_from_source(
-        include_str!("../../assets/shaders/002-uniform.vert"),
-        include_str!("../../assets/shaders/002-uniform.frag"),
+        include_str!("../../assets/shaders/003-texture.vert"),
+        include_str!("../../assets/shaders/003-texture.frag"),
     )?;
 
-    // Get uniform location
-    let uniform_color_name = CString::new("dyn_color")?;
-    let uniform_color_location =
-        unsafe { gl::GetUniformLocation(shader_program.id, uniform_color_name.as_ptr()) };
+    /* Texture */
+    let texture_container = Texture::create(
+        "assets/textures/container.jpg",
+        TextureFormat::RGB,
+        TextureUnit::TEXTURE0,
+    )?;
+    let texture_face = Texture::create(
+        "assets/textures/awesomeface.png",
+        TextureFormat::RGBA,
+        TextureUnit::TEXTURE1,
+    )?;
+    texture_container.active();
+    texture_face.active();
+    texture_container.bind_texture_unit("t_container", &shader_program);
+    texture_face.bind_texture_unit("t_face", &shader_program);
 
     /* Extra Settings */
     Buffer::set_clear_color(0.2, 0.3, 0.3, 1.0);
@@ -110,20 +102,12 @@ fn main() -> anyhow::Result<()> {
         Buffer::clear(BufferBit::ColorBufferBit as gl::types::GLbitfield);
 
         shader_program.bind();
-        // Send uniform value - 'dynamic color'
-        let time = win.glfw.get_time() as f32;
-        let color = (time.sin() / 2.0) + 0.5;
-        unsafe {
-            gl::Uniform4f(uniform_color_location, color, color, color, color);
-        }
 
         vao.bind();
 
-        unsafe {
-            // Bind IBO
-            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ibo);
+        ibo.bind();
 
-            // Draw call
+        unsafe {
             gl::DrawElements(
                 gl::TRIANGLES,
                 INDICES.len() as i32 * 3,
