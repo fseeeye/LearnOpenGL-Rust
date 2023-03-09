@@ -70,8 +70,6 @@ fn main() -> anyhow::Result<()> {
         // Generate Texture
         unsafe { gl::GenTextures(1, &mut texture_container) }
         assert_ne!(texture_container, 0);
-        // Active Texture unit, unnecessary for TEXTURE 0
-        unsafe { gl::ActiveTexture(gl::TEXTURE0) }
         // Bind Texture
         unsafe { gl::BindTexture(gl::TEXTURE_2D, texture_container) }
         // Set Texture wrapping & filtering
@@ -111,8 +109,6 @@ fn main() -> anyhow::Result<()> {
         // Generate Texture
         unsafe { gl::GenTextures(1, &mut texture_face) }
         assert_ne!(texture_face, 0);
-        // Active Texture unit
-        unsafe { gl::ActiveTexture(gl::TEXTURE1) }
         // Bind Texture
         unsafe { gl::BindTexture(gl::TEXTURE_2D, texture_face) }
         // Set Texture wrapping & filtering
@@ -139,6 +135,16 @@ fn main() -> anyhow::Result<()> {
         // Generate mipmap
         unsafe { gl::GenerateMipmap(gl::TEXTURE_2D) }
     }
+
+    // Active Texture Unit0, unnecessary for TEXTURE 0
+    unsafe { gl::ActiveTexture(gl::TEXTURE0) }
+    // Bind Texture to Unit0
+    unsafe { gl::BindTexture(gl::TEXTURE_2D, texture_container) }
+
+    // Active Texture Unit1
+    unsafe { gl::ActiveTexture(gl::TEXTURE1) }
+    // Bind Texture to Unit1
+    unsafe { gl::BindTexture(gl::TEXTURE_2D, texture_face) }
 
     unsafe {
         shader_program.bind();

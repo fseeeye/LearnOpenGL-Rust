@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::ffi::CString;
+
 use anyhow::Ok;
 use learn::{
     Buffer, BufferBit, BufferType, BufferUsage, ShaderProgram, Texture, TextureFormat, TextureUnit,
@@ -7,9 +9,13 @@ use learn::{
 };
 /// This example is about how to use `Texture` in OpenGL.
 use learn_opengl_rs as learn;
+use nalgebra as na;
 
 use glfw::Context;
 use tracing::trace;
+
+const SCREEN_WIDTH: u32 = 800;
+const SCREEN_HEIGHT: u32 = 600;
 
 fn main() -> anyhow::Result<()> {
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
@@ -18,7 +24,12 @@ fn main() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(subscriber)?;
 
     /* Window */
-    let mut win = learn::Window::new("Simple Triangle", 800, 600, glfw::WindowMode::Windowed)?;
+    let mut win = learn::Window::new(
+        "Simple Triangle",
+        SCREEN_WIDTH,
+        SCREEN_HEIGHT,
+        glfw::WindowMode::Windowed,
+    )?;
     win.setup();
     win.load_gl();
 
@@ -52,9 +63,50 @@ fn main() -> anyhow::Result<()> {
 
     /* Shader */
     let shader_program = ShaderProgram::create_from_source(
-        include_str!("../../assets/shaders/003-texture.vert"),
-        include_str!("../../assets/shaders/003-texture.frag"),
+        include_str!("../../assets/shaders/004-transform.vert"),
+        include_str!("../../assets/shaders/004-transform.frag"),
     )?;
+
+    /* Transform Matrixes */
+    shader_program.bind();
+    // Model Matrix
+    let model_matrix = na::Rotation3::from_axis_angle(
+        &na::Vector3::x_axis(),
+        -std::f32::consts::PI / 180.0 * 55.0,
+    )
+    .to_homogeneous();
+    let model_loc = unsafe {
+        gl::GetUniformLocation(
+            shader_program.id,
+            CString::new("model")?.as_c_str().as_ptr(),
+        )
+    };
+    println!("{:?}", learn::get_gl_error());
+    unsafe { gl::UniformMatrix4fv(model_loc, 1, gl::FALSE, model_matrix.as_ptr()) };
+    println!("{:?}", learn::get_gl_error());
+
+    // View Matrix
+    let view_matrix = na::Translation3::new(0.0, 0.0, -3.0).to_homogeneous();
+    // let view_matrix = ultraviolet::Mat4::from_translation(ultraviolet::Vec3::new(0.0, 0.5, 0.0));
+    let view_loc =
+        unsafe { gl::GetUniformLocation(shader_program.id, CString::new("view")?.as_ptr().cast()) };
+    unsafe { gl::UniformMatrix4fv(view_loc, 1, gl::FALSE, view_matrix.as_ptr()) };
+
+    // Projection Matrix
+    let projection_matrix = na::Perspective3::new(
+        (SCREEN_WIDTH as f32) / (SCREEN_HEIGHT as f32),
+        std::f32::consts::FRAC_PI_4,
+        0.1,
+        100.0,
+    )
+    .to_homogeneous(); // Perspective projection
+    let projection_loc = unsafe {
+        gl::GetUniformLocation(
+            shader_program.id,
+            CString::new("projection")?.as_ptr().cast(),
+        )
+    };
+    unsafe { gl::UniformMatrix4fv(projection_loc, 1, gl::FALSE, projection_matrix.as_ptr()) };
 
     /* Texture */
     let texture_container = Texture::create(
@@ -69,8 +121,8 @@ fn main() -> anyhow::Result<()> {
     )?;
     texture_container.active();
     texture_face.active();
-    texture_container.bind_texture_unit("t_container", &shader_program);
     texture_face.bind_texture_unit("t_face", &shader_program);
+    texture_container.bind_texture_unit("t_container", &shader_program);
 
     /* Extra Settings */
     Buffer::set_clear_color(0.2, 0.3, 0.3, 1.0);

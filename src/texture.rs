@@ -1,4 +1,5 @@
-use anyhow::bail;
+use std::ffi::CString;
+
 use gl::types::*;
 use image::GenericImageView;
 
@@ -150,27 +151,15 @@ impl Texture {
         self.unit = texture_unit;
     }
 
-    #[allow(dead_code)]
-    fn texture_unit_to_int(texture_unit: GLenum) -> anyhow::Result<GLint> {
-        match texture_unit {
-            gl::TEXTURE0 => Ok(0),
-            gl::TEXTURE1 => Ok(1),
-            gl::TEXTURE2 => Ok(2),
-            gl::TEXTURE3 => Ok(3),
-            gl::TEXTURE4 => Ok(4),
-            gl::TEXTURE5 => Ok(5),
-            gl::TEXTURE6 => Ok(6),
-            gl::TEXTURE7 => Ok(7),
-            gl::TEXTURE8 => Ok(8),
-            gl::TEXTURE9 => Ok(9),
-            gl::TEXTURE10 => Ok(10),
-            gl::TEXTURE11 => Ok(11),
-            gl::TEXTURE12 => Ok(12),
-            gl::TEXTURE13 => Ok(13),
-            gl::TEXTURE14 => Ok(14),
-            gl::TEXTURE15 => Ok(15),
-            _ => bail!("Texture unit is longer than 15 or unknow: {}", texture_unit),
+    /// Active texture unit/slot and Bind this Texture Object to it.
+    pub fn active(&self) {
+        // Active Texture unit
+        unsafe {
+            gl::ActiveTexture(self.unit.into()) // unnecessary for TEXTURE 0
         }
+
+        // Bind Texture
+        unsafe { gl::BindTexture(gl::TEXTURE_2D, self.id) }
     }
 
     /// Bind Texture unit/slot to spec uniform sampler of spec shader program.
@@ -183,20 +172,12 @@ impl Texture {
         // Bind sampler uniform var to spec texture unit
         unsafe {
             gl::Uniform1i(
-                gl::GetUniformLocation(shader_program.id, uniform_name.as_ptr().cast()),
+                gl::GetUniformLocation(
+                    shader_program.id,
+                    CString::new(uniform_name).unwrap().as_c_str().as_ptr(),
+                ),
                 self.unit.into(),
             ); // unnecessary for TEXTURE 0
         }
-    }
-
-    /// Active texture unit/slot and Bind this Texture Object to it.
-    pub fn active(&self) {
-        // Active Texture unit
-        unsafe {
-            gl::ActiveTexture(self.unit.into()) // unnecessary for TEXTURE 0
-        }
-
-        // Bind Texture
-        unsafe { gl::BindTexture(gl::TEXTURE_2D, self.id) }
     }
 }
