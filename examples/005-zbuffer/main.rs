@@ -75,19 +75,13 @@ fn main() -> anyhow::Result<()> {
         -std::f32::consts::PI / 180.0 * 55.0,
     )
     .to_homogeneous();
-    let model_loc = unsafe {
-        gl::GetUniformLocation(
-            shader_program.id,
-            CString::new("model")?.as_c_str().as_ptr(),
-        )
-    };
-    unsafe { gl::UniformMatrix4fv(model_loc, 1, gl::FALSE, model_matrix.as_ptr()) };
+    let model_name = CString::new("model")?;
+    shader_program.set_uniform_mat4fv(model_name.as_c_str(), model_matrix.as_ptr());
 
     // View Matrix
     let view_matrix = na::Translation3::new(0.0, 0.0, -3.0).to_homogeneous();
-    let view_loc =
-        unsafe { gl::GetUniformLocation(shader_program.id, CString::new("view")?.as_ptr().cast()) };
-    unsafe { gl::UniformMatrix4fv(view_loc, 1, gl::FALSE, view_matrix.as_ptr()) };
+    let view_name = CString::new("view")?;
+    shader_program.set_uniform_mat4fv(view_name.as_c_str(), view_matrix.as_ptr());
 
     // Projection Matrix
     let projection_matrix = na::Perspective3::new(
@@ -97,13 +91,8 @@ fn main() -> anyhow::Result<()> {
         100.0,
     )
     .to_homogeneous(); // Perspective projection
-    let projection_loc = unsafe {
-        gl::GetUniformLocation(
-            shader_program.id,
-            CString::new("projection")?.as_ptr().cast(),
-        )
-    };
-    unsafe { gl::UniformMatrix4fv(projection_loc, 1, gl::FALSE, projection_matrix.as_ptr()) };
+    let projection_name = CString::new("projection")?;
+    shader_program.set_uniform_mat4fv(projection_name.as_c_str(), projection_matrix.as_ptr());
 
     /* Texture */
     let texture_container = Texture::create(

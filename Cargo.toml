@@ -12,8 +12,8 @@ tracing = "0.1.37" # logger
 thiserror = "1" # error derive macro
 anyhow = "1" # error handling
 image = "0.24.5" # image processing
+nalgebra = "0.32.1" # Linear algebra
 
 [dev-dependencies]
-nalgebra = "0.32.1" # Linear algebra
 bytemuck = "1.13.0" # bit cast
 tracing-subscriber = "0.3.16" # Utilities for implementing and composing tracing subscribers.

@@ -250,14 +250,40 @@ impl ShaderProgram {
 
     /// wrap `glGetUniformLocation`
     pub fn get_uniform_location(&self, uniform_name: &CStr) -> i32 {
-        unsafe { gl::GetUniformLocation(self.id, uniform_name.as_ptr()) }
+        let rst = unsafe { gl::GetUniformLocation(self.id, uniform_name.as_ptr().cast()) };
+
+        if let Some(e) = crate::get_gl_error() {
+            println!("{:?}", e);
+        };
+
+        return rst;
     }
 
-    /// Send uniform data, it'll call `bind()` automatically.
+    /// Send uniform data: 4f
     ///
-    /// wrap `glUniform*`
-    pub fn set_uniform_4f(&self, uniform_location: i32, v0: f32, v1: f32, v2: f32, v3: f32) {
+    /// wrap `glUniform4f`
+    /// 
+    /// Tips: it'll call `bind()` automatically.
+    pub fn set_uniform_4f(&self, uniform_name: &CStr, v0: f32, v1: f32, v2: f32, v3: f32) {
+        let uniform_loc = self.get_uniform_location(uniform_name);
+
         self.bind();
-        unsafe { gl::Uniform4f(uniform_location, v0, v1, v2, v3) }
+        unsafe { gl::Uniform4f(uniform_loc, v0, v1, v2, v3) }
+    }
+
+    /// Send uniform data: mat4fv
+    ///
+    /// wrap `UniformMatrix4fv`
+    /// 
+    /// Tips: it'll call `bind()` automatically.
+    pub fn set_uniform_mat4fv(&self, uniform_name: &CStr, matrix: *const GLfloat) {
+        self.bind();
+        let uniform_loc = self.get_uniform_location(uniform_name);
+        
+        unsafe { gl::UniformMatrix4fv(uniform_loc, 1, gl::FALSE, matrix) };
+
+        if let Some(e) = crate::get_gl_error() {
+            println!("{:?}", e);
+        };
     }
 }
