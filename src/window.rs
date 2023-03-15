@@ -83,4 +83,8 @@ impl Window {
         self.inner_win.close();
         drop(self.glfw);
     }
+
+    pub fn get_time(&self) -> f64 {
+        self.glfw.get_time()
+    }
 }
