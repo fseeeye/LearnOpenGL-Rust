@@ -2,17 +2,16 @@
 
 use std::ffi::CString;
 
+/// This example is about how to use MVP Transform in OpenGL.
 use anyhow::Ok;
 use learn::{
     Buffer, BufferBit, BufferType, BufferUsage, ShaderProgram, Texture, TextureFormat, TextureUnit,
     VertexArray, VertexDescription,
 };
-/// This example is about how to use `Texture` in OpenGL.
 use learn_opengl_rs as learn;
 use nalgebra as na;
 
 use glfw::Context;
-use tracing::trace;
 
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
@@ -131,21 +130,9 @@ fn main() -> anyhow::Result<()> {
         }
 
         /* Handle events of this frame */
-        win.glfw.poll_events();
-        for (_timestamp, event) in glfw::flush_messages(&win.events) {
-            match event {
-                glfw::WindowEvent::Close => break 'main_loop,
-                glfw::WindowEvent::Key(key, _scancode, action, _modifier) => {
-                    if key == glfw::Key::Escape && action == glfw::Action::Press {
-                        win.inner_win.set_should_close(true);
-                    }
-                }
-                glfw::WindowEvent::Size(w, h) => {
-                    trace!("Resizing to ({}, {})", w, h);
-                }
-                _ => (),
-            }
-        }
+        if win.handle_events() == false {
+            break 'main_loop;
+        };
 
         /* On Update (Drawing) */
         Buffer::clear(BufferBit::ColorBufferBit as gl::types::GLbitfield);

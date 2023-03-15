@@ -56,7 +56,7 @@ pub fn get_gl_error() -> Option<OpenGlError> {
         gl::OUT_OF_MEMORY => Some(OpenGlError::OutOfMemory),
         gl::INVALID_FRAMEBUFFER_OPERATION => Some(OpenGlError::InvalidFramebufferOperation),
         _ => {
-            panic!("Unknow GlError: {}", err);
+            panic!("Unknow GlError: {err}");
         }
     }
 }

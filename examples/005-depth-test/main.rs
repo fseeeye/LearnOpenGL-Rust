@@ -2,18 +2,17 @@
 
 use std::ffi::CString;
 
+/// This example is about how to enable Depth Test. It will show multiple cubes.
 use anyhow::Ok;
 use gl::types::*;
 use learn::{
     Buffer, BufferBit, BufferType, BufferUsage, ShaderProgram, Texture, TextureFormat, TextureUnit,
     VertexArray, VertexDescription,
 };
-/// This example is about how to use `Texture` in OpenGL.
 use learn_opengl_rs as learn;
 use nalgebra as na;
 
 use glfw::Context;
-use tracing::trace;
 
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
@@ -79,6 +78,18 @@ fn main() -> anyhow::Result<()> {
         [-0.5, 0.5, 0.5, 0.0, 0.0],
         [-0.5, 0.5, -0.5, 0.0, 1.0],
     ];
+    const CUBE_POSTIONS: [na::Vector3<f32>; 10] = [
+        na::Vector3::new(0.0, 0.0, 0.0),
+        na::Vector3::new(2.0, 5.0, -15.0),
+        na::Vector3::new(-1.5, -2.2, -2.5),
+        na::Vector3::new(-3.8, -2.0, -12.3),
+        na::Vector3::new(2.4, -0.4, -3.5),
+        na::Vector3::new(-1.7, 3.0, -7.5),
+        na::Vector3::new(1.3, -2.0, -2.5),
+        na::Vector3::new(1.5, 2.0, -2.5),
+        na::Vector3::new(1.5, 0.2, -1.5),
+        na::Vector3::new(-1.3, 1.0, -1.5),
+    ];
 
     /* Vertex Array Object */
     let vao = VertexArray::new()?;
@@ -127,21 +138,9 @@ fn main() -> anyhow::Result<()> {
         }
 
         /* Handle events of this frame */
-        win.glfw.poll_events();
-        for (_timestamp, event) in glfw::flush_messages(&win.events) {
-            match event {
-                glfw::WindowEvent::Close => break 'main_loop,
-                glfw::WindowEvent::Key(key, _scancode, action, _modifier) => {
-                    if key == glfw::Key::Escape && action == glfw::Action::Press {
-                        win.inner_win.set_should_close(true);
-                    }
-                }
-                glfw::WindowEvent::Size(w, h) => {
-                    trace!("Resizing to ({}, {})", w, h);
-                }
-                _ => (),
-            }
-        }
+        if win.handle_events() == false {
+            break 'main_loop;
+        };
 
         /* On Update (Drawing) */
         Buffer::clear(
@@ -153,19 +152,10 @@ fn main() -> anyhow::Result<()> {
 
         vao.bind();
 
-        // Model Matrix
-        let model_matrix = na::Rotation3::from_axis_angle(
-            &na::Unit::new_normalize(na::Vector3::new(0.5, 1.0, 0.0)),
-            -std::f32::consts::PI / 3.0 * (win.get_time() as f32),
-        )
-        .to_homogeneous();
-        let model_name = CString::new("model")?;
-        shader_program.set_uniform_mat4fv(model_name.as_c_str(), model_matrix.as_ptr());
-
         // View Matrix
         let view_matrix = na::Translation3::new(0.0, 0.0, -3.0).to_homogeneous();
         let view_name = CString::new("view")?;
-        shader_program.set_uniform_mat4fv(view_name.as_c_str(), view_matrix.as_ptr());
+        shader_program.set_uniform_mat4fv(view_name.as_c_str(), &view_matrix);
 
         // Projection Matrix
         let projection_matrix = na::Perspective3::new(
@@ -176,10 +166,24 @@ fn main() -> anyhow::Result<()> {
         )
         .to_homogeneous(); // Perspective projection
         let projection_name = CString::new("projection")?;
-        shader_program.set_uniform_mat4fv(projection_name.as_c_str(), projection_matrix.as_ptr());
+        shader_program.set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
 
-        unsafe {
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+        for cube_position in CUBE_POSTIONS {
+            // Model Matrix
+            let model_matrix_rotation = na::Rotation3::from_axis_angle(
+                &na::Unit::new_normalize(na::Vector3::new(0.5, 1.0, 0.0)),
+                -std::f32::consts::PI / 3.0 * (win.get_time() as f32),
+            )
+            .to_homogeneous();
+            let model_matrix_transform = na::Translation3::from(cube_position).to_homogeneous();
+            let model_matrix = model_matrix_transform * model_matrix_rotation;
+            let model_name = CString::new("model")?;
+            shader_program.set_uniform_mat4fv(model_name.as_c_str(), &model_matrix);
+
+            // Draw
+            unsafe {
+                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            }
         }
 
         // Swap buffers of window

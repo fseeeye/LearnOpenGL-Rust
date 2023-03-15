@@ -2,6 +2,7 @@ use std::ffi::CStr;
 
 use anyhow::bail;
 use gl::types::*;
+use nalgebra as na;
 
 use crate::get_gl_error;
 
@@ -270,10 +271,14 @@ impl ShaderProgram {
     /// wrap `UniformMatrix4fv`
     ///
     /// Tips: it'll call `bind()` automatically.
-    pub fn set_uniform_mat4fv(&self, uniform_name: &CStr, matrix: *const GLfloat) {
+    pub fn set_uniform_mat4fv(
+        &self,
+        uniform_name: &CStr,
+        matrix: &na::OMatrix<f32, na::Const<4>, na::Const<4>>,
+    ) {
         self.bind();
         let uniform_loc = self.get_uniform_location(uniform_name);
-        
-        unsafe { gl::UniformMatrix4fv(uniform_loc, 1, gl::FALSE, matrix) };
+
+        unsafe { gl::UniformMatrix4fv(uniform_loc, 1, gl::FALSE, matrix.as_ptr()) };
     }
 }

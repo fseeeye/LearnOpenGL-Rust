@@ -2,7 +2,7 @@ use std::{ffi::CStr, sync::mpsc};
 
 use anyhow::bail;
 use glfw::Context;
-use tracing::info;
+use tracing::{info, trace};
 
 #[derive(Debug)]
 pub struct Window {
@@ -86,5 +86,25 @@ impl Window {
 
     pub fn get_time(&self) -> f64 {
         self.glfw.get_time()
+    }
+
+    pub fn handle_events(&mut self) -> bool {
+        self.glfw.poll_events();
+        for (_timestamp, event) in glfw::flush_messages(&self.events) {
+            match event {
+                glfw::WindowEvent::Close => return false,
+                glfw::WindowEvent::Key(key, _scancode, action, _modifier) => {
+                    if key == glfw::Key::Escape && action == glfw::Action::Press {
+                        self.inner_win.set_should_close(true);
+                    }
+                }
+                glfw::WindowEvent::Size(w, h) => {
+                    trace!("Resizing to ({}, {})", w, h);
+                }
+                _ => (),
+            }
+        }
+
+        true
     }
 }

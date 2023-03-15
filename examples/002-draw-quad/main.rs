@@ -14,7 +14,6 @@ use learn_opengl_rs as learn;
 use std::ffi::CString;
 
 use glfw::Context;
-use tracing::trace;
 
 fn main() -> anyhow::Result<()> {
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
@@ -90,21 +89,9 @@ fn main() -> anyhow::Result<()> {
         }
 
         /* Handle events of this frame */
-        win.glfw.poll_events();
-        for (_timestamp, event) in glfw::flush_messages(&win.events) {
-            match event {
-                glfw::WindowEvent::Close => break 'main_loop,
-                glfw::WindowEvent::Key(key, _scancode, action, _modifier) => {
-                    if key == glfw::Key::Escape && action == glfw::Action::Press {
-                        win.inner_win.set_should_close(true);
-                    }
-                }
-                glfw::WindowEvent::Size(w, h) => {
-                    trace!("Resizing to ({}, {})", w, h);
-                }
-                _ => (),
-            }
-        }
+        if win.handle_events() == false {
+            break 'main_loop;
+        };
 
         /* On Update (Drawing) */
         Buffer::clear(BufferBit::ColorBufferBit as gl::types::GLbitfield);
