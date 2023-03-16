@@ -168,7 +168,7 @@ fn main() -> anyhow::Result<()> {
         }
 
         /* Handle events of this frame */
-        if win.handle_events() == false {
+        if !win.handle_events() {
             break 'main_loop;
         };
 

@@ -48,6 +48,10 @@ fn main() -> anyhow::Result<()> {
     let mut vertex_desc = VertexDescription::new();
     vertex_desc.push(gl::FLOAT, 3); // Vertex is [f32; 3]
     vbo.set_vertex_description(&vertex_desc, Some(&vao));
+    /* Vertex Attribute description */
+    let mut vertex_desc = VertexDescription::new();
+    vertex_desc.push(gl::FLOAT, 3); // Vertex is [f32; 3]
+    vbo.set_vertex_description(&vertex_desc, Some(&vao));
 
     /* Index Buffer Object */
     // Generate IBO
@@ -89,7 +93,7 @@ fn main() -> anyhow::Result<()> {
         }
 
         /* Handle events of this frame */
-        if win.handle_events() == false {
+        if !win.handle_events() {
             break 'main_loop;
         };
 
