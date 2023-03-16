@@ -1,5 +1,7 @@
 use gl::types::*;
 
+use crate::get_gl_error;
+
 /// Wrapper of [Vertex Array Object](https://www.khronos.org/opengl/wiki/Vertex_Specification#Vertex_Array_Object)
 pub struct VertexArray {
     pub id: GLuint,
@@ -8,14 +10,14 @@ pub struct VertexArray {
 impl VertexArray {
     /// Try to create a Vertex Array Object struct.
     /// wrap `glGenVertexArrays`
-    pub fn new() -> Option<Self> {
+    pub fn new() -> anyhow::Result<Self> {
         let mut vao = 0;
         unsafe { gl::GenVertexArrays(1, &mut vao) }
 
         if vao == 0 {
-            None
+            Err(get_gl_error().unwrap().into())
         } else {
-            Some(Self { id: vao })
+            Ok(Self { id: vao })
         }
     }
 
@@ -32,7 +34,7 @@ impl VertexArray {
     }
 }
 
-///
+/// TODO
 pub struct VertexAttributePointer {
     pub ele_type: GLenum,
     pub count: GLint,
@@ -50,7 +52,7 @@ impl VertexAttributePointer {
     }
 }
 
-///
+/// TODO
 pub struct VertexDescription {
     pointers: Vec<VertexAttributePointer>,
     stride: GLsizei,

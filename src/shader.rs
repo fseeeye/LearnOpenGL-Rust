@@ -1,6 +1,10 @@
 use std::ffi::CStr;
 
+use anyhow::bail;
 use gl::types::*;
+use nalgebra as na;
+
+use crate::get_gl_error;
 
 /// enum of Shader types
 #[derive(Clone)]
@@ -17,17 +21,19 @@ pub struct Shader {
 
 impl Shader {
     /// Makes a new Shader.
+    ///
     /// wrap `glCreateShader`.
-    fn new(shader_type: ShaderType) -> Option<Self> {
+    fn new(shader_type: ShaderType) -> anyhow::Result<Self> {
         let shader = unsafe { gl::CreateShader(shader_type as GLenum) };
         if shader != 0 {
-            Some(Self { id: shader })
+            Ok(Self { id: shader })
         } else {
-            None
+            Err(get_gl_error().unwrap().into())
         }
     }
 
     /// Set source of Shader.
+    ///
     /// wrap `glShaderSource`.
     fn set_source(&self, src: &str) {
         unsafe {
@@ -41,7 +47,7 @@ impl Shader {
     }
 
     /// Check Shader Object compiling result
-    pub fn check_compile_result(shader_id: u32) -> Result<(), String> {
+    pub fn check_compile_result(shader_id: u32) -> anyhow::Result<()> {
         let mut is_success = gl::FALSE as GLint;
         unsafe { gl::GetShaderiv(shader_id, gl::COMPILE_STATUS, &mut is_success) }
 
@@ -61,27 +67,29 @@ impl Shader {
                 log_buf.set_len(log_len as usize);
             }
 
-            Err(String::from_utf8_lossy(&log_buf).into_owned())
+            bail!(String::from_utf8_lossy(&log_buf).into_owned())
         } else {
             Ok(())
         }
     }
 
-    /// Compiles the shader after setting source and Check compiling result
+    /// Compiles the shader after setting source and Check compiling result.
+    ///
     /// wrap `glCompileShader`
-    fn compile(&self) -> Result<(), String> {
+    fn compile(&self) -> anyhow::Result<()> {
         unsafe { gl::CompileShader(self.id) }
 
         Self::check_compile_result(self.id)
     }
 
     /// Calling this method forces the destructor to be called, destroying the shader.
+    ///
     /// wrap `glDeleteShader`
     pub fn delete(self) {}
 
     /// Create/Attach/Link shader program from source
-    pub fn from_source(shader_type: ShaderType, src: &str) -> Result<Self, String> {
-        let shader = Self::new(shader_type).ok_or("Unable to create Shader Object".to_string())?;
+    pub fn from_source(shader_type: ShaderType, src: &str) -> anyhow::Result<Self> {
+        let shader = Self::new(shader_type)?;
         shader.set_source(src);
         shader.compile()?;
 
@@ -89,9 +97,11 @@ impl Shader {
     }
 
     /// Create/Attach/Link shader program from shader file
-    pub fn from_file(shader_type: ShaderType, path: &str) -> Result<Self, String> {
-        let source = std::fs::read_to_string(path)
-            .map_err(|e| format!("Failed to read shader file: {e}"))?;
+    pub fn from_file(shader_type: ShaderType, path: &str) -> anyhow::Result<Self> {
+        let source = match std::fs::read_to_string(path) {
+            Ok(source) => source,
+            Err(e) => bail!("Failed to read shader file: {e}"),
+        };
 
         Self::from_source(shader_type, &source)
     }
@@ -109,21 +119,22 @@ pub struct ShaderProgram {
 }
 
 impl ShaderProgram {
-    /// Create a new Program Object
+    /// Create a new Program Object.
+    ///
     /// wrap `CreateProgram`
-    fn new() -> Option<Self> {
+    fn new() -> anyhow::Result<Self> {
         let program = unsafe { gl::CreateProgram() };
         if program != 0 {
-            Some(Self { id: program })
+            Ok(Self { id: program })
         } else {
-            None
+            Err(get_gl_error().unwrap().into())
         }
     }
 
     /// Create Shader Program from vertex & fragment Shader Objects.
     /// This calling will consume Shader Objects.
-    pub fn create(vert_shader: Shader, frag_shader: Shader) -> Result<Self, String> {
-        let program = Self::new().ok_or_else(|| "Couldn't allocate a program".to_string())?;
+    pub fn create(vert_shader: Shader, frag_shader: Shader) -> anyhow::Result<Self> {
+        let program = Self::new()?;
 
         // Attach vertex & fragment shader to program
         program.attach_shader(&vert_shader);
@@ -145,30 +156,39 @@ impl ShaderProgram {
     }
 
     /// Create Program Object from vertex & fragment shader source
-    /// tip: you can use `include_str!` to embed small shader file content.
-    pub fn create_from_source(vert: &str, frag: &str) -> Result<Self, String> {
+    ///
+    /// Tip: you can use `include_str!` to embed small shader file content.
+    pub fn create_from_source(vert: &str, frag: &str) -> anyhow::Result<Self> {
         // Create vertex & fragment shader
-        let vert_shader = Shader::from_source(ShaderType::Vertex, vert)
-            .map_err(|e| format!("Vertex Compile Error: {e}"))?;
-        let frag_shader = Shader::from_source(ShaderType::Fragment, frag)
-            .map_err(|e| format!("Fragment Compile Error: {e}"))?;
+        let vert_shader = match Shader::from_source(ShaderType::Vertex, vert) {
+            Ok(vert) => vert,
+            Err(e) => bail!("Vertex Shader creation Error: {e}"),
+        };
+        let frag_shader = match Shader::from_source(ShaderType::Fragment, frag) {
+            Ok(frag) => frag,
+            Err(e) => bail!("Fragment Shader creation Error: {e}"),
+        };
 
         Self::create(vert_shader, frag_shader)
     }
 
     /// Create Program Object from vertex & fragment shader file
-    pub fn create_from_file(vert_path: &str, frag_path: &str) -> Result<Self, String> {
+    pub fn create_from_file(vert_path: &str, frag_path: &str) -> anyhow::Result<Self> {
         // Create vertex & fragment shader
-        let vert_shader = Shader::from_file(ShaderType::Vertex, vert_path)
-            .map_err(|e| format!("Vertex Compile Error: {e}"))?;
-        let frag_shader = Shader::from_file(ShaderType::Fragment, frag_path)
-            .map_err(|e| format!("Fragment Compile Error: {e}"))?;
+        let vert_shader = match Shader::from_file(ShaderType::Vertex, vert_path) {
+            Ok(vert) => vert,
+            Err(e) => bail!("Vertex Shader creation Error: {e}"),
+        };
+        let frag_shader = match Shader::from_file(ShaderType::Fragment, frag_path) {
+            Ok(frag) => frag,
+            Err(e) => bail!("Fragment Shader creation Error: {e}"),
+        };
 
         Self::create(vert_shader, frag_shader)
     }
 
     /// Check Shader Program linking result
-    pub fn check_link_result(program_id: u32) -> Result<(), String> {
+    pub fn check_link_result(program_id: u32) -> anyhow::Result<()> {
         let mut is_success = 0;
         unsafe { gl::GetProgramiv(program_id, gl::LINK_STATUS, &mut is_success) }
 
@@ -189,33 +209,37 @@ impl ShaderProgram {
                 log_buf.set_len(log_len as usize);
             }
 
-            Err(String::from_utf8_lossy(&log_buf).into_owned())
+            bail!(String::from_utf8_lossy(&log_buf).into_owned())
         } else {
             Ok(())
         }
     }
 
     /// Attach a Shader Object to this Program Object.
+    ///
     /// wrap `glAttachShader`
     fn attach_shader(&self, shader: &Shader) {
         unsafe { gl::AttachShader(self.id, shader.id) };
     }
 
     /// Link all compiled&attached shader objects into a this program.
+    ///
     /// wrap `glLinkProgram`
-    fn link_program(&self) -> Result<(), String> {
+    fn link_program(&self) -> anyhow::Result<()> {
         unsafe { gl::LinkProgram(self.id) };
 
         Self::check_link_result(self.id)
     }
 
     /// Sets the program as the program to use when drawing.
+    ///
     /// wrap `glUseProgram`
     pub fn bind(&self) {
         unsafe { gl::UseProgram(self.id) };
     }
 
     /// Marks the program for deletion.
+    ///
     /// wrap `glDeleteProgram`.
     ///
     /// Tip: `glDeleteProgram` _does not_ immediately delete the program. If the program is
@@ -227,13 +251,34 @@ impl ShaderProgram {
 
     /// wrap `glGetUniformLocation`
     pub fn get_uniform_location(&self, uniform_name: &CStr) -> i32 {
-        unsafe { gl::GetUniformLocation(self.id, uniform_name.as_ptr()) }
+        unsafe { gl::GetUniformLocation(self.id, uniform_name.as_ptr().cast()) }
     }
 
-    /// Send uniform data, it'll call `bind()` automatically.
-    /// wrap `glUniform*`
-    pub fn set_uniform_4f(&self, uniform_location: i32, v0: f32, v1: f32, v2: f32, v3: f32) {
+    /// Send uniform data: 4f
+    ///
+    /// wrap `glUniform4f`
+    ///
+    /// Tips: it'll call `bind()` automatically.
+    pub fn set_uniform_4f(&self, uniform_name: &CStr, v0: f32, v1: f32, v2: f32, v3: f32) {
+        let uniform_loc = self.get_uniform_location(uniform_name);
+
         self.bind();
-        unsafe { gl::Uniform4f(uniform_location, v0, v1, v2, v3) }
+        unsafe { gl::Uniform4f(uniform_loc, v0, v1, v2, v3) }
+    }
+
+    /// Send uniform data: mat4fv
+    ///
+    /// wrap `UniformMatrix4fv`
+    ///
+    /// Tips: it'll call `bind()` automatically.
+    pub fn set_uniform_mat4fv(
+        &self,
+        uniform_name: &CStr,
+        matrix: &na::OMatrix<f32, na::Const<4>, na::Const<4>>,
+    ) {
+        self.bind();
+        let uniform_loc = self.get_uniform_location(uniform_name);
+
+        unsafe { gl::UniformMatrix4fv(uniform_loc, 1, gl::FALSE, matrix.as_ptr()) };
     }
 }

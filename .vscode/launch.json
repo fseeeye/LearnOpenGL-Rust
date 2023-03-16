@@ -80,5 +80,24 @@
             "cwd": "${workspaceFolder}",
             "sourceLanguages": ["rust"]
         },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug example '004-transform'",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--example=004-transform",
+                    "--package=learn-opengl-rs"
+                ],
+                "filter": {
+                    "name": "004-transform",
+                    "kind": "example"
+                }
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "sourceLanguages": ["rust"]
+        },
     ]
 }

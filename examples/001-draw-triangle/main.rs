@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use anyhow::Ok;
 /// This example is only about how to draw a simple triangle.
 /// It is involved about:
 /// * Vertex Array Object
@@ -11,7 +12,7 @@ use learn_opengl_rs as learn;
 
 use gl::types::*;
 use glfw::Context;
-use tracing::{debug, trace};
+use tracing::debug;
 
 fn check_shader_compile(shader_obj: u32) {
     let mut is_success = gl::FALSE as GLint;
@@ -71,7 +72,7 @@ fn check_shader_link(shader_program: u32) {
     }
 }
 
-fn main() {
+fn main() -> anyhow::Result<()> {
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
         .with_max_level(tracing::Level::TRACE)
         .finish();
@@ -127,7 +128,7 @@ fn main() {
             // coordinate already normalized
             gl::FALSE,
             // TODO: handle overflow
-            core::mem::size_of::<Vertex>().try_into().unwrap(),
+            core::mem::size_of::<Vertex>().try_into()?,
             // We have to convert the pointer location using usize values and then cast to a const pointer
             // once we have our usize. We do not want to make a null pointer and then offset it with the `offset`
             // method. That's gonna generate an out of bounds pointer, which is UB. We could try to remember to use the
@@ -150,7 +151,7 @@ fn main() {
             vertex_shader,
             1,
             &(VERTEX_SHADER.as_bytes().as_ptr().cast()),
-            &(VERTEX_SHADER.len().try_into().unwrap()),
+            &(VERTEX_SHADER.len().try_into()?),
         );
     }
     let fragment_shader = unsafe { gl::CreateShader(gl::FRAGMENT_SHADER) };
@@ -160,7 +161,7 @@ fn main() {
             fragment_shader,
             1,
             &(FRAGMENT_SHADER.as_bytes().as_ptr().cast()),
-            &(FRAGMENT_SHADER.len().try_into().unwrap()),
+            &(FRAGMENT_SHADER.len().try_into()?),
         );
     }
 
@@ -192,6 +193,7 @@ fn main() {
         gl::UseProgram(shader_program);
     }
 
+    /* Extra Settings */
     // Specify clear color
     unsafe { gl::ClearColor(0.2, 0.3, 0.3, 1.0) }
 
@@ -202,21 +204,9 @@ fn main() {
         }
 
         /* Handle events of this frame */
-        win.glfw.poll_events();
-        for (_timestamp, event) in glfw::flush_messages(&win.events) {
-            match event {
-                glfw::WindowEvent::Close => break 'main_loop,
-                glfw::WindowEvent::Key(key, _scancode, action, _modifier) => {
-                    if key == glfw::Key::Escape && action == glfw::Action::Press {
-                        win.inner_win.set_should_close(true);
-                    }
-                }
-                glfw::WindowEvent::Size(w, h) => {
-                    trace!("Resizing to ({}, {})", w, h);
-                }
-                _ => (),
-            }
-        }
+        if !win.handle_events() {
+            break 'main_loop;
+        };
 
         /* On Update (Drawing) */
         unsafe {
@@ -230,7 +220,7 @@ fn main() {
             gl::BindVertexArray(vao);
 
             // Draw call
-            gl::DrawArrays(gl::TRIANGLES, 0, VERTICES.len().try_into().unwrap());
+            gl::DrawArrays(gl::TRIANGLES, 0, VERTICES.len().try_into()?);
         }
 
         win.inner_win.swap_buffers();
@@ -238,4 +228,6 @@ fn main() {
 
     unsafe { gl::DeleteProgram(shader_program) }
     win.close();
+
+    Ok(())
 }
