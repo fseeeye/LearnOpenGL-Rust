@@ -11,7 +11,6 @@ use anyhow::Ok;
 use learn_opengl_rs as learn;
 
 use gl::types::*;
-use glfw::Context;
 use tracing::debug;
 
 fn check_shader_compile(shader_obj: u32) {
@@ -79,9 +78,9 @@ fn main() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set default subscriber");
 
     /* Window */
-    let mut win = learn::Window::new("Simple Triangle", 800, 600, glfw::WindowMode::Windowed)
-        .expect("Failed to create window.");
-    win.setup();
+    let (mut win, mut event_pump) =
+        learn::Window::new("Simple Triangle", 800, 600, glfw::WindowMode::Windowed)?;
+    win.setup(None);
     win.load_gl();
 
     /* Vertex data */
@@ -199,14 +198,14 @@ fn main() -> anyhow::Result<()> {
 
     /* Main Loop */
     'main_loop: loop {
-        if win.inner_win.should_close() {
-            break;
+        if win.should_close() {
+            break 'main_loop;
         }
 
         /* Handle events of this frame */
-        if !win.handle_events() {
-            break 'main_loop;
-        };
+        for (timestamp, event) in event_pump.poll_events() {
+            if !win.handle_event_default(&event, timestamp) {}
+        }
 
         /* On Update (Drawing) */
         unsafe {
@@ -223,7 +222,7 @@ fn main() -> anyhow::Result<()> {
             gl::DrawArrays(gl::TRIANGLES, 0, VERTICES.len().try_into()?);
         }
 
-        win.inner_win.swap_buffers();
+        win.swap_buffers();
     }
 
     unsafe { gl::DeleteProgram(shader_program) }

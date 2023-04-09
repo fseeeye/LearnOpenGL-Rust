@@ -12,8 +12,6 @@ use learn::{
 use learn_opengl_rs as learn;
 use nalgebra as na;
 
-use glfw::Context;
-
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
 fn main() -> anyhow::Result<()> {
@@ -22,16 +20,23 @@ fn main() -> anyhow::Result<()> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
+    /* Camera */
+    // Init camera at pos(0,0,3) look-at(0,0,0) up(0,1,0)
+    let camera_pos = na::Point3::new(0.0, 0.0, 3.0);
+    let camera_target = na::Point3::new(0.0, 0.0, 0.0);
+    let camera_up = na::Vector3::new(0.0, 1.0, 0.0);
+    let camera = learn::Camera::new(camera_pos, camera_target, camera_up);
+
     /* Window */
-    let mut win = learn::Window::new(
+    let (mut win, mut event_pump) = learn::Window::new(
         "Simple Triangle",
         SCREEN_WIDTH,
         SCREEN_HEIGHT,
         glfw::WindowMode::Windowed,
     )?;
-    win.setup();
+    win.setup(Some(camera));
     win.load_gl();
-    
+
     /* Vertex data */
     type Vertex = [f32; 3 + 2]; // NDC coords(3) + texture coords(2)
     const VERTICES: [Vertex; 36] = [
@@ -133,16 +138,16 @@ fn main() -> anyhow::Result<()> {
 
     /* Main Loop */
     'main_loop: loop {
-        if win.inner_win.should_close() {
-            break;
+        if win.should_close() {
+            break 'main_loop;
         }
 
-        /* Handle events of this frame */
-        if !win.handle_events() {
-            break 'main_loop;
-        };
+        /* Handle window events */
+        for (timestamp, event) in event_pump.poll_events() {
+            if !win.handle_event_default(&event, timestamp) {}
+        }
 
-        /* On Update (Drawing) */
+        /* Redraw */
         Buffer::clear(
             (BufferBit::ColorBufferBit as GLenum | BufferBit::DepthBufferBit as GLenum)
                 as gl::types::GLbitfield,
@@ -152,17 +157,11 @@ fn main() -> anyhow::Result<()> {
 
         vao.bind();
 
-        // View Matrix: Camera
-        let radius = 10.0;
-        let camera_pos = na::Point3::new(f32::sin(win.get_time() as f32) * radius, 0.0, f32::cos(win.get_time() as f32) * radius);
-        let camera_target = na::Point3::new(0.0, 0.0, 0.0);
-        let camera_up = &na::Vector3::new(0.0, 1.0, 0.0);
-        let view_matrix = na::Matrix4::look_at_rh(&camera_pos, &camera_target, &camera_up);
-
+        // View Matrix: Send to shader
         let view_name = CString::new("view")?;
-        shader_program.set_uniform_mat4fv(view_name.as_c_str(), &view_matrix);
+        shader_program.set_uniform_mat4fv(view_name.as_c_str(), &win.get_view_matrix());
 
-        // Projection Matrix
+        // Projection Matrix: Create and Send to shader
         let projection_matrix = na::Perspective3::new(
             (SCREEN_WIDTH as f32) / (SCREEN_HEIGHT as f32),
             std::f32::consts::FRAC_PI_4,
@@ -174,7 +173,7 @@ fn main() -> anyhow::Result<()> {
         shader_program.set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
 
         for cube_position in CUBE_POSTIONS {
-            // Model Matrix
+            // Model Matrix: Create and Send to shader
             let model_matrix_rotation = na::Rotation3::from_axis_angle(
                 &na::Unit::new_normalize(na::Vector3::new(0.5, 1.0, 0.0)),
                 -std::f32::consts::PI / 3.0 * (win.get_time() as f32),
@@ -192,7 +191,7 @@ fn main() -> anyhow::Result<()> {
         }
 
         // Swap buffers of window
-        win.inner_win.swap_buffers();
+        win.swap_buffers();
     }
 
     shader_program.close();

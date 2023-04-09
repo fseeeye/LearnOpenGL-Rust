@@ -1,4 +1,5 @@
 mod buffer;
+mod camera;
 mod shader;
 mod texture;
 mod utils;
@@ -6,6 +7,7 @@ mod vertex;
 mod window;
 
 pub use buffer::*;
+pub use camera::*;
 pub use shader::*;
 pub use texture::*;
 pub use utils::*;

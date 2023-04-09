@@ -8,7 +8,6 @@ use learn::{
 use learn_opengl_rs as learn;
 
 use gl::types::*;
-use glfw::Context;
 use image::GenericImageView;
 
 fn main() -> anyhow::Result<()> {
@@ -18,8 +17,9 @@ fn main() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(subscriber)?;
 
     /* Window */
-    let mut win = learn::Window::new("Simple Triangle", 800, 600, glfw::WindowMode::Windowed)?;
-    win.setup();
+    let (mut win, mut event_pump) =
+        learn::Window::new("Simple Texture", 800, 600, glfw::WindowMode::Windowed)?;
+    win.setup(None);
     win.load_gl();
 
     /* Vertex data */
@@ -163,14 +163,14 @@ fn main() -> anyhow::Result<()> {
 
     /* Main Loop */
     'main_loop: loop {
-        if win.inner_win.should_close() {
-            break;
+        if win.should_close() {
+            break 'main_loop;
         }
 
         /* Handle events of this frame */
-        if !win.handle_events() {
-            break 'main_loop;
-        };
+        for (timestamp, event) in event_pump.poll_events() {
+            if !win.handle_event_default(&event, timestamp) {}
+        }
 
         /* On Update (Drawing) */
         Buffer::clear(BufferBit::ColorBufferBit as gl::types::GLbitfield);
@@ -191,7 +191,7 @@ fn main() -> anyhow::Result<()> {
         }
 
         // Swap buffers of window
-        win.inner_win.swap_buffers();
+        win.swap_buffers();
     }
 
     shader_program.close();
