@@ -1,5 +1,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use anyhow::Ok;
 /// This example is only about how to draw a simple triangle.
 /// It is involved about:
 /// * Vertex Array Object
