@@ -232,6 +232,7 @@ fn main() -> anyhow::Result<()> {
         }
 
         match event {
+            // Emitted after MainEventsCleared when a window should be redrawn.
             Event::RedrawRequested(_window_id) => {
                 /* Do REDRAW */
                 let time_step = std::time::SystemTime::now()

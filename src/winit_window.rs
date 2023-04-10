@@ -200,10 +200,15 @@ impl WinitWindow {
     /// Handle window events with some default processing logical.
     pub fn handle_event_default(&self, event: &Event<()>, control_flow: &mut ControlFlow) -> bool {
         match event {
+            // Emitted when all of the event loop’s input events have been processed and redraw processing 
+            // is about to begin.
             Event::MainEventsCleared => {
+                // RedrawRequested will only trigger once, unless we manually request it.
                 self.inner_window.request_redraw();
                 true
             }
+            // A Window object can generate WindowEvents when certain input events occur,
+            // such as a cursor moving over the window or a key getting pressed while the window is focused.
             Event::WindowEvent { event, .. } => match event {
                 // Resize the window and redraw it.
                 WindowEvent::Resized(physical_size) => {
