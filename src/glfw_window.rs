@@ -4,14 +4,12 @@ use anyhow::bail;
 use glfw::Context;
 use tracing::{info, trace};
 
-use crate::Camera;
-
-pub struct EventPump {
+pub struct GlfwEventloop {
     glfw: glfw::Glfw,
     receiver: mpsc::Receiver<(f64, glfw::WindowEvent)>,
 }
 
-impl EventPump {
+impl GlfwEventloop {
     pub fn poll_events(&mut self) -> glfw::FlushedMessages<(f64, glfw::WindowEvent)> {
         self.glfw.poll_events();
 
@@ -20,19 +18,18 @@ impl EventPump {
 }
 
 #[derive(Debug)]
-pub struct Window {
+pub struct GlfwWindow {
     glfw: glfw::Glfw,
     inner_win: glfw::Window,
-    pub camera: Option<Camera>,
 }
 
-impl Window {
+impl GlfwWindow {
     pub fn new(
         title: &str,
         width: u32,
         height: u32,
         mode: glfw::WindowMode,
-    ) -> anyhow::Result<(Self, EventPump)> {
+    ) -> anyhow::Result<(Self, GlfwEventloop)> {
         let mut glfw = match glfw::init(glfw::FAIL_ON_ERRORS) {
             Ok(glfw) => glfw,
             Err(e) => bail!("GLFW window init error: {e}"),
@@ -55,18 +52,15 @@ impl Window {
             Self {
                 glfw: glfw.clone(),
                 inner_win,
-                camera: None,
             },
-            EventPump {
+            GlfwEventloop {
                 glfw,
                 receiver: events,
             },
         ))
     }
 
-    pub fn setup(&mut self, camera: Option<Camera>) {
-        self.camera = camera;
-
+    pub fn setup(&mut self) {
         // Make OpenGL Context in inner window, wrapper for `glfwMakeContextCurrent`
         self.inner_win.make_current();
 
@@ -75,14 +69,6 @@ impl Window {
 
         // Start polling for all available events
         self.inner_win.set_all_polling(true);
-    }
-
-    pub fn get_view_matrix(&self) -> nalgebra::Matrix4<f32> {
-        if let Some(camera) = &self.camera {
-            camera.get_lookat_matrix()
-        } else {
-            nalgebra::Matrix4::identity()
-        }
     }
 
     /// Load Gl Functions from window
@@ -99,11 +85,16 @@ impl Window {
             let gl_version = CStr::from_ptr(gl::GetString(gl::VERSION) as _)
                 .to_str()
                 .unwrap();
+            let gl_shading_language_version =
+                CStr::from_ptr(gl::GetString(gl::SHADING_LANGUAGE_VERSION) as _)
+                    .to_str()
+                    .unwrap();
 
             info!(
                 Vendor = gl_vendor,
                 Renderer = gl_renderer,
                 Version = gl_version,
+                SlVersion = gl_shading_language_version,
                 "Load OpenGL sucessfully!"
             );
         }
@@ -137,13 +128,6 @@ impl Window {
 
     /// Default event handler
     pub fn handle_event_default(&mut self, event: &glfw::WindowEvent, _timestamp: f64) -> bool {
-        // handle camera input events
-        if let Some(camera) = self.camera.as_mut() {
-            if camera.handle_event(event) {
-                return true;
-            }
-        }
-
         match event {
             glfw::WindowEvent::Close => {
                 self.inner_win.set_should_close(true);

@@ -3,7 +3,6 @@
 use std::ffi::CString;
 
 /// This example is about how to enable Depth Test. It will show multiple cubes.
-use anyhow::Ok;
 use gl::types::*;
 use learn::{
     Buffer, BufferBit, BufferType, BufferUsage, ShaderProgram, Texture, TextureFormat, TextureUnit,
@@ -22,13 +21,13 @@ fn main() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(subscriber)?;
 
     /* Window */
-    let (mut win, mut event_pump) = learn::Window::new(
+    let (mut win, mut event_loop) = learn::GlfwWindow::new(
         "Rolling Box - Depth Test",
         SCREEN_WIDTH,
         SCREEN_HEIGHT,
         glfw::WindowMode::Windowed,
     )?;
-    win.setup(None);
+    win.setup();
     win.load_gl();
 
     /* Vertex data */
@@ -137,7 +136,7 @@ fn main() -> anyhow::Result<()> {
         }
 
         /* Handle events of this frame */
-        for (timestamp, event) in event_pump.poll_events() {
+        for (timestamp, event) in event_loop.poll_events() {
             if !win.handle_event_default(&event, timestamp) {}
         }
 

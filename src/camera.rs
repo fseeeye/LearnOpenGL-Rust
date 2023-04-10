@@ -1,4 +1,5 @@
 use nalgebra as na;
+use winit::event::{ElementState, KeyboardInput, VirtualKeyCode, WindowEvent};
 
 #[allow(dead_code)]
 #[derive(Debug)]
@@ -38,7 +39,7 @@ impl Camera {
         self.pos.y += distance;
     }
 
-    pub fn handle_event(&mut self, event: &glfw::WindowEvent) -> bool {
+    pub fn handle_glfw_event(&mut self, event: &glfw::WindowEvent) -> bool {
         if let glfw::WindowEvent::Key(key, _scancode, action, _modifier) = event {
             if (key == &glfw::Key::W)
                 && (action == &glfw::Action::Press || action == &glfw::Action::Repeat)
@@ -64,5 +65,59 @@ impl Camera {
         }
 
         false
+    }
+
+    pub fn handle_winit_event(&mut self, event: &WindowEvent) -> bool {
+        match event {
+            WindowEvent::KeyboardInput {
+                input:
+                    KeyboardInput {
+                        state: ElementState::Pressed,
+                        virtual_keycode: Some(VirtualKeyCode::W),
+                        ..
+                    },
+                ..
+            } => {
+                self.move_front(self.camera_speed);
+                true
+            }
+            WindowEvent::KeyboardInput {
+                input:
+                    KeyboardInput {
+                        state: ElementState::Pressed,
+                        virtual_keycode: Some(VirtualKeyCode::S),
+                        ..
+                    },
+                ..
+            } => {
+                self.move_front(-self.camera_speed);
+                true
+            }
+            WindowEvent::KeyboardInput {
+                input:
+                    KeyboardInput {
+                        state: ElementState::Pressed,
+                        virtual_keycode: Some(VirtualKeyCode::D),
+                        ..
+                    },
+                ..
+            } => {
+                self.move_right(self.camera_speed);
+                true
+            }
+            WindowEvent::KeyboardInput {
+                input:
+                    KeyboardInput {
+                        state: ElementState::Pressed,
+                        virtual_keycode: Some(VirtualKeyCode::A),
+                        ..
+                    },
+                ..
+            } => {
+                self.move_right(-self.camera_speed);
+                true
+            }
+            _ => false,
+        }
     }
 }

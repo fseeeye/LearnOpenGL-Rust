@@ -1,6 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use anyhow::Ok;
 /// This example is only about how to draw a simple triangle.
 /// It is involved about:
 /// * Vertex Array Object
@@ -78,9 +77,9 @@ fn main() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(subscriber).expect("Failed to set default subscriber");
 
     /* Window */
-    let (mut win, mut event_pump) =
-        learn::Window::new("Simple Triangle", 800, 600, glfw::WindowMode::Windowed)?;
-    win.setup(None);
+    let (mut win, mut event_loop) =
+        learn::GlfwWindow::new("Simple Triangle", 800, 600, glfw::WindowMode::Windowed)?;
+    win.setup();
     win.load_gl();
 
     /* Vertex data */
@@ -203,7 +202,7 @@ fn main() -> anyhow::Result<()> {
         }
 
         /* Handle events of this frame */
-        for (timestamp, event) in event_pump.poll_events() {
+        for (timestamp, event) in event_loop.poll_events() {
             if !win.handle_event_default(&event, timestamp) {}
         }
 

@@ -13,7 +13,16 @@ thiserror = "1" # error derive macro
 anyhow = "1" # error handling
 image = "0.24.5" # image processing
 nalgebra = "0.32.2" # Linear algebra
+# window related dependencies
+winit = "0.28"
+glutin = "0.30"
+glutin-winit = "0.3"
+raw-window-handle = "0.5.0"
 
 [dev-dependencies]
 bytemuck = "1.13.0" # bit cast
 tracing-subscriber = "0.3.16" # Utilities for implementing and composing tracing subscribers.
+
+
+[build-dependencies]
+cfg_aliases = "0.1.1"
