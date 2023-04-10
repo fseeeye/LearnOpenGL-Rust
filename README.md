@@ -18,6 +18,9 @@ description for all examples:
 1. [**Draw Triangle**](https://github.com/fseeeye/LearnOpenGL-Rust/tree/main/examples/001-draw-triangle): Draw a solid color triangle on window.
 2. [**Draw Quad**](https://github.com/fseeeye/LearnOpenGL-Rust/tree/main/examples/002-draw-quad): Draw a solid color quad on window.
 3. [**Texture**](https://github.com/fseeeye/LearnOpenGL-Rust/tree/main/examples/003-texture): Apply texture on quad simply.
+4. [**Transform**](https://github.com/fseeeye/LearnOpenGL-Rust/tree/main/examples/004-transform): Apply MVP Transform.
+5. [**Depth Test**](https://github.com/fseeeye/LearnOpenGL-Rust/tree/main/examples/005-depth-test): Apply Depth Test to show multiple cubes.
+6. [**Camera**](https://github.com/fseeeye/LearnOpenGL-Rust/tree/main/examples/006-camera): Impl a camera.
 
 ## Dependencies
 
@@ -30,5 +33,5 @@ description for all examples:
 
 ## Ref
 
-* [LearnOpenGL.com](https://learnopengl.com/)
-* [Learn OpenGl Rust](https://rust-tutorials.github.io/learn-opengl/)
+* [LearnOpenGL](https://learnopengl.com/)
+* [LearnOpenGl - Rust](https://rust-tutorials.github.io/learn-opengl/)
