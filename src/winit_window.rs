@@ -36,7 +36,7 @@ impl WinitWindow {
         // Create the OpenGL context
         let (not_current_gl_context, gl_surface) = Self::create_gl_context(&window, &gl_config)?;
 
-        // Setup
+        // Setup context
         let gl_context = Self::setup_gl_context(not_current_gl_context, &gl_surface)?;
 
         Ok((

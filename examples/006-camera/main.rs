@@ -11,7 +11,7 @@ use learn::{
 };
 use learn_opengl_rs as learn;
 use nalgebra as na;
-use tracing::{error, trace};
+use tracing::error;
 use winit::event::Event;
 
 /* Screen info */
@@ -130,7 +130,7 @@ impl Renderer {
         })
     }
 
-    pub fn redraw(&self, win: &WinitWindow, camera: &Camera) -> anyhow::Result<()> {
+    pub fn redraw(&self, win: &WinitWindow, camera: &Camera, time_step: f32) -> anyhow::Result<()> {
         Buffer::clear(
             (BufferBit::ColorBufferBit as GLenum | BufferBit::DepthBufferBit as GLenum)
                 as gl::types::GLbitfield,
@@ -161,10 +161,7 @@ impl Renderer {
             // Model Matrix: Create and Send to shader
             let model_matrix_rotation = na::Rotation3::from_axis_angle(
                 &na::Unit::new_normalize(na::Vector3::new(0.5, 1.0, 0.0)),
-                -std::f32::consts::PI / 3.0
-                    * (std::time::SystemTime::now()
-                        .duration_since(std::time::SystemTime::UNIX_EPOCH)?
-                        .as_secs_f32()),
+                -std::f32::consts::PI / 3.0 * time_step,
             )
             .to_homogeneous();
             let model_matrix_transform = na::Translation3::from(cube_position).to_homogeneous();
@@ -222,6 +219,8 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
+    let start_time = std::time::SystemTime::now();
+
     /* Main Loop */
     event_loop.run(move |event, _window_target, control_flow| {
         // Set ControlFlow::Poll: when the current loop iteration finishes, immediately begin a new iteration regardless
@@ -234,8 +233,12 @@ fn main() -> anyhow::Result<()> {
 
         match event {
             Event::RedrawRequested(_window_id) => {
-                trace!("Redraw Requested");
-                if let Err(e) = renderer.redraw(&win, &camera) {
+                /* Do REDRAW */
+                let time_step = std::time::SystemTime::now()
+                    .duration_since(start_time)
+                    .unwrap()
+                    .as_secs_f32();
+                if let Err(e) = renderer.redraw(&win, &camera, time_step) {
                     error!("Failed to redraw: {}", e);
                     control_flow.set_exit();
                 }
