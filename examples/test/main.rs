@@ -2,9 +2,8 @@ use std::str::FromStr;
 
 use regex::Regex;
 
-
 pub trait Parse {
-    type Error : PartialOrd;
+    type Error: PartialOrd;
     fn parse(s: &str) -> Result<Self, Self::Error>
     where
         Self: Sized;

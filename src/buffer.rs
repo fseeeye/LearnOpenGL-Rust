@@ -29,7 +29,7 @@ pub enum BufferBit {
 #[derive(Debug, Clone, Copy)]
 pub enum BufferUsage {
     // STATIC : The data store contents will be modified once and used many times.
-    // DRAW   : The data store contents are modified by the application, and used as the source for GL drawing and 
+    // DRAW   : The data store contents are modified by the application, and used as the source for GL drawing and
     //          image specification commands.
     StaticDraw = gl::STATIC_DRAW as isize,
 }

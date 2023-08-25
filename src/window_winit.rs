@@ -5,8 +5,8 @@ use std::ffi::{CStr, CString};
 use anyhow::bail;
 use tracing::info;
 
-use glutin::prelude::*;
 use glutin::display::GetGlDisplay;
+use glutin::prelude::*;
 use glutin_winit::GlWindow;
 use raw_window_handle::HasRawWindowHandle;
 use winit::{

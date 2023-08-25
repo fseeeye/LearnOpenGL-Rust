@@ -130,7 +130,12 @@ impl Renderer {
         })
     }
 
-    pub fn redraw(&self, win: &WinitWindow, camera: &Camera, delta_time: f32) -> anyhow::Result<()> {
+    pub fn redraw(
+        &self,
+        win: &WinitWindow,
+        camera: &Camera,
+        delta_time: f32,
+    ) -> anyhow::Result<()> {
         Buffer::clear(
             (BufferBit::ColorBufferBit as GLenum | BufferBit::DepthBufferBit as GLenum)
                 as gl::types::GLbitfield,

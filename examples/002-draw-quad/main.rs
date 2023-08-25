@@ -100,7 +100,7 @@ fn main() -> anyhow::Result<()> {
         Buffer::clear(BufferBit::ColorBufferBit as gl::types::GLbitfield);
 
         shader_program.bind();
-        
+
         // Send uniform value - 'dynamic color'
         let time = win.get_time() as f32;
         let color = (time.sin() / 2.0) + 0.5;
