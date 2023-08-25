@@ -5,6 +5,18 @@
         {
             "type": "lldb",
             "request": "launch",
+            "name": "Cargo build",
+            "cargo": {
+                "args": [
+                    "build",
+                    "--lib"
+                ]
+            },
+            "args": []
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
             "name": "Debug unit tests in library 'learn-opengl-rs'",
             "cargo": {
                 "args": [

@@ -98,14 +98,14 @@ fn main() -> anyhow::Result<()> {
     unsafe { gl::BindVertexArray(vao) }
 
     /* Vertex Buffer Object */
-    // Generate VBO
+    // Generate a buffer
     let mut vbo = 0;
     unsafe {
         gl::GenBuffers(1, &mut vbo);
     }
     assert_ne!(vbo, 0);
     unsafe {
-        // Bind VBO as ARRAY_BUFFER
+        // Bind buffer as ARRAY_BUFFER(VBO)
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
         // Set buffer data
         gl::BufferData(
@@ -142,7 +142,7 @@ fn main() -> anyhow::Result<()> {
     const VERTEX_SHADER: &str = include_str!("../../assets/shaders/001-solid.vert");
     const FRAGMENT_SHADER: &str = include_str!("../../assets/shaders/001-solid.frag");
 
-    // Make vertex & fragment shader
+    // Create vertex & fragment shader
     let vertex_shader = unsafe { gl::CreateShader(gl::VERTEX_SHADER) };
     assert_ne!(vertex_shader, 0);
     unsafe {
@@ -189,6 +189,7 @@ fn main() -> anyhow::Result<()> {
         gl::DeleteShader(vertex_shader);
         gl::DeleteShader(fragment_shader);
 
+        // Set shader program
         gl::UseProgram(shader_program);
     }
 

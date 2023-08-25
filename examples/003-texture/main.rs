@@ -37,7 +37,7 @@ fn main() -> anyhow::Result<()> {
     let vao = VertexArray::new()?;
 
     /* Vertex Buffer Object */
-    let mut vbo = Buffer::new(BufferType::Array)?;
+    let mut vbo = Buffer::new(BufferType::VertexBuffer)?;
     vbo.set_buffer_data(bytemuck::cast_slice(&VERTICES), BufferUsage::StaticDraw);
 
     /* Vertex Attribute description */
@@ -47,7 +47,7 @@ fn main() -> anyhow::Result<()> {
     vbo.set_vertex_description(&vertex_desc, Some(&vao));
 
     /* Index Buffer Object */
-    let ibo = Buffer::new(BufferType::ElementArray)?;
+    let ibo = Buffer::new(BufferType::IndexBuffer)?;
     ibo.set_buffer_data(bytemuck::cast_slice(&INDICES), BufferUsage::StaticDraw);
 
     /* Shader */
@@ -69,6 +69,8 @@ fn main() -> anyhow::Result<()> {
         // Generate Texture
         unsafe { gl::GenTextures(1, &mut texture_container) }
         assert_ne!(texture_container, 0);
+        // Active Texture Unit0, but it's unnecessary for TEXTURE 0
+        unsafe { gl::ActiveTexture(gl::TEXTURE0) }
         // Bind Texture
         unsafe { gl::BindTexture(gl::TEXTURE_2D, texture_container) }
         // Set Texture wrapping & filtering
@@ -108,6 +110,8 @@ fn main() -> anyhow::Result<()> {
         // Generate Texture
         unsafe { gl::GenTextures(1, &mut texture_face) }
         assert_ne!(texture_face, 0);
+        // Active Texture Unit1
+        unsafe { gl::ActiveTexture(gl::TEXTURE1) }
         // Bind Texture
         unsafe { gl::BindTexture(gl::TEXTURE_2D, texture_face) }
         // Set Texture wrapping & filtering
@@ -134,16 +138,6 @@ fn main() -> anyhow::Result<()> {
         // Generate mipmap
         unsafe { gl::GenerateMipmap(gl::TEXTURE_2D) }
     }
-
-    // Active Texture Unit0, unnecessary for TEXTURE 0
-    unsafe { gl::ActiveTexture(gl::TEXTURE0) }
-    // Bind Texture to Unit0
-    unsafe { gl::BindTexture(gl::TEXTURE_2D, texture_container) }
-
-    // Active Texture Unit1
-    unsafe { gl::ActiveTexture(gl::TEXTURE1) }
-    // Bind Texture to Unit1
-    unsafe { gl::BindTexture(gl::TEXTURE_2D, texture_face) }
 
     unsafe {
         shader_program.bind();

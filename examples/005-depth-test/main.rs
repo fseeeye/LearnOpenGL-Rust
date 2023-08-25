@@ -93,7 +93,7 @@ fn main() -> anyhow::Result<()> {
     let vao = VertexArray::new()?;
 
     /* Vertex Buffer Object */
-    let mut vbo = Buffer::new(BufferType::Array)?;
+    let mut vbo = Buffer::new(BufferType::VertexBuffer)?;
     vbo.set_buffer_data(bytemuck::cast_slice(&VERTICES), BufferUsage::StaticDraw);
 
     /* Vertex Attribute description */

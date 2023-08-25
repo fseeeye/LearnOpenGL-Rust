@@ -7,9 +7,9 @@ use crate::{get_gl_error, VertexArray, VertexDescription};
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum BufferType {
     /// Vertex Buffer Object, include Vertex attributes
-    Array = gl::ARRAY_BUFFER as isize,
+    VertexBuffer = gl::ARRAY_BUFFER as isize,
     /// Index/Element Buffer Object, include Vertex array indices
-    ElementArray = gl::ELEMENT_ARRAY_BUFFER as isize,
+    IndexBuffer = gl::ELEMENT_ARRAY_BUFFER as isize,
 }
 
 /// Enum of Buffer Bit for `glClear()`.
@@ -28,6 +28,9 @@ pub enum BufferBit {
 /// TODO: complete all bindings
 #[derive(Debug, Clone, Copy)]
 pub enum BufferUsage {
+    // STATIC : The data store contents will be modified once and used many times.
+    // DRAW   : The data store contents are modified by the application, and used as the source for GL drawing and 
+    //          image specification commands.
     StaticDraw = gl::STATIC_DRAW as isize,
 }
 
@@ -98,7 +101,7 @@ impl Buffer {
         desc: &VertexDescription,
         vao_opt: Option<&VertexArray>,
     ) {
-        assert_eq!(self.buffer_type, BufferType::Array);
+        assert_eq!(self.buffer_type, BufferType::VertexBuffer);
 
         if let Some(vao) = vao_opt {
             vao.bind();

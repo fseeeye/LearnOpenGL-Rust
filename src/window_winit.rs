@@ -3,11 +3,12 @@
 use std::ffi::{CStr, CString};
 
 use anyhow::bail;
-use glutin::display::GetGlDisplay;
+use tracing::info;
+
 use glutin::prelude::*;
+use glutin::display::GetGlDisplay;
 use glutin_winit::GlWindow;
 use raw_window_handle::HasRawWindowHandle;
-use tracing::info;
 use winit::{
     event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
     event_loop::ControlFlow,
@@ -30,7 +31,7 @@ impl WinitWindow {
         // Create Event Loop
         let event_loop = winit::event_loop::EventLoopBuilder::new().build();
 
-        // Create Window
+        // Create GL Window
         let (window, gl_config) = Self::create_gl_window(title, width, height, &event_loop)?;
 
         // Create the OpenGL context

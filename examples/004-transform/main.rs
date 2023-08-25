@@ -44,7 +44,7 @@ fn main() -> anyhow::Result<()> {
     let vao = VertexArray::new()?;
 
     /* Vertex Buffer Object */
-    let mut vbo = Buffer::new(BufferType::Array)?;
+    let mut vbo = Buffer::new(BufferType::VertexBuffer)?;
     vbo.set_buffer_data(bytemuck::cast_slice(&VERTICES), BufferUsage::StaticDraw);
 
     /* Vertex Attribute description */
@@ -54,7 +54,7 @@ fn main() -> anyhow::Result<()> {
     vbo.set_vertex_description(&vertex_desc, Some(&vao));
 
     /* Index Buffer Object */
-    let ibo = Buffer::new(BufferType::ElementArray)?;
+    let ibo = Buffer::new(BufferType::IndexBuffer)?;
     ibo.set_buffer_data(bytemuck::cast_slice(&INDICES), BufferUsage::StaticDraw);
 
     /* Shader */
@@ -68,7 +68,7 @@ fn main() -> anyhow::Result<()> {
     // Model Matrix
     let model_matrix = na::Rotation3::from_axis_angle(
         &na::Vector3::x_axis(),
-        -std::f32::consts::PI / 180.0 * 55.0,
+        -std::f32::consts::PI * (55.0 / 180.0),
     )
     .to_homogeneous();
     let model_loc = unsafe {

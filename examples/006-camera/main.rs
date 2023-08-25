@@ -88,7 +88,7 @@ impl Renderer {
         let vao = VertexArray::new()?;
 
         /* Vertex Buffer Object */
-        let mut vbo = Buffer::new(BufferType::Array)?;
+        let mut vbo = Buffer::new(BufferType::VertexBuffer)?;
         vbo.set_buffer_data(bytemuck::cast_slice(&VERTICES), BufferUsage::StaticDraw);
 
         /* Vertex Attribute description */
@@ -130,7 +130,7 @@ impl Renderer {
         })
     }
 
-    pub fn redraw(&self, win: &WinitWindow, camera: &Camera, time_step: f32) -> anyhow::Result<()> {
+    pub fn redraw(&self, win: &WinitWindow, camera: &Camera, delta_time: f32) -> anyhow::Result<()> {
         Buffer::clear(
             (BufferBit::ColorBufferBit as GLenum | BufferBit::DepthBufferBit as GLenum)
                 as gl::types::GLbitfield,
@@ -161,7 +161,7 @@ impl Renderer {
             // Model Matrix: Create and Send to shader
             let model_matrix_rotation = na::Rotation3::from_axis_angle(
                 &na::Unit::new_normalize(na::Vector3::new(0.5, 1.0, 0.0)),
-                -std::f32::consts::PI / 3.0 * time_step,
+                -std::f32::consts::PI / 3.0 * delta_time,
             )
             .to_homogeneous();
             let model_matrix_transform = na::Translation3::from(cube_position).to_homogeneous();
@@ -234,12 +234,13 @@ fn main() -> anyhow::Result<()> {
         match event {
             // Emitted after MainEventsCleared when a window should be redrawn.
             Event::RedrawRequested(_window_id) => {
-                /* Do REDRAW */
-                let time_step = std::time::SystemTime::now()
+                let delta_time = std::time::SystemTime::now()
                     .duration_since(start_time)
                     .unwrap()
                     .as_secs_f32();
-                if let Err(e) = renderer.redraw(&win, &camera, time_step) {
+
+                /* Do REDRAW */
+                if let Err(e) = renderer.redraw(&win, &camera, delta_time) {
                     error!("Failed to redraw: {}", e);
                     control_flow.set_exit();
                 }

@@ -40,7 +40,7 @@ fn main() -> anyhow::Result<()> {
     let vao = VertexArray::new()?;
 
     /* Vertex Buffer Object */
-    let mut vbo = Buffer::new(BufferType::Array)?;
+    let mut vbo = Buffer::new(BufferType::VertexBuffer)?;
     vbo.set_buffer_data(bytemuck::cast_slice(&VERTICES), BufferUsage::StaticDraw);
 
     /* Vertex Attribute description */
@@ -53,14 +53,14 @@ fn main() -> anyhow::Result<()> {
     vbo.set_vertex_description(&vertex_desc, Some(&vao));
 
     /* Index Buffer Object */
-    // Generate IBO
+    // Generate a buffer
     let mut ibo = 0;
     unsafe {
         gl::GenBuffers(1, &mut ibo);
     }
     assert_ne!(ibo, 0);
     unsafe {
-        // Bind IBO as ELEMENT_ARRAY_BUFFER
+        // Bind Buffer as ELEMENT_ARRAY_BUFFER(IBO)
         gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ibo);
         // Set buffer data
         gl::BufferData(
@@ -77,7 +77,7 @@ fn main() -> anyhow::Result<()> {
         include_str!("../../assets/shaders/002-uniform.frag"),
     )?;
 
-    // Get uniform location
+    // Get uniform var
     let uniform_color_name = CString::new("dyn_color")?;
     let uniform_color_location =
         unsafe { gl::GetUniformLocation(shader_program.id, uniform_color_name.as_ptr()) };
@@ -100,6 +100,7 @@ fn main() -> anyhow::Result<()> {
         Buffer::clear(BufferBit::ColorBufferBit as gl::types::GLbitfield);
 
         shader_program.bind();
+        
         // Send uniform value - 'dynamic color'
         let time = win.get_time() as f32;
         let color = (time.sin() / 2.0) + 0.5;
