@@ -13,16 +13,20 @@ My OpenGL Learning code in Rust, depends on OpenGL3.3 & GLFW.
 
 ### Examples
 
-description for all examples:
+description for all examples.
 
-1. [**Draw Triangle**](https://github.com/fseeeye/LearnOpenGL-Rust/tree/main/examples/001-draw-triangle): Draw a solid color triangle on window.
-2. [**Draw Quad**](https://github.com/fseeeye/LearnOpenGL-Rust/tree/main/examples/002-draw-quad): Draw a solid color quad on window.
-3. [**Texture**](https://github.com/fseeeye/LearnOpenGL-Rust/tree/main/examples/003-texture): Apply texture on quad simply.
-4. [**Transform**](https://github.com/fseeeye/LearnOpenGL-Rust/tree/main/examples/004-transform): Apply MVP Transform.
-5. [**Depth Test**](https://github.com/fseeeye/LearnOpenGL-Rust/tree/main/examples/005-depth-test): Apply Depth Test to show multiple cubes.
-6. [**Camera**](https://github.com/fseeeye/LearnOpenGL-Rust/tree/main/examples/006-camera): Impl a camera.
+foundation:
+1. [**draw_triangle**](examples/foundation/001_draw_triangle.rs): Draw a solid color triangle on window.
+2. [**draw_quad**](examples/foundation/002_draw_quad.rs): Draw a solid color quad on window.
+3. [**texture**](examples/foundation/003_texture.rs): Apply texture on quad simply.
+4. [**transform**](examples/foundation/004_transform.rs): Apply MVP Transform.
+5. [**depth_test**](examples/foundation/005_depth_test.rs): Apply Depth Test to show multiple cubes.
+6. [**camera**](examples/foundation/006_camera.rs): Impl a camera.
 
-## Dependencies
+lighting:
+
+
+## Core Dependencies
 
 * [gl](https://crates.io/crates/gl) : OpenGL bindings.
 * [glfw](https://crates.io/crates/glfw) : Window - C++ GLFW3 bindings and idiomatic wrapper.

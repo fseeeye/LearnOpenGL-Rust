@@ -99,8 +99,8 @@ impl Renderer {
 
         /* Shader */
         let shader_program = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/004-transform.vert"),
-            include_str!("../../assets/shaders/004-transform.frag"),
+            include_str!("../../assets/shaders/foundation/004-transform.vert"),
+            include_str!("../../assets/shaders/foundation/004-transform.frag"),
         )?;
 
         /* Texture */

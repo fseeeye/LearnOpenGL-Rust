@@ -139,8 +139,8 @@ fn main() -> anyhow::Result<()> {
     }
 
     /* Shader */
-    const VERTEX_SHADER: &str = include_str!("../../assets/shaders/001-solid.vert");
-    const FRAGMENT_SHADER: &str = include_str!("../../assets/shaders/001-solid.frag");
+    const VERTEX_SHADER: &str = include_str!("../../assets/shaders/foundation/001-solid.vert");
+    const FRAGMENT_SHADER: &str = include_str!("../../assets/shaders/foundation/001-solid.frag");
 
     // Create vertex & fragment shader
     let vertex_shader = unsafe { gl::CreateShader(gl::VERTEX_SHADER) };

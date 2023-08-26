@@ -73,8 +73,8 @@ fn main() -> anyhow::Result<()> {
 
     /* Shader */
     let shader_program = ShaderProgram::create_from_source(
-        include_str!("../../assets/shaders/002-uniform.vert"),
-        include_str!("../../assets/shaders/002-uniform.frag"),
+        include_str!("../../assets/shaders/foundation/002-uniform.vert"),
+        include_str!("../../assets/shaders/foundation/002-uniform.frag"),
     )?;
 
     // Get uniform var

@@ -52,8 +52,8 @@ fn main() -> anyhow::Result<()> {
 
     /* Shader */
     let shader_program = ShaderProgram::create_from_source(
-        include_str!("../../assets/shaders/003-texture.vert"),
-        include_str!("../../assets/shaders/003-texture.frag"),
+        include_str!("../../assets/shaders/foundation/003-texture.vert"),
+        include_str!("../../assets/shaders/foundation/003-texture.frag"),
     )?;
 
     /* Texture */

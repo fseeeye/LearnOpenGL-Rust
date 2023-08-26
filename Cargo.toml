@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 gl = "0.14.0" # OpenGL bindings
-glfw = "0.51.0" # Window: C++ GLFW wrapper
+glfw = "0.52.0" # Window: C++ GLFW wrapper
 tracing = "0.1.37" # logger
 thiserror = "1" # error derive macro
 anyhow = "1" # error handling
@@ -19,7 +19,6 @@ winit = "0.28"
 glutin = "0.30"
 glutin-winit = "0.3"
 raw-window-handle = "0.5.0"
-regex = "*"
 
 [dev-dependencies]
 bytemuck = "1.13.0" # bit cast
@@ -28,3 +27,33 @@ tracing-subscriber = "0.3.16" # Utilities for implementing and composing tracing
 
 [build-dependencies]
 cfg_aliases = "0.1.1"
+
+[[example]]
+name = "draw_triangle"
+path = "examples/foundation/001_draw_triangle.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "draw_quad"
+path = "examples/foundation/002_draw_quad.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "texture"
+path = "examples/foundation/003_texture.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "transform"
+path = "examples/foundation/004_transform.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "depth_test"
+path = "examples/foundation/005_depth_test.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "camera"
+path = "examples/foundation/006_camera.rs"
+doc-scrape-examples = true
