@@ -45,7 +45,7 @@ impl WinitWindow {
         unsafe {
             gl::Viewport(0, 0, window_size.width as i32, window_size.height as i32);
         }
-        window.set_cursor_visible(false);
+        window.set_cursor_visible(true);
         window.set_cursor_position(winit::dpi::LogicalPosition::new(
             width as f64 / 2.0,
             height as f64 / 2.0,

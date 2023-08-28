@@ -266,6 +266,18 @@ impl ShaderProgram {
         unsafe { gl::Uniform4f(uniform_loc, v0, v1, v2, v3) }
     }
 
+    /// Send uniform data: 3f
+    ///
+    /// wrap `glUniform3f`
+    ///
+    /// Tips: it'll call `bind()` automatically.
+    pub fn set_uniform_3f(&self, uniform_name: &CStr, v0: f32, v1: f32, v2: f32) {
+        let uniform_loc = self.get_uniform_location(uniform_name);
+
+        self.bind();
+        unsafe { gl::Uniform3f(uniform_loc, v0, v1, v2) }
+    }
+
     /// Send uniform data: mat4fv
     ///
     /// wrap `UniformMatrix4fv`

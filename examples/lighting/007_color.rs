@@ -21,6 +21,9 @@ use winit::event::Event;
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
 
+/* Camera data */
+const CAMERA_POS: [f32; 3] = [0.0, 0.0, 5.0];
+
 /* Vertex data */
 type Vertex = [f32; 3]; // NDC coords(3)
 const CUBE_VERTICES: [Vertex; 36] = [
@@ -68,9 +71,15 @@ const CUBE_VERTICES: [Vertex; 36] = [
     [-0.5, 0.5, -0.5],
 ];
 
+/* Lighting data */
+const LIGHT_COLOR: [f32; 3] = [1.0, 1.0, 1.0];
+const LIGHT_POS: [f32; 3] = [1.2, 1.0, 2.0];
+
 struct Renderer {
-    shader_program: ShaderProgram,
-    vao: VertexArray,
+    cube_shader: ShaderProgram,
+    cube_vao: VertexArray,
+    light_shader: ShaderProgram,
+    light_vao: VertexArray
 }
 
 impl Renderer {
@@ -81,29 +90,48 @@ impl Renderer {
         // Enable Depth Test
         unsafe { gl::Enable(gl::DEPTH_TEST) };
 
-        /* Vertex Array Object (VAO) */
-        let vao = VertexArray::new()?;
+        /* Cube */
+        let cube_vao = VertexArray::new()?;
+        
+        let cube_vbo = Buffer::new(BufferType::VertexBuffer)?;
+        cube_vbo.bind();
+        cube_vbo.set_buffer_data(bytemuck::cast_slice(&CUBE_VERTICES), BufferUsage::StaticDraw);
 
-        /* Vertex Buffer Object (VBO) */
-        let vbo = Buffer::new(BufferType::VertexBuffer)?;
-        vbo.bind();
-        vbo.set_buffer_data(bytemuck::cast_slice(&CUBE_VERTICES), BufferUsage::StaticDraw);
+        cube_vao.bind();
+        let mut cube_vertex_desc = VertexDescription::new();
+        cube_vertex_desc.add_attribute(gl::FLOAT, 3); // push NDC coords
+        cube_vertex_desc.bind_to(&cube_vbo, Some(&cube_vao));
 
-        /* Vertex Attribute description */
-        vao.bind();
-        let mut vertex_desc = VertexDescription::new();
-        vertex_desc.add_attribute(gl::FLOAT, 3); // push NDC coords
-        vertex_desc.bind_to(&vbo, Some(&vao));
-
-        /* Shader */
-        let shader_program = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/lighting/007-color.vert"),
-            include_str!("../../assets/shaders/lighting/007-color.frag"),
+        let cube_shader = ShaderProgram::create_from_source(
+            include_str!("../../assets/shaders/lighting/007-cube.vert"),
+            include_str!("../../assets/shaders/lighting/007-cube.frag"),
         )?;
+        cube_shader.set_uniform_3f(CString::new("object_color")?.as_c_str(), 1.0, 0.5, 0.31);
+        cube_shader.set_uniform_3f(CString::new("light_color")?.as_c_str(), LIGHT_COLOR[0], LIGHT_COLOR[1], LIGHT_COLOR[2]);
+        
+        /* Lighting */
+        let light_vao = VertexArray::new()?;
+        
+        let lighting_vbo = Buffer::new(BufferType::VertexBuffer)?;
+        lighting_vbo.bind();
+        lighting_vbo.set_buffer_data(bytemuck::cast_slice(&CUBE_VERTICES), BufferUsage::StaticDraw);
+
+        light_vao.bind();
+        let mut cube_vertex_desc = VertexDescription::new();
+        cube_vertex_desc.add_attribute(gl::FLOAT, 3); // push NDC coords
+        cube_vertex_desc.bind_to(&lighting_vbo, Some(&light_vao));
+
+        let light_shader = ShaderProgram::create_from_source(
+            include_str!("../../assets/shaders/lighting/007-lighting.vert"),
+            include_str!("../../assets/shaders/lighting/007-lighting.frag"),
+        )?;
+        light_shader.set_uniform_3f(CString::new("light_color")?.as_c_str(), LIGHT_COLOR[0], LIGHT_COLOR[1], LIGHT_COLOR[2]);
 
         Ok(Self {
-            shader_program,
-            vao,
+            cube_shader,
+            cube_vao,
+            light_shader,
+            light_vao
         })
     }
 
@@ -118,16 +146,10 @@ impl Renderer {
                 as gl::types::GLbitfield,
         );
 
-        self.vao.bind();
-
-        self.shader_program.bind();
-
-        // View Matrix: Send to shader
+        // View Matrix
         let view_name = CString::new("view")?;
-        self.shader_program
-            .set_uniform_mat4fv(view_name.as_c_str(), &camera.get_lookat_matrix());
-
-        // Projection Matrix: Create and Send to shader
+        
+        // Projection Matrix
         let projection_matrix = na::Perspective3::new(
             (SCREEN_WIDTH as f32) / (SCREEN_HEIGHT as f32),
             std::f32::consts::FRAC_PI_4,
@@ -136,15 +158,38 @@ impl Renderer {
         )
         .to_homogeneous(); // Perspective projection
         let projection_name = CString::new("projection")?;
-        self.shader_program
-            .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
-        
-        // Model Matrix
-        let model_matrix = na::Matrix3::identity().to_homogeneous();
-        let model_name = CString::new("model")?;
-        self.shader_program.set_uniform_mat4fv(model_name.as_c_str(), &model_matrix);
 
-        // Draw
+        /* Draw cube */
+        self.cube_vao.bind();
+
+        self.cube_shader.bind();
+        
+        let cube_model_matrix = na::Matrix3::identity().to_homogeneous();
+        let name = CString::new("model")?;
+        self.cube_shader.set_uniform_mat4fv(name.as_c_str(), &cube_model_matrix);
+        self.cube_shader
+            .set_uniform_mat4fv(view_name.as_c_str(), &camera.get_lookat_matrix());
+        self.cube_shader
+            .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
+
+        unsafe {
+            gl::DrawArrays(gl::TRIANGLES, 0, 36);
+        }
+
+        /* Draw lighting */
+
+        self.light_vao.bind();
+
+        self.light_shader.bind();
+
+        let light_model_matrix_scale = na::Matrix4::new_scaling(0.2);
+        let light_model_matrix = light_model_matrix_scale.append_translation(&na::Vector3::new(LIGHT_POS[0], LIGHT_POS[1], LIGHT_POS[2]));
+        self.light_shader.set_uniform_mat4fv(CString::new("model")?.as_c_str(), &light_model_matrix);
+        self.light_shader
+            .set_uniform_mat4fv(view_name.as_c_str(), &camera.get_lookat_matrix());
+        self.light_shader
+            .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
+
         unsafe {
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
@@ -157,7 +202,8 @@ impl Renderer {
 
     #[allow(dead_code)]
     pub fn close(self) {
-        self.shader_program.close();
+        self.cube_shader.close();
+        self.light_shader.close();
     }
 }
 
@@ -169,7 +215,7 @@ fn main() -> anyhow::Result<()> {
 
     /* Camera */
     // Init camera at pos(0,0,3) look-at(0,0,0) up(0,1,0)
-    let camera_pos = na::Point3::new(0.0, 0.0, 3.0);
+    let camera_pos = na::Point3::new(CAMERA_POS[0], CAMERA_POS[1], CAMERA_POS[2]);
     let camera_target = na::Point3::new(0.0, 0.0, 0.0);
     let camera_up = na::Vector3::new(0.0, 1.0, 0.0);
     let mut camera = learn::Camera::new(camera_pos, camera_target, camera_up);

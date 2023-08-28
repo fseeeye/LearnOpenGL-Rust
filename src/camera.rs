@@ -1,6 +1,8 @@
 use nalgebra as na;
 use winit::event::{ElementState, KeyboardInput, MouseScrollDelta, VirtualKeyCode, WindowEvent};
 
+use tracing::trace;
+
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct Camera {
@@ -36,19 +38,29 @@ impl Camera {
         na::Matrix4::look_at_rh(&self.pos, &self.target, &self.up)
     }
 
+    fn print_camera_pos(&self) {
+        trace!("Camera pos: {:?}", self.pos);
+    }
+
     pub fn move_front(&mut self, distance: f32) {
         self.pos.z -= distance;
         self.target.z -= distance;
+
+        self.print_camera_pos();
     }
 
     pub fn move_right(&mut self, distance: f32) {
         self.pos.x += distance;
         self.target.x += distance;
+        
+        self.print_camera_pos();
     }
 
     pub fn move_up(&mut self, distance: f32) {
         self.pos.y += distance;
         self.target.y += distance;
+        
+        self.print_camera_pos();
     }
 
     pub fn handle_glfw_event(&mut self, event: &glfw::WindowEvent) -> bool {
