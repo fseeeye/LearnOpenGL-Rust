@@ -52,14 +52,14 @@ impl Camera {
     pub fn move_right(&mut self, distance: f32) {
         self.pos.x += distance;
         self.target.x += distance;
-        
+
         self.print_camera_pos();
     }
 
     pub fn move_up(&mut self, distance: f32) {
         self.pos.y += distance;
         self.target.y += distance;
-        
+
         self.print_camera_pos();
     }
 

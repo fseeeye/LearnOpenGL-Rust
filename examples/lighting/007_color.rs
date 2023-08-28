@@ -1,4 +1,4 @@
-//! This example is about how to impl a camera which decides view matrix dynamically.
+//! This example is about creating a simplest light source and show color.
 
 // remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
@@ -9,7 +9,8 @@ use anyhow::bail;
 use gl::types::*;
 
 use learn::{
-    Buffer, BufferBit, BufferType, BufferUsage, Camera, ShaderProgram, VertexArray, VertexDescription, WinitWindow,
+    Buffer, BufferBit, BufferType, BufferUsage, Camera, ShaderProgram, VertexArray,
+    VertexDescription, WinitWindow,
 };
 use learn_opengl_rs as learn;
 
@@ -79,7 +80,7 @@ struct Renderer {
     cube_shader: ShaderProgram,
     cube_vao: VertexArray,
     light_shader: ShaderProgram,
-    light_vao: VertexArray
+    light_vao: VertexArray,
 }
 
 impl Renderer {
@@ -92,10 +93,13 @@ impl Renderer {
 
         /* Cube */
         let cube_vao = VertexArray::new()?;
-        
+
         let cube_vbo = Buffer::new(BufferType::VertexBuffer)?;
         cube_vbo.bind();
-        cube_vbo.set_buffer_data(bytemuck::cast_slice(&CUBE_VERTICES), BufferUsage::StaticDraw);
+        cube_vbo.set_buffer_data(
+            bytemuck::cast_slice(&CUBE_VERTICES),
+            BufferUsage::StaticDraw,
+        );
 
         cube_vao.bind();
         let mut cube_vertex_desc = VertexDescription::new();
@@ -107,14 +111,22 @@ impl Renderer {
             include_str!("../../assets/shaders/lighting/007-cube.frag"),
         )?;
         cube_shader.set_uniform_3f(CString::new("object_color")?.as_c_str(), 1.0, 0.5, 0.31);
-        cube_shader.set_uniform_3f(CString::new("light_color")?.as_c_str(), LIGHT_COLOR[0], LIGHT_COLOR[1], LIGHT_COLOR[2]);
-        
+        cube_shader.set_uniform_3f(
+            CString::new("light_color")?.as_c_str(),
+            LIGHT_COLOR[0],
+            LIGHT_COLOR[1],
+            LIGHT_COLOR[2],
+        );
+
         /* Lighting */
         let light_vao = VertexArray::new()?;
-        
+
         let lighting_vbo = Buffer::new(BufferType::VertexBuffer)?;
         lighting_vbo.bind();
-        lighting_vbo.set_buffer_data(bytemuck::cast_slice(&CUBE_VERTICES), BufferUsage::StaticDraw);
+        lighting_vbo.set_buffer_data(
+            bytemuck::cast_slice(&CUBE_VERTICES),
+            BufferUsage::StaticDraw,
+        );
 
         light_vao.bind();
         let mut cube_vertex_desc = VertexDescription::new();
@@ -125,13 +137,18 @@ impl Renderer {
             include_str!("../../assets/shaders/lighting/007-lighting.vert"),
             include_str!("../../assets/shaders/lighting/007-lighting.frag"),
         )?;
-        light_shader.set_uniform_3f(CString::new("light_color")?.as_c_str(), LIGHT_COLOR[0], LIGHT_COLOR[1], LIGHT_COLOR[2]);
+        light_shader.set_uniform_3f(
+            CString::new("light_color")?.as_c_str(),
+            LIGHT_COLOR[0],
+            LIGHT_COLOR[1],
+            LIGHT_COLOR[2],
+        );
 
         Ok(Self {
             cube_shader,
             cube_vao,
             light_shader,
-            light_vao
+            light_vao,
         })
     }
 
@@ -148,7 +165,7 @@ impl Renderer {
 
         // View Matrix
         let view_name = CString::new("view")?;
-        
+
         // Projection Matrix
         let projection_matrix = na::Perspective3::new(
             (SCREEN_WIDTH as f32) / (SCREEN_HEIGHT as f32),
@@ -163,10 +180,11 @@ impl Renderer {
         self.cube_vao.bind();
 
         self.cube_shader.bind();
-        
+
         let cube_model_matrix = na::Matrix3::identity().to_homogeneous();
         let name = CString::new("model")?;
-        self.cube_shader.set_uniform_mat4fv(name.as_c_str(), &cube_model_matrix);
+        self.cube_shader
+            .set_uniform_mat4fv(name.as_c_str(), &cube_model_matrix);
         self.cube_shader
             .set_uniform_mat4fv(view_name.as_c_str(), &camera.get_lookat_matrix());
         self.cube_shader
@@ -183,8 +201,13 @@ impl Renderer {
         self.light_shader.bind();
 
         let light_model_matrix_scale = na::Matrix4::new_scaling(0.2);
-        let light_model_matrix = light_model_matrix_scale.append_translation(&na::Vector3::new(LIGHT_POS[0], LIGHT_POS[1], LIGHT_POS[2]));
-        self.light_shader.set_uniform_mat4fv(CString::new("model")?.as_c_str(), &light_model_matrix);
+        let light_model_matrix = light_model_matrix_scale.append_translation(&na::Vector3::new(
+            LIGHT_POS[0],
+            LIGHT_POS[1],
+            LIGHT_POS[2],
+        ));
+        self.light_shader
+            .set_uniform_mat4fv(CString::new("model")?.as_c_str(), &light_model_matrix);
         self.light_shader
             .set_uniform_mat4fv(view_name.as_c_str(), &camera.get_lookat_matrix());
         self.light_shader
@@ -238,7 +261,6 @@ fn main() -> anyhow::Result<()> {
         }
     };
 
-    
     /* Main Loop */
     let mut last_time = std::time::SystemTime::now();
     event_loop.run(move |event, _window_target, control_flow| {

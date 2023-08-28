@@ -24,6 +24,7 @@ foundation:
 6. [**Camera**](examples/foundation/006_camera.rs): Impl a camera.
 
 lighting:
+1. [**Color**](examples/lighting/007_color.rs): Create a simplest light source.
 
 
 ## Core Dependencies
