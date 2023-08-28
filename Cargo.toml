@@ -29,31 +29,31 @@ tracing-subscriber = "0.3.16" # Utilities for implementing and composing tracing
 cfg_aliases = "0.1.1"
 
 [[example]]
-name = "draw_triangle"
+name = "001_draw_triangle"
 path = "examples/foundation/001_draw_triangle.rs"
 doc-scrape-examples = true
 
 [[example]]
-name = "draw_quad"
+name = "002_draw_quad"
 path = "examples/foundation/002_draw_quad.rs"
 doc-scrape-examples = true
 
 [[example]]
-name = "texture"
+name = "003_texture"
 path = "examples/foundation/003_texture.rs"
 doc-scrape-examples = true
 
 [[example]]
-name = "transform"
+name = "004_transform"
 path = "examples/foundation/004_transform.rs"
 doc-scrape-examples = true
 
 [[example]]
-name = "depth_test"
+name = "005_depth_test"
 path = "examples/foundation/005_depth_test.rs"
 doc-scrape-examples = true
 
 [[example]]
-name = "camera"
+name = "006_camera"
 path = "examples/foundation/006_camera.rs"
 doc-scrape-examples = true

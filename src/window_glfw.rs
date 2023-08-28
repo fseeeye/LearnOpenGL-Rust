@@ -48,6 +48,11 @@ impl GlfwWindow {
         // Make window
         let (inner_win, events) = glfw.create_window(width, height, title, mode).unwrap();
 
+        let (width, height) = inner_win.get_framebuffer_size();
+        unsafe {
+            gl::Viewport(0, 0, width as i32, height as i32);
+        }
+
         Ok((
             Self {
                 glfw: glfw.clone(),
@@ -141,6 +146,7 @@ impl GlfwWindow {
             }
             glfw::WindowEvent::Size(w, h) => {
                 trace!("Resizing to ({}, {})", w, h);
+                // TODO
             }
             _ => (),
         }

@@ -6,5 +6,9 @@
     "rust-analyzer.linkedProjects": [
         ".\\Cargo.toml",
         ".\\Cargo.toml"
-    ]
+    ],
+    "code-runner.executorMap": {
+        // "rust": "cd $dir && rustc $fileName && $dir$fileNameWithoutExt",
+        "rust": "cargo run --example $fileNameWithoutExt"
+    }
 }

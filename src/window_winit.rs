@@ -39,6 +39,17 @@ impl WinitWindow {
 
         // Setup context
         let gl_context = Self::setup_gl_context(not_current_gl_context, &gl_surface)?;
+        
+        // Setup window
+        let window_size = window.inner_size();
+        unsafe {
+            gl::Viewport(0, 0, window_size.width as i32, window_size.height as i32);
+        }
+        window.set_cursor_visible(false);
+        window.set_cursor_position(winit::dpi::LogicalPosition::new(
+            width as f64 / 2.0,
+            height as f64 / 2.0,
+        ))?;
 
         Ok((
             Self {
@@ -155,7 +166,8 @@ impl WinitWindow {
                 .get_proc_address(symbol.as_c_str())
                 .cast()
         });
-
+        
+        // Print some GL info
         unsafe {
             let gl_vendor = CStr::from_ptr(gl::GetString(gl::VENDOR) as _)
                 .to_str()
@@ -191,6 +203,11 @@ impl WinitWindow {
         Ok(gl_context)
     }
 
+    pub fn get_window_size(&self) -> (u32, u32) {
+        let size = self.inner_window.inner_size();
+        (size.width, size.height)
+    }
+
     /// Swap buffers of gl surface.
     pub fn swap_buffers(&self) -> anyhow::Result<()> {
         self.gl_surface.swap_buffers(&self.gl_context)?;
@@ -218,6 +235,9 @@ impl WinitWindow {
                         std::num::NonZeroU32::new(physical_size.width).unwrap(),
                         std::num::NonZeroU32::new(physical_size.height).unwrap(),
                     );
+                    unsafe {
+                        gl::Viewport(0, 0, physical_size.width as i32, physical_size.height as i32);
+                    }
                     self.inner_window.request_redraw();
                     true
                 }

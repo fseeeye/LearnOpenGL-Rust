@@ -151,8 +151,9 @@ impl Renderer {
             .set_uniform_mat4fv(view_name.as_c_str(), &camera.get_lookat_matrix());
 
         // Projection Matrix: Create and Send to shader
+        let (window_width, window_height) = win.get_window_size();
         let projection_matrix = na::Perspective3::new(
-            (SCREEN_WIDTH as f32) / (SCREEN_HEIGHT as f32),
+            (window_width as f32) / (window_height as f32),
             std::f32::consts::FRAC_PI_4,
             0.1,
             100.0,
@@ -203,7 +204,7 @@ fn main() -> anyhow::Result<()> {
     // Init camera at pos(0,0,3) look-at(0,0,0) up(0,1,0)
     let camera_pos = na::Point3::new(0.0, 0.0, 3.0);
     let camera_target = na::Point3::new(0.0, 0.0, 0.0);
-    let camera_up = na::Vector3::new(0.0, 1.0, 0.0);
+    let camera_up = na::Vector3::y();
     let mut camera = learn::Camera::new(camera_pos, camera_target, camera_up);
 
     /* Window */

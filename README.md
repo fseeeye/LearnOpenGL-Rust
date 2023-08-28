@@ -16,12 +16,12 @@ My OpenGL Learning code in Rust, depends on OpenGL3.3 & GLFW.
 description for all examples.
 
 foundation:
-1. [**draw_triangle**](examples/foundation/001_draw_triangle.rs): Draw a solid color triangle on window.
-2. [**draw_quad**](examples/foundation/002_draw_quad.rs): Draw a solid color quad on window.
-3. [**texture**](examples/foundation/003_texture.rs): Apply texture on quad simply.
-4. [**transform**](examples/foundation/004_transform.rs): Apply MVP Transform.
-5. [**depth_test**](examples/foundation/005_depth_test.rs): Apply Depth Test to show multiple cubes.
-6. [**camera**](examples/foundation/006_camera.rs): Impl a camera.
+1. [**Draw Triangle**](examples/foundation/001_draw_triangle.rs): Draw a solid color triangle on window.
+2. [**Draw Quad**](examples/foundation/002_draw_quad.rs): Draw a solid color quad on window.
+3. [**Texture**](examples/foundation/003_texture.rs): Apply texture on quad simply.
+4. [**Transform**](examples/foundation/004_transform.rs): Apply MVP Transform.
+5. [**Depth Test**](examples/foundation/005_depth_test.rs): Apply Depth Test to show multiple cubes.
+6. [**Camera**](examples/foundation/006_camera.rs): Impl a camera.
 
 lighting:
 
