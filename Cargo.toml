@@ -57,3 +57,8 @@ doc-scrape-examples = true
 name = "006_camera"
 path = "examples/foundation/006_camera.rs"
 doc-scrape-examples = true
+
+[[example]]
+name = "color"
+path = "examples/lighting/007_color.rs"
+doc-scrape-examples = true

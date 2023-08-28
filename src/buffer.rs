@@ -1,6 +1,6 @@
 use gl::types::*;
 
-use crate::{get_gl_error, VertexArray, VertexDescription};
+use crate::get_gl_error;
 
 /// Enum of Buffer Object types.
 /// TODO: complete all bindings
@@ -87,54 +87,6 @@ impl Buffer {
                 data.as_ptr().cast(),
                 usage as GLenum,
             );
-        }
-    }
-
-    /// Set Vertex Attribute description for Vertex Buffer Object.
-    /// This'll call `bind()` of VBO and VAO(if set) automatically.
-    ///
-    /// If type of this buffer is **not** `ARRAY_BUFFER`, it'll panic!
-    ///
-    /// wrap `glEnableVertexAttribArray` & `glVertexAttribPointer`.
-    pub fn set_vertex_description(
-        &mut self,
-        desc: &VertexDescription,
-        vao_opt: Option<&VertexArray>,
-    ) {
-        assert_eq!(self.buffer_type, BufferType::VertexBuffer);
-
-        if let Some(vao) = vao_opt {
-            vao.bind();
-        }
-        self.bind();
-
-        let pointers = desc.get_attrib_pointers();
-        let mut offset = 0_u32;
-
-        for (index, element) in pointers.iter().enumerate() {
-            unsafe {
-                gl::VertexAttribPointer(
-                    // attribute index
-                    index as u32,
-                    // attribute element size
-                    element.count,
-                    // attribute element type
-                    element.ele_type,
-                    // coordinate should be normalized or not
-                    element.should_normalized,
-                    // attribute size
-                    desc.get_stride(),
-                    // We have to convert the pointer location using usize values and then cast to a const pointer
-                    // once we have our usize. We do not want to make a null pointer and then offset it with the `offset`
-                    // method. That's gonna generate an out of bounds pointer, which is UB. We could try to remember to use the
-                    // `wrapping_offset` method, or we could just do all the math in usize and then cast at the end.
-                    // I prefer the latter option.
-                    offset as *const _,
-                );
-                gl::EnableVertexAttribArray(index as u32);
-            }
-
-            offset += element.count as u32 * element.get_type_size() as u32;
         }
     }
 

@@ -1,14 +1,16 @@
+//! This example is about how to use `Texture` in OpenGL.
+
+// remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use anyhow::Ok;
+use gl::types::*;
+use image::GenericImageView;
+
 use learn::{
     Buffer, BufferBit, BufferType, BufferUsage, ShaderProgram, VertexArray, VertexDescription,
 };
-/// This example is about how to use `Texture` in OpenGL.
 use learn_opengl_rs as learn;
-
-use gl::types::*;
-use image::GenericImageView;
 
 fn main() -> anyhow::Result<()> {
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
@@ -37,14 +39,14 @@ fn main() -> anyhow::Result<()> {
     let vao = VertexArray::new()?;
 
     /* Vertex Buffer Object */
-    let mut vbo = Buffer::new(BufferType::VertexBuffer)?;
+    let vbo = Buffer::new(BufferType::VertexBuffer)?;
     vbo.set_buffer_data(bytemuck::cast_slice(&VERTICES), BufferUsage::StaticDraw);
 
     /* Vertex Attribute description */
     let mut vertex_desc = VertexDescription::new();
-    vertex_desc.push(gl::FLOAT, 3); // push NDC coords
-    vertex_desc.push(gl::FLOAT, 2); // push texture coords
-    vbo.set_vertex_description(&vertex_desc, Some(&vao));
+    vertex_desc.add_attribute(gl::FLOAT, 3); // push NDC coords
+    vertex_desc.add_attribute(gl::FLOAT, 2); // push texture coords
+    vertex_desc.bind_to(&vbo, Some(&vao));
 
     /* Index Buffer Object */
     let ibo = Buffer::new(BufferType::IndexBuffer)?;

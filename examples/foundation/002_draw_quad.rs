@@ -1,17 +1,19 @@
+//! This example is about how to draw a simple quad.
+//! It is involved about:
+//! * Index Buffer Object
+//! * Shader uniform
+//! * Draw call: `DrawElements()`
+
+// remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+use std::ffi::CString;
 
 use anyhow::Ok;
 use learn::{
     Buffer, BufferBit, BufferType, BufferUsage, ShaderProgram, VertexArray, VertexDescription,
 };
-/// This example is about how to draw a simple quad.
-/// It is involved about:
-/// * Index Buffer Object
-/// * Shader uniform
-/// * Draw call: `DrawElements()`
 use learn_opengl_rs as learn;
-
-use std::ffi::CString;
 
 fn main() -> anyhow::Result<()> {
     let subscriber = tracing_subscriber::FmtSubscriber::builder()
@@ -40,17 +42,13 @@ fn main() -> anyhow::Result<()> {
     let vao = VertexArray::new()?;
 
     /* Vertex Buffer Object */
-    let mut vbo = Buffer::new(BufferType::VertexBuffer)?;
+    let vbo = Buffer::new(BufferType::VertexBuffer)?;
     vbo.set_buffer_data(bytemuck::cast_slice(&VERTICES), BufferUsage::StaticDraw);
 
     /* Vertex Attribute description */
     let mut vertex_desc = VertexDescription::new();
-    vertex_desc.push(gl::FLOAT, 3); // Vertex is [f32; 3]
-    vbo.set_vertex_description(&vertex_desc, Some(&vao));
-    /* Vertex Attribute description */
-    let mut vertex_desc = VertexDescription::new();
-    vertex_desc.push(gl::FLOAT, 3); // Vertex is [f32; 3]
-    vbo.set_vertex_description(&vertex_desc, Some(&vao));
+    vertex_desc.add_attribute(gl::FLOAT, 3); // Vertex is [f32; 3]
+    vertex_desc.bind_to(&vbo, Some(&vao));
 
     /* Index Buffer Object */
     // Generate a buffer
