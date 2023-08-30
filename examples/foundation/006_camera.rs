@@ -1,18 +1,21 @@
+//! This example is about how to impl a camera which decides view matrix dynamically.
+
+// remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::ffi::CString;
 
 use anyhow::bail;
 use gl::types::*;
-/// This example is about how to impl a camera which decides view matrix dynamically.
+use nalgebra as na;
+use tracing::error;
+use winit::event::Event;
+
 use learn::{
     Buffer, BufferBit, BufferType, BufferUsage, Camera, ShaderProgram, Texture, TextureFormat,
     TextureUnit, VertexArray, VertexDescription, WinitWindow,
 };
 use learn_opengl_rs as learn;
-use nalgebra as na;
-use tracing::error;
-use winit::event::Event;
 
 /* Screen info */
 const SCREEN_WIDTH: u32 = 800;
@@ -88,14 +91,14 @@ impl Renderer {
         let vao = VertexArray::new()?;
 
         /* Vertex Buffer Object */
-        let mut vbo = Buffer::new(BufferType::VertexBuffer)?;
+        let vbo = Buffer::new(BufferType::VertexBuffer)?;
         vbo.set_buffer_data(bytemuck::cast_slice(&VERTICES), BufferUsage::StaticDraw);
 
         /* Vertex Attribute description */
         let mut vertex_desc = VertexDescription::new();
-        vertex_desc.push(gl::FLOAT, 3); // push NDC coords
-        vertex_desc.push(gl::FLOAT, 2); // push texture coords
-        vbo.set_vertex_description(&vertex_desc, Some(&vao));
+        vertex_desc.add_attribute(gl::FLOAT, 3); // push NDC coords
+        vertex_desc.add_attribute(gl::FLOAT, 2); // push texture coords
+        vertex_desc.bind_to(&vbo, Some(&vao));
 
         /* Shader */
         let shader_program = ShaderProgram::create_from_source(

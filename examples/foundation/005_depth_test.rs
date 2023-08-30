@@ -1,15 +1,18 @@
+//! This example is about how to enable Depth Test. It will show multiple cubes.
+
+// remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use std::ffi::CString;
 
-/// This example is about how to enable Depth Test. It will show multiple cubes.
 use gl::types::*;
+use nalgebra as na;
+
 use learn::{
     Buffer, BufferBit, BufferType, BufferUsage, ShaderProgram, Texture, TextureFormat, TextureUnit,
     VertexArray, VertexDescription,
 };
 use learn_opengl_rs as learn;
-use nalgebra as na;
 
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
@@ -93,14 +96,14 @@ fn main() -> anyhow::Result<()> {
     let vao = VertexArray::new()?;
 
     /* Vertex Buffer Object */
-    let mut vbo = Buffer::new(BufferType::VertexBuffer)?;
+    let vbo = Buffer::new(BufferType::VertexBuffer)?;
     vbo.set_buffer_data(bytemuck::cast_slice(&VERTICES), BufferUsage::StaticDraw);
 
     /* Vertex Attribute description */
     let mut vertex_desc = VertexDescription::new();
-    vertex_desc.push(gl::FLOAT, 3); // push NDC coords
-    vertex_desc.push(gl::FLOAT, 2); // push texture coords
-    vbo.set_vertex_description(&vertex_desc, Some(&vao));
+    vertex_desc.add_attribute(gl::FLOAT, 3); // push NDC coords
+    vertex_desc.add_attribute(gl::FLOAT, 2); // push texture coords
+    vertex_desc.bind_to(&vbo, Some(&vao));
 
     /* Shader */
     let shader_program = ShaderProgram::create_from_source(
