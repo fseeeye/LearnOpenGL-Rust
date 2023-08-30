@@ -3,7 +3,7 @@ use nalgebra as na;
 #[allow(dead_code)]
 #[allow(unused_variables)]
 fn main() {
-    /* Matrix Type */ 
+    /* Matrix Type */
 
     // Statically sized and statically allocated 2x3 matrix using 32-bit floats.
     type Matrix2x3f = na::SMatrix<f32, 2, 3>;
@@ -15,13 +15,13 @@ fn main() {
     // matrix view which borrow their data from another matrix).
     type Matrix2xXf64 = na::OMatrix<f64, na::U2, na::Dyn>;
 
-    // Dynamically sized and dynamically allocated matrix with two rows 
+    // Dynamically sized and dynamically allocated matrix with two rows
     // and using 32-bit signed integers.
     type DMatrixi32 = na::DMatrix<i32>;
     // or
     type DMatrixi32_2 = na::OMatrix<i32, na::Dyn, na::Dyn>;
 
-    /* Matrix construction */
+    /* Matrix & Vertex construction */
 
     let v_1 = na::Vector3::new(1, 1, 0);
     let v_x = na::Vector3::<f32>::x();
@@ -36,7 +36,7 @@ fn main() {
     assert_eq!(m_3, na::Matrix2x3::new(1, 0, 0, 0, 1, 0));
 
     /* Matrix element modification */
-    m_3[(1,2)] = 1;
+    m_3[(1, 2)] = 1;
     assert_eq!(m_3, na::Matrix2x3::new(1, 0, 0, 0, 1, 1));
 
     /* Points */
@@ -61,7 +61,6 @@ fn main() {
     assert_eq!(p0, p1);
     assert_eq!(p0, p2);
     assert_eq!(p0, p3);
-    
+
     /* Transformations of points */
-    
 }

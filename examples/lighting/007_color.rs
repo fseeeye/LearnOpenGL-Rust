@@ -274,7 +274,7 @@ fn main() -> anyhow::Result<()> {
         }
 
         match event {
-            // Emitted after MainEventsCleared when a window should be redrawn.
+            // Event "RedrawRequested" : Emitted after MainEventsCleared when a window should be redrawn.
             Event::RedrawRequested(_window_id) => {
                 let current_time = std::time::SystemTime::now();
                 let delta_time = current_time

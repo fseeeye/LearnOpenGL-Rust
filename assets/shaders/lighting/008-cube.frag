@@ -30,13 +30,10 @@ vec3 calc_diffuse_term() {
 }
 
 void main() {
-    // vec3 ambient_term = calc_ambient_term();
-    // vec3 diffuse_term = calc_diffuse_term();
+    vec3 ambient_term = calc_ambient_term();
+    vec3 diffuse_term = calc_diffuse_term();
 
-    // vec3 rst = ambient_term + diffuse_term;
+    vec3 rst = ambient_term + diffuse_term;
 
-    // frag_color = vec4(rst, 1.0);
-
-    // FIXME
-    frag_color = vec4(normal, 1.0);
+    frag_color = vec4(rst, 1.0);
 }
