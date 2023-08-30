@@ -26,50 +26,50 @@ const SCREEN_HEIGHT: u32 = 600;
 const CAMERA_POS: [f32; 3] = [0.0, 0.0, 5.0];
 
 /* Vertex data */
-type Vertex = [f32; 3]; // NDC coords(3)
+type Vertex = [f32; 6]; // NDC coords(3) + Normal(3)
 const CUBE_VERTICES: [Vertex; 36] = [
-    // panel 1
-    [-0.5, -0.5, -0.5],
-    [0.5, -0.5, -0.5],
-    [0.5, 0.5, -0.5],
-    [0.5, 0.5, -0.5],
-    [-0.5, 0.5, -0.5],
-    [-0.5, -0.5, -0.5],
-    // panel 2
-    [-0.5, -0.5, 0.5],
-    [0.5, -0.5, 0.5],
-    [0.5, 0.5, 0.5],
-    [0.5, 0.5, 0.5],
-    [-0.5, 0.5, 0.5],
-    [-0.5, -0.5, 0.5],
-    // panel 3
-    [-0.5, 0.5, 0.5],
-    [-0.5, 0.5, -0.5],
-    [-0.5, -0.5, -0.5],
-    [-0.5, -0.5, -0.5],
-    [-0.5, -0.5, 0.5],
-    [-0.5, 0.5, 0.5],
-    // panel 4
-    [0.5, 0.5, 0.5],
-    [0.5, 0.5, -0.5],
-    [0.5, -0.5, -0.5],
-    [0.5, -0.5, -0.5],
-    [0.5, -0.5, 0.5],
-    [0.5, 0.5, 0.5],
-    // panel 5
-    [-0.5, -0.5, -0.5],
-    [0.5, -0.5, -0.5],
-    [0.5, -0.5, 0.5],
-    [0.5, -0.5, 0.5],
-    [-0.5, -0.5, 0.5],
-    [-0.5, -0.5, -0.5],
-    // panel 6
-    [-0.5, 0.5, -0.5],
-    [0.5, 0.5, -0.5],
-    [0.5, 0.5, 0.5],
-    [0.5, 0.5, 0.5],
-    [-0.5, 0.5, 0.5],
-    [-0.5, 0.5, -0.5],
+    // Panel 1
+    [-0.5, -0.5, -0.5,  0.0,  0.0, -1.0],
+    [ 0.5, -0.5, -0.5,  0.0,  0.0, -1.0],
+    [ 0.5,  0.5, -0.5,  0.0,  0.0, -1.0],
+    [ 0.5,  0.5, -0.5,  0.0,  0.0, -1.0],
+    [-0.5,  0.5, -0.5,  0.0,  0.0, -1.0],
+    [-0.5, -0.5, -0.5,  0.0,  0.0, -1.0],
+    // Panel 2
+    [-0.5, -0.5,  0.5,  0.0,  0.0, 1.0],
+    [ 0.5, -0.5,  0.5,  0.0,  0.0, 1.0],
+    [ 0.5,  0.5,  0.5,  0.0,  0.0, 1.0],
+    [ 0.5,  0.5,  0.5,  0.0,  0.0, 1.0],
+    [-0.5,  0.5,  0.5,  0.0,  0.0, 1.0],
+    [-0.5, -0.5,  0.5,  0.0,  0.0, 1.0],
+    // Panel 3
+    [-0.5,  0.5,  0.5, -1.0,  0.0,  0.0],
+    [-0.5,  0.5, -0.5, -1.0,  0.0,  0.0],
+    [-0.5, -0.5, -0.5, -1.0,  0.0,  0.0],
+    [-0.5, -0.5, -0.5, -1.0,  0.0,  0.0],
+    [-0.5, -0.5,  0.5, -1.0,  0.0,  0.0],
+    [-0.5,  0.5,  0.5, -1.0,  0.0,  0.0],
+    // Panel 4
+    [0.5,  0.5,  0.5,  1.0,  0.0,  0.0],
+    [0.5,  0.5, -0.5,  1.0,  0.0,  0.0],
+    [0.5, -0.5, -0.5,  1.0,  0.0,  0.0],
+    [0.5, -0.5, -0.5,  1.0,  0.0,  0.0],
+    [0.5, -0.5,  0.5,  1.0,  0.0,  0.0],
+    [0.5,  0.5,  0.5,  1.0,  0.0,  0.0],
+    // Panel 5
+    [-0.5, -0.5, -0.5,  0.0, -1.0,  0.0],
+    [ 0.5, -0.5, -0.5,  0.0, -1.0,  0.0],
+    [ 0.5, -0.5,  0.5,  0.0, -1.0,  0.0],
+    [ 0.5, -0.5,  0.5,  0.0, -1.0,  0.0],
+    [-0.5, -0.5,  0.5,  0.0, -1.0,  0.0],
+    [-0.5, -0.5, -0.5,  0.0, -1.0,  0.0],
+    // Panel 6
+    [-0.5,  0.5, -0.5,  0.0,  1.0,  0.0],
+    [ 0.5,  0.5, -0.5,  0.0,  1.0,  0.0],
+    [ 0.5,  0.5,  0.5,  0.0,  1.0,  0.0],
+    [ 0.5,  0.5,  0.5,  0.0,  1.0,  0.0],
+    [-0.5,  0.5,  0.5,  0.0,  1.0,  0.0],
+    [-0.5,  0.5, -0.5,  0.0,  1.0,  0.0],
 ];
 
 /* Lighting data */
@@ -103,12 +103,13 @@ impl Renderer {
 
         cube_vao.bind();
         let mut cube_vertex_desc = VertexDescription::new();
-        cube_vertex_desc.add_attribute(gl::FLOAT, 3); // push NDC coords
+        cube_vertex_desc.add_attribute(gl::FLOAT, 3); // set NDC coords attribute
+        cube_vertex_desc.add_attribute(gl::FLOAT, 3); // set normal attribute
         cube_vertex_desc.bind_to(&cube_vbo, Some(&cube_vao));
 
         let cube_shader = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/lighting/007-cube.vert"),
-            include_str!("../../assets/shaders/lighting/007-cube.frag"),
+            include_str!("../../assets/shaders/lighting/008-cube.vert"),
+            include_str!("../../assets/shaders/lighting/008-cube.frag"),
         )?;
         cube_shader.set_uniform_3f(CString::new("object_color")?.as_c_str(), 1.0, 0.5, 0.31);
         cube_shader.set_uniform_3f(
@@ -117,7 +118,13 @@ impl Renderer {
             LIGHT_COLOR[1],
             LIGHT_COLOR[2],
         );
-
+        cube_shader.set_uniform_3f(
+            CString::new("light_pos")?.as_c_str(),
+            LIGHT_POS[0],
+            LIGHT_POS[1],
+            LIGHT_POS[2],
+        );
+        
         /* Lighting */
         let light_vao = VertexArray::new()?;
 
@@ -130,12 +137,13 @@ impl Renderer {
 
         light_vao.bind();
         let mut cube_vertex_desc = VertexDescription::new();
-        cube_vertex_desc.add_attribute(gl::FLOAT, 3); // push NDC coords
+        cube_vertex_desc.add_attribute(gl::FLOAT, 3); // set NDC coords attribute
+        cube_vertex_desc.add_attribute(gl::FLOAT, 3); // set normal attribute
         cube_vertex_desc.bind_to(&lighting_vbo, Some(&light_vao));
 
         let light_shader = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/lighting/007-lighting.vert"),
-            include_str!("../../assets/shaders/lighting/007-lighting.frag"),
+            include_str!("../../assets/shaders/lighting/008-lighting.vert"),
+            include_str!("../../assets/shaders/lighting/008-lighting.frag"),
         )?;
         light_shader.set_uniform_3f(
             CString::new("light_color")?.as_c_str(),
