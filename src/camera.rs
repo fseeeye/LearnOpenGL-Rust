@@ -18,11 +18,7 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new(
-        pos: na::Point3<f32>,
-        look_at: na::Vector3<f32>,
-        up: na::Vector3<f32>,
-    ) -> Self {
+    pub fn new(pos: na::Point3<f32>, look_at: na::Vector3<f32>, up: na::Vector3<f32>) -> Self {
         Self {
             pos,
             look_at: na::Unit::new_normalize(look_at),
@@ -193,7 +189,8 @@ impl Camera {
 
                 // Calculate YAW (on y axis)
                 let yaw_angle = (position.x as f32 - self.last_cursor_pos.x) * self.camera_speed;
-                let yaw_rot = na::Rotation3::from_axis_angle(&na::Vector3::y_axis(), yaw_angle.to_radians());
+                let yaw_rot =
+                    na::Rotation3::from_axis_angle(&na::Vector3::y_axis(), yaw_angle.to_radians());
 
                 self.look_at = yaw_rot * self.look_at;
                 self.up = yaw_rot * self.up;
@@ -207,7 +204,7 @@ impl Camera {
 
                 self.look_at = pitch_rot * self.look_at;
                 self.up = pitch_rot * self.up;
-                
+
                 // Reserve cursor position
                 self.last_cursor_pos = na::Point2::new(position.x as f32, position.y as f32);
 

@@ -210,8 +210,12 @@ impl Renderer {
             .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
         self.cube_shader
             .set_uniform_mat3fv(normal_matrix_name.as_c_str(), &cube_normal_matrix);
-        self.cube_shader
-            .set_uniform_3f(CString::new("camera_pos")?.as_c_str(), camera.get_camera_pos().x, camera.get_camera_pos().y, camera.get_camera_pos().z);
+        self.cube_shader.set_uniform_3f(
+            CString::new("camera_pos")?.as_c_str(),
+            camera.get_camera_pos().x,
+            camera.get_camera_pos().y,
+            camera.get_camera_pos().z,
+        );
 
         unsafe {
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
