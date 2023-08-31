@@ -44,6 +44,10 @@ impl Camera {
         na::Matrix4::look_at_rh(&self.pos, &target_pos, &self.up)
     }
 
+    pub fn get_camera_pos(&self) -> na::Point3<f32> {
+        self.pos
+    }
+
     #[inline]
     fn print_camera_pos(&self) {
         trace!("Camera pos: {:?}", self.pos);
