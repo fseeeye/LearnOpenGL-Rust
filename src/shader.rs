@@ -1,10 +1,10 @@
-use std::ffi::CStr;
+use std::ffi::{CStr, CString};
 
 use anyhow::bail;
 use gl::types::*;
 use nalgebra as na;
 
-use crate::get_gl_error;
+use crate::{get_gl_error, MaterialPhong};
 
 /// enum of Shader types
 #[derive(Clone)]
@@ -259,11 +259,35 @@ impl ShaderProgram {
     /// wrap `glUniform4f`
     ///
     /// Tips: it'll call `bind()` automatically.
+    pub fn set_uniform_1f(&self, uniform_name: &CStr, value: f32) {
+        let uniform_loc = self.get_uniform_location(uniform_name);
+
+        self.bind();
+        unsafe { gl::Uniform1f(uniform_loc, value) }
+    }
+
+    /// Send uniform data: 4f
+    ///
+    /// wrap `glUniform4f`
+    ///
+    /// Tips: it'll call `bind()` automatically.
     pub fn set_uniform_4f(&self, uniform_name: &CStr, v0: f32, v1: f32, v2: f32, v3: f32) {
         let uniform_loc = self.get_uniform_location(uniform_name);
 
         self.bind();
         unsafe { gl::Uniform4f(uniform_loc, v0, v1, v2, v3) }
+    }
+
+    /// Send uniform data: 3f
+    ///
+    /// wrap `glUniform3f`
+    ///
+    /// Tips: it'll call `bind()` automatically.
+    pub fn set_uniform_3f(&self, uniform_name: &CStr, v0: f32, v1: f32, v2: f32) {
+        let uniform_loc = self.get_uniform_location(uniform_name);
+
+        self.bind();
+        unsafe { gl::Uniform3f(uniform_loc, v0, v1, v2) }
     }
 
     /// Send uniform data: mat4fv
@@ -280,5 +304,57 @@ impl ShaderProgram {
         let uniform_loc = self.get_uniform_location(uniform_name);
 
         unsafe { gl::UniformMatrix4fv(uniform_loc, 1, gl::FALSE, matrix.as_ptr()) };
+    }
+
+    /// Send uniform data: mat3fv
+    ///
+    /// wrap `UniformMatrix3fv`
+    ///
+    /// Tips: it'll call `bind()` automatically.
+    pub fn set_uniform_mat3fv(
+        &self,
+        uniform_name: &CStr,
+        matrix: &na::OMatrix<f32, na::Const<3>, na::Const<3>>,
+    ) {
+        self.bind();
+        let uniform_loc = self.get_uniform_location(uniform_name);
+
+        unsafe { gl::UniformMatrix3fv(uniform_loc, 1, gl::FALSE, matrix.as_ptr()) };
+    }
+
+    pub fn set_uniform_material_phong(
+        &self,
+        uniform_name: String,
+        material: &MaterialPhong,
+    ) -> anyhow::Result<()> {
+        let ambient_coefficient_name = CString::new(uniform_name.clone() + ".ambient_coefficient")?;
+        self.set_uniform_3f(
+            ambient_coefficient_name.as_c_str(),
+            material.ambient_coefficient.x,
+            material.ambient_coefficient.y,
+            material.ambient_coefficient.z,
+        );
+
+        let diffuse_coefficient_name = CString::new(uniform_name.clone() + ".diffuse_coefficient")?;
+        self.set_uniform_3f(
+            diffuse_coefficient_name.as_c_str(),
+            material.diffuse_coefficient.x,
+            material.diffuse_coefficient.y,
+            material.diffuse_coefficient.z,
+        );
+
+        let specular_coefficient_name =
+            CString::new(uniform_name.clone() + ".specular_coefficient")?;
+        self.set_uniform_3f(
+            specular_coefficient_name.as_c_str(),
+            material.specular_coefficient.x,
+            material.specular_coefficient.y,
+            material.specular_coefficient.z,
+        );
+
+        let shininess_name = CString::new(uniform_name + ".shininess")?;
+        self.set_uniform_1f(shininess_name.as_c_str(), material.shininess);
+
+        Ok(())
     }
 }

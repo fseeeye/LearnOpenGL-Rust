@@ -50,7 +50,7 @@ impl GlfwWindow {
 
         let (width, height) = inner_win.get_framebuffer_size();
         unsafe {
-            gl::Viewport(0, 0, width as i32, height as i32);
+            gl::Viewport(0, 0, width, height);
         }
 
         Ok((

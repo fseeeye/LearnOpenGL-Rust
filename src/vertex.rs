@@ -1,6 +1,6 @@
 use gl::types::*;
 
-use crate::get_gl_error;
+use crate::{get_gl_error, Buffer, BufferType};
 
 /// Wrapper of [Vertex Array Object](https://www.khronos.org/opengl/wiki/Vertex_Specification#Vertex_Array_Object)
 pub struct VertexArray {
@@ -72,7 +72,7 @@ impl VertexDescription {
         }
     }
 
-    pub fn push(&mut self, ele_type: GLenum, count: GLint) {
+    pub fn add_attribute(&mut self, ele_type: GLenum, count: GLint) {
         match ele_type {
             gl::FLOAT => {
                 let desc = VertexAttributePointer {
@@ -89,11 +89,47 @@ impl VertexDescription {
         }
     }
 
-    pub(crate) fn get_attrib_pointers(&self) -> &Vec<VertexAttributePointer> {
-        &self.pointers
-    }
+    /// Set Vertex Attribute description for Vertex Buffer Object.
+    /// This'll call `bind()` of VBO and VAO(if set) automatically.
+    ///
+    /// If type of this buffer is **not** `ARRAY_BUFFER`, it'll panic!
+    ///
+    /// wrap `glEnableVertexAttribArray` & `glVertexAttribPointer`.
+    pub fn bind_to(&mut self, vbo: &Buffer, vao_opt: Option<&VertexArray>) {
+        assert_eq!(vbo.buffer_type, BufferType::VertexBuffer);
 
-    pub(crate) fn get_stride(&self) -> GLsizei {
-        self.stride
+        // Bind VAO & VBO
+        if let Some(vao) = vao_opt {
+            vao.bind();
+        }
+        vbo.bind();
+
+        // Create & Enable attribute pointers
+        let mut offset = 0_u32;
+        for (index, element) in self.pointers.iter().enumerate() {
+            unsafe {
+                gl::VertexAttribPointer(
+                    // attribute index
+                    index as u32,
+                    // attribute element size
+                    element.count,
+                    // attribute element type
+                    element.ele_type,
+                    // coordinate should be normalized or not
+                    element.should_normalized,
+                    // attribute size
+                    self.stride,
+                    // We have to convert the pointer location using usize values and then cast to a const pointer
+                    // once we have our usize. We do not want to make a null pointer and then offset it with the `offset`
+                    // method. That's gonna generate an out of bounds pointer, which is UB. We could try to remember to use the
+                    // `wrapping_offset` method, or we could just do all the math in usize and then cast at the end.
+                    // I prefer the latter option.
+                    offset as *const _,
+                );
+                gl::EnableVertexAttribArray(index as u32);
+            }
+
+            offset += element.count as u32 * element.get_type_size() as u32;
+        }
     }
 }

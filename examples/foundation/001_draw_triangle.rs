@@ -1,17 +1,19 @@
+//! This example is only about how to draw a simple triangle.
+//! It is involved about:
+//! * Vertex Array Object
+//! * Vertex Buffer Object
+//! * Shader and `in` & `out` keyword
+//! * Draw call: `glDrawArrays()`
+//! It isn't involved about "Index Buffer" and "uniform" keyword in shader.
+
+// remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use anyhow::Ok;
-/// This example is only about how to draw a simple triangle.
-/// It is involved about:
-/// * Vertex Array Object
-/// * Vertex Buffer Object
-/// * Shader and `in` & `out` keyword
-/// * Draw call: `glDrawArrays()`
-/// It isn't involved about "Index Buffer" and "uniform" keyword in shader.
-use learn_opengl_rs as learn;
-
 use gl::types::*;
 use tracing::debug;
+
+use learn_opengl_rs as learn;
 
 fn check_shader_compile(shader_obj: u32) {
     let mut is_success = gl::FALSE as GLint;

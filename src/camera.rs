@@ -1,13 +1,15 @@
 use nalgebra as na;
 use winit::event::{ElementState, KeyboardInput, MouseScrollDelta, VirtualKeyCode, WindowEvent};
 
+use tracing::trace;
+
 #[allow(dead_code)]
 #[derive(Debug)]
 pub struct Camera {
     // basic attributes
     pos: na::Point3<f32>,
-    target: na::Point3<f32>,
-    up: na::Vector3<f32>,
+    look_at: na::Unit<na::Vector3<f32>>, // TODO: use vector to replace target pos
+    up: na::Unit<na::Vector3<f32>>,
     camera_speed: f32,
     // motion attributes
     first_move: bool,
@@ -16,11 +18,11 @@ pub struct Camera {
 }
 
 impl Camera {
-    pub fn new(pos: na::Point3<f32>, target: na::Point3<f32>, up: na::Vector3<f32>) -> Self {
+    pub fn new(pos: na::Point3<f32>, look_at: na::Vector3<f32>, up: na::Vector3<f32>) -> Self {
         Self {
             pos,
-            target,
-            up,
+            look_at: na::Unit::new_normalize(look_at),
+            up: na::Unit::new_normalize(up),
             camera_speed: 0.05,
 
             first_move: false,
@@ -30,25 +32,46 @@ impl Camera {
     }
 
     pub fn get_lookat_matrix(&self) -> na::Matrix4<f32> {
+        let target_pos = self.pos + self.look_at.into_inner();
+
         // View Tranform Matrix (right-handed)
         // right-handed: camera always look at -z after transform
         // left-handed:  camera always look at +z after transform
-        na::Matrix4::look_at_rh(&self.pos, &self.target, &self.up)
+        na::Matrix4::look_at_rh(&self.pos, &target_pos, &self.up)
+    }
+
+    pub fn get_camera_pos(&self) -> na::Point3<f32> {
+        self.pos
+    }
+
+    #[inline]
+    fn print_camera_pos(&self) {
+        trace!("Camera pos: {:?}", self.pos);
+    }
+
+    #[inline]
+    fn get_right_direction(&self) -> na::Unit<na::Vector3<f32>> {
+        na::Unit::new_normalize(self.look_at.cross(&self.up))
     }
 
     pub fn move_front(&mut self, distance: f32) {
-        self.pos.z -= distance;
-        self.target.z -= distance;
+        self.pos += self.look_at.into_inner() * distance;
+
+        self.print_camera_pos();
     }
 
     pub fn move_right(&mut self, distance: f32) {
-        self.pos.x += distance;
-        self.target.x += distance;
+        let right_vec = self.get_right_direction();
+
+        self.pos += right_vec.into_inner() * distance;
+
+        self.print_camera_pos();
     }
 
     pub fn move_up(&mut self, distance: f32) {
-        self.pos.y += distance;
-        self.target.y += distance;
+        self.pos += self.up.into_inner() * distance;
+
+        self.print_camera_pos();
     }
 
     pub fn handle_glfw_event(&mut self, event: &glfw::WindowEvent) -> bool {
@@ -164,21 +187,25 @@ impl Camera {
                     return true;
                 }
 
-                // Calculate YAW (left and right)
+                // Calculate YAW (on y axis)
                 let yaw_angle = (position.x as f32 - self.last_cursor_pos.x) * self.camera_speed;
                 let yaw_rot =
                     na::Rotation3::from_axis_angle(&na::Vector3::y_axis(), yaw_angle.to_radians());
 
-                // Calculate PITCH (up and down)
+                self.look_at = yaw_rot * self.look_at;
+                self.up = yaw_rot * self.up;
+
+                // Calculate PITCH (on right direction)
+                let right_vec = self.get_right_direction();
+
                 let pitch_angle = (position.y as f32 - self.last_cursor_pos.y) * self.camera_speed;
-                let pitch_rot = na::Rotation3::from_axis_angle(
-                    &na::Vector3::x_axis(),
-                    pitch_angle.to_radians(),
-                );
+                let pitch_rot =
+                    na::Rotation3::from_axis_angle(&right_vec, pitch_angle.to_radians());
 
-                // Generate new target position
-                self.target = self.pos + pitch_rot * yaw_rot * (self.target - self.pos);
+                self.look_at = pitch_rot * self.look_at;
+                self.up = pitch_rot * self.up;
 
+                // Reserve cursor position
                 self.last_cursor_pos = na::Point2::new(position.x as f32, position.y as f32);
 
                 true

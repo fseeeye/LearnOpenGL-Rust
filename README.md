@@ -24,7 +24,9 @@ foundation:
 6. [**Camera**](examples/foundation/006_camera.rs): Impl a camera.
 
 lighting:
-
+1. [**Simple Color**](examples/lighting/007_simple_color.rs): Create a simplest light source.
+2. [**Blinn-Phong**](examples/lighting/008_blinn_phong.rs): Blinn-Phong Model.
+3. [**Simple Material**](examples/lighting/009_simple_material.rs): Abstract simplest Blinn-Phong material.
 
 ## Core Dependencies
 

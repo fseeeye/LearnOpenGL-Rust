@@ -12,7 +12,7 @@ tracing = "0.1.37" # logger
 thiserror = "1" # error derive macro
 anyhow = "1" # error handling
 image = "0.24.5" # image processing
-nalgebra = "0.32.2" # Linear algebra
+nalgebra = "0.32.2" # Linear algebra : https://nalgebra.org/docs/
 
 # window related dependencies
 winit = "0.28"
@@ -57,3 +57,22 @@ doc-scrape-examples = true
 name = "006_camera"
 path = "examples/foundation/006_camera.rs"
 doc-scrape-examples = true
+
+[[example]]
+name = "simple_color"
+path = "examples/lighting/007_simple_color.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "blinn_phong"
+path = "examples/lighting/008_blinn_phong.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "simple_material"
+path = "examples/lighting/009_simple_material.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "test_nalgebra"
+path = "examples/test_deps/test_nalgebra.rs"
