@@ -51,7 +51,7 @@ impl Camera {
 
     #[inline]
     fn get_right_direction(&self) -> na::Unit<na::Vector3<f32>> {
-        return na::Unit::new_normalize(self.look_at.cross(&self.up));
+        na::Unit::new_normalize(self.look_at.cross(&self.up))
     }
 
     pub fn move_front(&mut self, distance: f32) {
