@@ -163,6 +163,9 @@ impl Renderer {
                 as gl::types::GLbitfield,
         );
 
+        // Model Matrix
+        let model_name = CString::new("model")?;
+
         // View Matrix
         let view_name = CString::new("view")?;
 
@@ -178,14 +181,14 @@ impl Renderer {
         let projection_name = CString::new("projection")?;
 
         /* Draw cube */
-        self.cube_vao.bind();
 
+        self.cube_vao.bind();
         self.cube_shader.bind();
 
         let cube_model_matrix = na::Matrix3::identity().to_homogeneous();
-        let name = CString::new("model")?;
+
         self.cube_shader
-            .set_uniform_mat4fv(name.as_c_str(), &cube_model_matrix);
+            .set_uniform_mat4fv(model_name.as_c_str(), &cube_model_matrix);
         self.cube_shader
             .set_uniform_mat4fv(view_name.as_c_str(), &camera.get_lookat_matrix());
         self.cube_shader
@@ -198,7 +201,6 @@ impl Renderer {
         /* Draw lighting */
 
         self.light_vao.bind();
-
         self.light_shader.bind();
 
         let light_model_matrix_scale = na::Matrix4::new_scaling(0.2);
@@ -207,8 +209,9 @@ impl Renderer {
             LIGHT_POS[1],
             LIGHT_POS[2],
         ));
+
         self.light_shader
-            .set_uniform_mat4fv(CString::new("model")?.as_c_str(), &light_model_matrix);
+            .set_uniform_mat4fv(model_name.as_c_str(), &light_model_matrix);
         self.light_shader
             .set_uniform_mat4fv(view_name.as_c_str(), &camera.get_lookat_matrix());
         self.light_shader

@@ -293,4 +293,20 @@ impl ShaderProgram {
 
         unsafe { gl::UniformMatrix4fv(uniform_loc, 1, gl::FALSE, matrix.as_ptr()) };
     }
+
+    /// Send uniform data: mat3fv
+    ///
+    /// wrap `UniformMatrix3fv`
+    ///
+    /// Tips: it'll call `bind()` automatically.
+    pub fn set_uniform_mat3fv(
+        &self,
+        uniform_name: &CStr,
+        matrix: &na::OMatrix<f32, na::Const<3>, na::Const<3>>,
+    ) {
+        self.bind();
+        let uniform_loc = self.get_uniform_location(uniform_name);
+
+        unsafe { gl::UniformMatrix3fv(uniform_loc, 1, gl::FALSE, matrix.as_ptr()) };
+    }
 }

@@ -171,8 +171,12 @@ impl Renderer {
                 as gl::types::GLbitfield,
         );
 
+        // Model Matrix
+        let model_name = CString::new("model")?;
+
         // View Matrix
         let view_name = CString::new("view")?;
+        let cube_view_matrix = camera.get_lookat_matrix();
 
         // Projection Matrix
         let (window_width, window_height) = win.get_window_size();
@@ -186,18 +190,26 @@ impl Renderer {
         let projection_name = CString::new("projection")?;
 
         /* Draw cube */
+        
         self.cube_vao.bind();
-
         self.cube_shader.bind();
 
         let cube_model_matrix = na::Matrix3::identity().to_homogeneous();
-        let name = CString::new("model")?;
+        let cube_normal_matrix = cube_model_matrix
+            .fixed_view::<3, 3>(0, 0)
+            .try_inverse()
+            .unwrap()
+            .transpose();
+        let normal_matrix_name = CString::new("normal_matrix")?;
+
         self.cube_shader
-            .set_uniform_mat4fv(name.as_c_str(), &cube_model_matrix);
+            .set_uniform_mat4fv(model_name.as_c_str(), &cube_model_matrix);
         self.cube_shader
-            .set_uniform_mat4fv(view_name.as_c_str(), &camera.get_lookat_matrix());
+            .set_uniform_mat4fv(view_name.as_c_str(), &cube_view_matrix);
         self.cube_shader
             .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
+        self.cube_shader
+            .set_uniform_mat3fv(normal_matrix_name.as_c_str(), &cube_normal_matrix);
 
         unsafe {
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
@@ -206,7 +218,6 @@ impl Renderer {
         /* Draw lighting */
 
         self.light_vao.bind();
-
         self.light_shader.bind();
 
         let light_model_matrix_scale = na::Matrix4::new_scaling(0.2);
