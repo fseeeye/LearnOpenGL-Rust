@@ -206,9 +206,9 @@ fn main() -> anyhow::Result<()> {
     /* Camera */
     // Init camera at pos(0,0,3) look-at(0,0,0) up(0,1,0)
     let camera_pos = na::Point3::new(0.0, 0.0, 3.0);
-    let camera_target = na::Point3::new(0.0, 0.0, 0.0);
+    let camera_look_at = na::Vector3::new(0.0, 0.0, -1.0);
     let camera_up = na::Vector3::y();
-    let mut camera = learn::Camera::new(camera_pos, camera_target, camera_up);
+    let mut camera = learn::Camera::new(camera_pos, camera_look_at, camera_up);
 
     /* Window */
     let (win, event_loop) = match WinitWindow::new("Simple Triangle", SCREEN_WIDTH, SCREEN_HEIGHT) {

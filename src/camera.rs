@@ -8,8 +8,8 @@ use tracing::trace;
 pub struct Camera {
     // basic attributes
     pos: na::Point3<f32>,
-    target_pos: na::Point3<f32>, // TODO: use vector to replace target pos
-    up_vec: na::Unit<na::Vector3<f32>>,
+    look_at: na::Unit<na::Vector3<f32>>, // TODO: use vector to replace target pos
+    up: na::Unit<na::Vector3<f32>>,
     camera_speed: f32,
     // motion attributes
     first_move: bool,
@@ -20,13 +20,13 @@ pub struct Camera {
 impl Camera {
     pub fn new(
         pos: na::Point3<f32>,
-        target_pos: na::Point3<f32>,
-        up_vec: na::Vector3<f32>,
+        look_at: na::Vector3<f32>,
+        up: na::Vector3<f32>,
     ) -> Self {
         Self {
             pos,
-            target_pos,
-            up_vec: na::Unit::new_normalize(up_vec),
+            look_at: na::Unit::new_normalize(look_at),
+            up: na::Unit::new_normalize(up),
             camera_speed: 0.05,
 
             first_move: false,
@@ -36,10 +36,12 @@ impl Camera {
     }
 
     pub fn get_lookat_matrix(&self) -> na::Matrix4<f32> {
+        let target_pos = self.pos + self.look_at.into_inner();
+
         // View Tranform Matrix (right-handed)
         // right-handed: camera always look at -z after transform
         // left-handed:  camera always look at +z after transform
-        na::Matrix4::look_at_rh(&self.pos, &self.target_pos, &self.up_vec)
+        na::Matrix4::look_at_rh(&self.pos, &target_pos, &self.up)
     }
 
     #[inline]
@@ -48,32 +50,26 @@ impl Camera {
     }
 
     #[inline]
-    fn get_camera_direction(&self) -> na::Vector3<f32> {
-        return (self.target_pos - self.pos).normalize();
+    fn get_right_direction(&self) -> na::Unit<na::Vector3<f32>> {
+        return na::Unit::new_normalize(self.look_at.cross(&self.up));
     }
 
     pub fn move_front(&mut self, distance: f32) {
-        let camera_dir = self.get_camera_direction();
-
-        self.pos += camera_dir * distance;
-        self.target_pos += camera_dir * distance;
+        self.pos += self.look_at.into_inner() * distance;
 
         self.print_camera_pos();
     }
 
     pub fn move_right(&mut self, distance: f32) {
-        let camera_dir = self.get_camera_direction();
-        let right_vec = camera_dir.cross(&self.up_vec).normalize();
+        let right_vec = self.get_right_direction();
 
-        self.pos += right_vec * distance;
-        self.target_pos += right_vec * distance;
+        self.pos += right_vec.into_inner() * distance;
 
         self.print_camera_pos();
     }
 
     pub fn move_up(&mut self, distance: f32) {
-        self.pos += self.up_vec.into_inner() * distance;
-        self.target_pos += self.up_vec.into_inner() * distance;
+        self.pos += self.up.into_inner() * distance;
 
         self.print_camera_pos();
     }
@@ -191,25 +187,24 @@ impl Camera {
                     return true;
                 }
 
-                // Calculate YAW (left and right)
+                // Calculate YAW (on y axis)
                 let yaw_angle = (position.x as f32 - self.last_cursor_pos.x) * self.camera_speed;
-                let yaw_rot = na::Rotation3::from_axis_angle(&self.up_vec, yaw_angle.to_radians());
+                let yaw_rot = na::Rotation3::from_axis_angle(&na::Vector3::y_axis(), yaw_angle.to_radians());
 
-                self.target_pos = self.pos + yaw_rot * self.get_camera_direction();
+                self.look_at = yaw_rot * self.look_at;
+                self.up = yaw_rot * self.up;
 
-                // Calculate PITCH (up and down)
-                let right_vec =
-                    na::Unit::new_normalize(self.get_camera_direction().cross(&self.up_vec));
+                // Calculate PITCH (on right direction)
+                let right_vec = self.get_right_direction();
 
                 let pitch_angle = (position.y as f32 - self.last_cursor_pos.y) * self.camera_speed;
                 let pitch_rot =
                     na::Rotation3::from_axis_angle(&right_vec, pitch_angle.to_radians());
 
-                self.target_pos = self.pos + pitch_rot * self.get_camera_direction();
-
-                // Genrate new up vector
-                self.up_vec = pitch_rot * self.up_vec;
-
+                self.look_at = pitch_rot * self.look_at;
+                self.up = pitch_rot * self.up;
+                
+                // Reserve cursor position
                 self.last_cursor_pos = na::Point2::new(position.x as f32, position.y as f32);
 
                 true
