@@ -1,5 +1,6 @@
 mod buffer;
 mod camera;
+mod material_phong;
 mod shader;
 mod texture;
 mod utils;
@@ -9,6 +10,7 @@ mod window_winit;
 
 pub use buffer::*;
 pub use camera::*;
+pub use material_phong::*;
 pub use shader::*;
 pub use texture::*;
 pub use utils::*;

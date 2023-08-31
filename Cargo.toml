@@ -59,13 +59,18 @@ path = "examples/foundation/006_camera.rs"
 doc-scrape-examples = true
 
 [[example]]
-name = "color"
-path = "examples/lighting/007_color.rs"
+name = "simple_color"
+path = "examples/lighting/007_simple_color.rs"
 doc-scrape-examples = true
 
 [[example]]
 name = "blinn_phong"
 path = "examples/lighting/008_blinn_phong.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "simple_material"
+path = "examples/lighting/009_simple_material.rs"
 doc-scrape-examples = true
 
 [[example]]

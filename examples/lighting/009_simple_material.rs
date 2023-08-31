@@ -1,4 +1,4 @@
-//! This example is about blinn-phong reflectance model.
+//! This example is about simple material abstraction.
 
 // remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
@@ -9,7 +9,7 @@ use anyhow::bail;
 use gl::types::*;
 
 use learn::{
-    Buffer, BufferBit, BufferType, BufferUsage, Camera, ShaderProgram, VertexArray,
+    Buffer, BufferBit, BufferType, BufferUsage, Camera, MaterialPhong, ShaderProgram, VertexArray,
     VertexDescription, WinitWindow,
 };
 use learn_opengl_rs as learn;
@@ -85,6 +85,13 @@ struct Renderer {
 
 impl Renderer {
     pub fn new() -> anyhow::Result<Self> {
+        let cube_material = MaterialPhong::new(
+            na::Vector3::new(0.61424, 0.04136, 0.04136),
+            na::Vector3::new(0.727811, 0.626959, 0.626959),
+            na::Vector3::new(0.1745, 0.01175, 0.01175),
+            128.0,
+        );
+
         /* Extra Settings */
         // Set clear color
         Buffer::set_clear_color(0.0, 0.0, 0.0, 1.0);
@@ -108,10 +115,9 @@ impl Renderer {
         cube_vertex_desc.bind_to(&cube_vbo, Some(&cube_vao));
 
         let cube_shader = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/lighting/008-cube.vert"),
-            include_str!("../../assets/shaders/lighting/008-cube.frag"),
+            include_str!("../../assets/shaders/lighting/009-cube.vert"),
+            include_str!("../../assets/shaders/lighting/009-cube.frag"),
         )?;
-        cube_shader.set_uniform_3f(CString::new("object_color")?.as_c_str(), 1.0, 0.5, 0.31);
         cube_shader.set_uniform_3f(
             CString::new("light_color")?.as_c_str(),
             LIGHT_COLOR[0],
@@ -124,6 +130,7 @@ impl Renderer {
             LIGHT_POS[1],
             LIGHT_POS[2],
         );
+        cube_shader.set_uniform_material_phong(String::from("material"), &cube_material)?;
 
         /* Lighting */
         let light_vao = VertexArray::new()?;
@@ -142,8 +149,8 @@ impl Renderer {
         cube_vertex_desc.bind_to(&lighting_vbo, Some(&light_vao));
 
         let light_shader = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/lighting/008-lighting.vert"),
-            include_str!("../../assets/shaders/lighting/008-lighting.frag"),
+            include_str!("../../assets/shaders/lighting/009-lighting.vert"),
+            include_str!("../../assets/shaders/lighting/009-lighting.frag"),
         )?;
         light_shader.set_uniform_3f(
             CString::new("light_color")?.as_c_str(),
