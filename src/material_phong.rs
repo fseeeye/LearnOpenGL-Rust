@@ -1,25 +1,25 @@
-use nalgebra as na;
+use crate::Texture;
 
 #[derive(Debug)]
 pub struct MaterialPhong {
-    pub diffuse_coefficient: na::Vector3<f32>,
-    pub specular_coefficient: na::Vector3<f32>,
-    pub ambient_coefficient: na::Vector3<f32>,
+    pub diffuse_map: Texture,
+    pub specular_map: Texture,
     pub shininess: f32,
+    pub emission_map: Option<Texture>,
 }
 
 impl MaterialPhong {
     pub fn new(
-        diffuse_coefficient: na::Vector3<f32>,
-        specular_coefficient: na::Vector3<f32>,
-        ambient_coefficient: na::Vector3<f32>,
+        diffuse_map: Texture,
+        specular_map: Texture,
         shininess: f32,
+        emission_map: Option<Texture>,
     ) -> MaterialPhong {
         MaterialPhong {
-            diffuse_coefficient,
-            specular_coefficient,
-            ambient_coefficient,
+            diffuse_map,
+            specular_map,
             shininess,
+            emission_map,
         }
     }
 }

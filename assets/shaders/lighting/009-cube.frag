@@ -4,21 +4,22 @@ out vec4 frag_color;
 
 in vec3 normal;
 in vec3 world_pos;
+in vec2 texture_coord;
 
 uniform vec3 light_color;
 uniform vec3 light_pos;
 uniform vec3 camera_pos;
 
 struct Material {
-    vec3 ambient_coefficient;
-    vec3 diffuse_coefficient;
-    vec3 specular_coefficient;
+    sampler2D diffuse_map;
+    sampler2D specular_map;
     float shininess;
+    sampler2D emission_map;
 }; 
 uniform Material material;
 
 vec3 calc_ambient_term() {
-    vec3 k_a = material.ambient_coefficient;
+    vec3 k_a = vec3(texture(material.diffuse_map, texture_coord));
 
     vec3 ambient_intensity = vec3(0.2, 0.2, 0.2);
 
@@ -26,7 +27,7 @@ vec3 calc_ambient_term() {
 }
 
 vec3 calc_diffuse_term() {
-    vec3 k_d = material.diffuse_coefficient;
+    vec3 k_d = vec3(texture(material.diffuse_map, texture_coord));
 
     vec3 light_dir = normalize(light_pos - world_pos);
     float cos_term = max(0.0, dot(normal, light_dir));
@@ -38,7 +39,7 @@ vec3 calc_diffuse_term() {
 }
 
 vec3 calc_specular_term() {
-    vec3 k_s = material.specular_coefficient;
+    vec3 k_s = vec3(texture(material.specular_map, texture_coord));
 
     float p = material.shininess;
     vec3 light_dir = normalize(light_pos - world_pos);
@@ -56,7 +57,9 @@ void main() {
     vec3 diffuse_term = calc_diffuse_term();
     vec3 specular_term = calc_specular_term();
 
-    vec3 rst = ambient_term + diffuse_term + specular_term;
+    vec3 emission = texture(material.emission_map, texture_coord).rgb * 0.2;
+
+    vec3 rst = ambient_term + diffuse_term + specular_term + emission;
 
     frag_color = vec4(rst, 1.0);
 }

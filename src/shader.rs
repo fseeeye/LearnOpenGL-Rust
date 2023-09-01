@@ -4,7 +4,7 @@ use anyhow::bail;
 use gl::types::*;
 use nalgebra as na;
 
-use crate::{get_gl_error, MaterialPhong};
+use crate::{get_gl_error, MaterialPhong, Texture};
 
 /// enum of Shader types
 #[derive(Clone)]
@@ -254,9 +254,31 @@ impl ShaderProgram {
         unsafe { gl::GetUniformLocation(self.id, uniform_name.as_ptr().cast()) }
     }
 
-    /// Send uniform data: 4f
+    /// Bind Texture unit/slot to spec uniform sampler of spec shader program.
     ///
-    /// wrap `glUniform4f`
+    /// wrap `glUniform1i`
+    pub fn set_texture_unit(&self, uniform_name: &CStr, texture: &Texture) {
+        // Bind texture to spec texture unit
+        texture.bind();
+
+        self.set_uniform_1i(uniform_name, texture.unit.into()); // unnecessary for TEXTURE 0
+    }
+
+    /// Send uniform data: 1 int
+    ///
+    /// wrap `glUniform1i`
+    ///
+    /// Tips: it'll call `bind()` automatically.
+    pub fn set_uniform_1i(&self, uniform_name: &CStr, value: i32) {
+        let uniform_loc = self.get_uniform_location(uniform_name);
+
+        self.bind();
+        unsafe { gl::Uniform1i(uniform_loc, value) }
+    }
+
+    /// Send uniform data: 1 float
+    ///
+    /// wrap `glUniform1f`
     ///
     /// Tips: it'll call `bind()` automatically.
     pub fn set_uniform_1f(&self, uniform_name: &CStr, value: f32) {
@@ -327,33 +349,19 @@ impl ShaderProgram {
         uniform_name: String,
         material: &MaterialPhong,
     ) -> anyhow::Result<()> {
-        let ambient_coefficient_name = CString::new(uniform_name.clone() + ".ambient_coefficient")?;
-        self.set_uniform_3f(
-            ambient_coefficient_name.as_c_str(),
-            material.ambient_coefficient.x,
-            material.ambient_coefficient.y,
-            material.ambient_coefficient.z,
-        );
+        let diffuse_coefficient_name = CString::new(uniform_name.clone() + ".diffuse_map")?;
+        self.set_texture_unit(&diffuse_coefficient_name, &material.diffuse_map);
 
-        let diffuse_coefficient_name = CString::new(uniform_name.clone() + ".diffuse_coefficient")?;
-        self.set_uniform_3f(
-            diffuse_coefficient_name.as_c_str(),
-            material.diffuse_coefficient.x,
-            material.diffuse_coefficient.y,
-            material.diffuse_coefficient.z,
-        );
+        let specular_coefficient_name = CString::new(uniform_name.clone() + ".specular_map")?;
+        self.set_texture_unit(&specular_coefficient_name, &material.specular_map);
 
-        let specular_coefficient_name =
-            CString::new(uniform_name.clone() + ".specular_coefficient")?;
-        self.set_uniform_3f(
-            specular_coefficient_name.as_c_str(),
-            material.specular_coefficient.x,
-            material.specular_coefficient.y,
-            material.specular_coefficient.z,
-        );
-
-        let shininess_name = CString::new(uniform_name + ".shininess")?;
+        let shininess_name = CString::new(uniform_name.clone() + ".shininess")?;
         self.set_uniform_1f(shininess_name.as_c_str(), material.shininess);
+
+        if let Some(ref emission_map) = material.emission_map {
+            let emission_map_name = CString::new(uniform_name + ".emission_map")?;
+            self.set_texture_unit(&emission_map_name, emission_map);
+        }
 
         Ok(())
     }

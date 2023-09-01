@@ -1,14 +1,13 @@
-use std::ffi::CString;
-
 use gl::types::*;
 use image::GenericImageView;
 
-use crate::{get_gl_error, ShaderProgram};
+use crate::get_gl_error;
 
 /// Wrapper of [Texture Object](https://www.khronos.org/opengl/wiki/Texture)
+#[derive(Debug)]
 pub struct Texture {
     pub id: GLuint,
-    unit: TextureUnit,
+    pub unit: TextureUnit,
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -152,7 +151,7 @@ impl Texture {
     }
 
     /// Active texture unit/slot and Bind this Texture Object to it.
-    pub fn active(&self) {
+    pub fn bind(&self) {
         // Active Texture unit
         unsafe {
             gl::ActiveTexture(self.unit.into()) // unnecessary for TEXTURE 0
@@ -160,24 +159,5 @@ impl Texture {
 
         // Bind Texture
         unsafe { gl::BindTexture(gl::TEXTURE_2D, self.id) }
-    }
-
-    /// Bind Texture unit/slot to spec uniform sampler of spec shader program.
-    ///
-    /// wrap `glUniform1i`
-    pub fn bind_texture_unit(&self, uniform_name: &str, shader_program: &ShaderProgram) {
-        // Bind shader program before setting uniforms
-        shader_program.bind();
-
-        // Bind sampler uniform var to spec texture unit
-        unsafe {
-            gl::Uniform1i(
-                gl::GetUniformLocation(
-                    shader_program.id,
-                    CString::new(uniform_name).unwrap().as_c_str().as_ptr(),
-                ),
-                self.unit.into(),
-            ); // unnecessary for TEXTURE 0
-        }
     }
 }

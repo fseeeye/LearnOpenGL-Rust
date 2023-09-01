@@ -69,8 +69,8 @@ path = "examples/lighting/008_blinn_phong.rs"
 doc-scrape-examples = true
 
 [[example]]
-name = "simple_material"
-path = "examples/lighting/009_simple_material.rs"
+name = "material_map"
+path = "examples/lighting/009_material_map.rs"
 doc-scrape-examples = true
 
 [[example]]

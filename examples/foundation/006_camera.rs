@@ -117,10 +117,8 @@ impl Renderer {
             TextureFormat::RGBA,
             TextureUnit::TEXTURE1,
         )?;
-        texture_container.active();
-        texture_face.active();
-        texture_face.bind_texture_unit("t_face", &shader_program);
-        texture_container.bind_texture_unit("t_container", &shader_program);
+        shader_program.set_texture_unit(&CString::new("t_container")?, &texture_container);
+        shader_program.set_texture_unit(&CString::new("t_face")?, &texture_face);
 
         /* Extra Settings */
         Buffer::set_clear_color(0.2, 0.3, 0.3, 1.0);

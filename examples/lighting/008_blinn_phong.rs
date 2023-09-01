@@ -142,8 +142,8 @@ impl Renderer {
         cube_vertex_desc.bind_to(&lighting_vbo, Some(&light_vao));
 
         let light_shader = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/lighting/008-lighting.vert"),
-            include_str!("../../assets/shaders/lighting/008-lighting.frag"),
+            include_str!("../../assets/shaders/lighting/007-lighting.vert"),
+            include_str!("../../assets/shaders/lighting/007-lighting.frag"),
         )?;
         light_shader.set_uniform_3f(
             CString::new("light_color")?.as_c_str(),
