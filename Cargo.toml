@@ -29,6 +29,10 @@ tracing-subscriber = "0.3.16" # Utilities for implementing and composing tracing
 cfg_aliases = "0.1.1"
 
 [[example]]
+name = "test_nalgebra"
+path = "examples/test_deps/test_nalgebra.rs"
+
+[[example]]
 name = "001_draw_triangle"
 path = "examples/foundation/001_draw_triangle.rs"
 doc-scrape-examples = true
@@ -74,5 +78,6 @@ path = "examples/lighting/009_material_map.rs"
 doc-scrape-examples = true
 
 [[example]]
-name = "test_nalgebra"
-path = "examples/test_deps/test_nalgebra.rs"
+name = "multi_lights"
+path = "examples/lighting/010_multi_lights.rs"
+doc-scrape-examples = true
