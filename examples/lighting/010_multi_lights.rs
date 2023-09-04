@@ -10,7 +10,7 @@ use gl::types::*;
 
 use learn::{
     Buffer, BufferBit, BufferType, BufferUsage, Camera, MaterialPhong, ShaderProgram, Texture,
-    TextureFormat, TextureUnit, VertexArray, VertexDescription, WinitWindow,
+    TextureFormat, TextureUnit, VertexArray, VertexDescription, WinitWindow, DirectionalLight, PointLight
 };
 use learn_opengl_rs as learn;
 
@@ -21,6 +21,7 @@ use winit::event::Event;
 /* Screen info */
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
+const BACKGROUND_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 /* Camera data */
 const CAMERA_POS: [f32; 3] = [0.0, 0.0, 5.0];
@@ -72,9 +73,22 @@ const CUBE_VERTICES: [Vertex; 36] = [
     [-0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0],
 ];
 
+const CUBE_POSTIONS: [na::Vector3<f32>; 10] = [
+    na::Vector3::new(0.0, 0.0, 0.0),
+    na::Vector3::new(2.0, 5.0, -15.0),
+    na::Vector3::new(-1.5, -2.2, -2.5),
+    na::Vector3::new(-3.8, -2.0, -12.3),
+    na::Vector3::new(2.4, -0.4, -3.5),
+    na::Vector3::new(-1.7, 3.0, -7.5),
+    na::Vector3::new(1.3, -2.0, -2.5),
+    na::Vector3::new(1.5, 2.0, -2.5),
+    na::Vector3::new(1.5, 0.2, -1.5),
+    na::Vector3::new(-1.3, 1.0, -1.5),
+];
+
 /* Lighting data */
 const LIGHT_COLOR: [f32; 3] = [1.0, 1.0, 1.0];
-const LIGHT_POS: [f32; 3] = [1.2, 1.0, 2.0];
+const DIR_LIGHT_DIRECTION: [f32; 3] = [-0.2, -1.0, -0.3];
 
 struct Renderer {
     cube_shader: ShaderProgram,
@@ -85,6 +99,59 @@ struct Renderer {
 
 impl Renderer {
     pub fn new() -> anyhow::Result<Self> {
+        /* Extra Settings */
+        // Set clear color
+        Buffer::set_clear_color(BACKGROUND_COLOR[0], BACKGROUND_COLOR[1], BACKGROUND_COLOR[2], BACKGROUND_COLOR[3]);
+        // Enable Depth Test
+        unsafe { gl::Enable(gl::DEPTH_TEST) };
+
+        /* Light */
+
+        // Prepare light casters
+        let dir_light = DirectionalLight::new(
+            na::Vector3::new(DIR_LIGHT_DIRECTION[0], DIR_LIGHT_DIRECTION[1], DIR_LIGHT_DIRECTION[2]),
+            na::Vector3::new(LIGHT_COLOR[0], LIGHT_COLOR[1], LIGHT_COLOR[2])
+        );
+
+        let point_light = PointLight::new(
+            na::Vector3::new(0.7, 0.2, 2.0),
+            na::Vector3::new(LIGHT_COLOR[0], LIGHT_COLOR[1], LIGHT_COLOR[2]),
+            1.0,
+            0.09,
+        );
+
+        // Prepare vertex of light
+        let light_vao = VertexArray::new()?;
+
+        let lighting_vbo = Buffer::new(BufferType::VertexBuffer)?;
+        lighting_vbo.bind();
+        lighting_vbo.set_buffer_data(
+            bytemuck::cast_slice(&CUBE_VERTICES),
+            BufferUsage::StaticDraw,
+        );
+
+        light_vao.bind();
+        let mut cube_vertex_desc = VertexDescription::new();
+        cube_vertex_desc.add_attribute(gl::FLOAT, 3); // set NDC coords attribute
+        cube_vertex_desc.add_attribute(gl::FLOAT, 3); // set normal attribute
+        cube_vertex_desc.add_attribute(gl::FLOAT, 2); // set Texture coord attribute
+        cube_vertex_desc.bind_to(&lighting_vbo, Some(&light_vao));
+
+        // Prepare shader of light
+        let light_shader = ShaderProgram::create_from_source(
+            include_str!("../../assets/shaders/lighting/010-lighting.vert"),
+            include_str!("../../assets/shaders/lighting/010-lighting.frag"),
+        )?;
+        light_shader.set_uniform_3f(
+            CString::new("light_color")?.as_c_str(),
+            LIGHT_COLOR[0],
+            LIGHT_COLOR[1],
+            LIGHT_COLOR[2],
+        );
+
+        /* Cube Vertexs & Shader */
+
+        // Prepare cube material
         let texture_diffuse = Texture::create(
             "assets/textures/container2.png",
             TextureFormat::RGBA,
@@ -102,13 +169,7 @@ impl Renderer {
             None,
         );
 
-        /* Extra Settings */
-        // Set clear color
-        Buffer::set_clear_color(0.0, 0.0, 0.0, 1.0);
-        // Enable Depth Test
-        unsafe { gl::Enable(gl::DEPTH_TEST) };
-
-        /* Cube */
+        // Prepare vertex of cube
         let cube_vao = VertexArray::new()?;
 
         let cube_vbo = Buffer::new(BufferType::VertexBuffer)?;
@@ -125,51 +186,28 @@ impl Renderer {
         cube_vertex_desc.add_attribute(gl::FLOAT, 2); // set Texture coord attribute
         cube_vertex_desc.bind_to(&cube_vbo, Some(&cube_vao));
 
+        // Prepare vertex of shader
         let cube_shader = ShaderProgram::create_from_source(
             include_str!("../../assets/shaders/lighting/010-cube.vert"),
             include_str!("../../assets/shaders/lighting/010-cube.frag"),
         )?;
-        cube_shader.set_uniform_3f(
-            CString::new("light_color")?.as_c_str(),
-            LIGHT_COLOR[0],
-            LIGHT_COLOR[1],
-            LIGHT_COLOR[2],
-        );
-        cube_shader.set_uniform_3f(
-            CString::new("light_pos")?.as_c_str(),
-            LIGHT_POS[0],
-            LIGHT_POS[1],
-            LIGHT_POS[2],
-        );
+        // cube_shader.set_uniform_3f(
+        //     CString::new("light_color")?.as_c_str(),
+        //     LIGHT_COLOR[0],
+        //     LIGHT_COLOR[1],
+        //     LIGHT_COLOR[2],
+        // );
+        // cube_shader.set_uniform_3f(
+        //     CString::new("light_pos")?.as_c_str(),
+        //     LIGHT_POS[0],
+        //     LIGHT_POS[1],
+        //     LIGHT_POS[2],
+        // );
         cube_shader.set_uniform_material_phong(String::from("material"), &cube_material)?;
-
-        /* Lighting */
-        let light_vao = VertexArray::new()?;
-
-        let lighting_vbo = Buffer::new(BufferType::VertexBuffer)?;
-        lighting_vbo.bind();
-        lighting_vbo.set_buffer_data(
-            bytemuck::cast_slice(&CUBE_VERTICES),
-            BufferUsage::StaticDraw,
-        );
-
-        light_vao.bind();
-        let mut cube_vertex_desc = VertexDescription::new();
-        cube_vertex_desc.add_attribute(gl::FLOAT, 3); // set NDC coords attribute
-        cube_vertex_desc.add_attribute(gl::FLOAT, 3); // set normal attribute
-        cube_vertex_desc.add_attribute(gl::FLOAT, 2); // set Texture coord attribute
-        cube_vertex_desc.bind_to(&lighting_vbo, Some(&light_vao));
-
-        let light_shader = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/lighting/010-lighting.vert"),
-            include_str!("../../assets/shaders/lighting/010-lighting.frag"),
+        cube_shader.set_uniform_directional_light(
+            String::from("dir_light"),
+            &dir_light,
         )?;
-        light_shader.set_uniform_3f(
-            CString::new("light_color")?.as_c_str(),
-            LIGHT_COLOR[0],
-            LIGHT_COLOR[1],
-            LIGHT_COLOR[2],
-        );
 
         Ok(Self {
             cube_shader,
@@ -192,6 +230,7 @@ impl Renderer {
 
         // Model Matrix
         let model_name = CString::new("model")?;
+        let normal_matrix_name = CString::new("normal_matrix")?;
 
         // View Matrix
         let view_name = CString::new("view")?;
@@ -212,23 +251,11 @@ impl Renderer {
 
         self.cube_vao.bind();
         self.cube_shader.bind();
-
-        let cube_model_matrix = na::Matrix3::identity().to_homogeneous();
-        let cube_normal_matrix = cube_model_matrix
-            .fixed_view::<3, 3>(0, 0)
-            .try_inverse()
-            .unwrap()
-            .transpose();
-        let normal_matrix_name = CString::new("normal_matrix")?;
-
-        self.cube_shader
-            .set_uniform_mat4fv(model_name.as_c_str(), &cube_model_matrix);
+        
         self.cube_shader
             .set_uniform_mat4fv(view_name.as_c_str(), &cube_view_matrix);
         self.cube_shader
             .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
-        self.cube_shader
-            .set_uniform_mat3fv(normal_matrix_name.as_c_str(), &cube_normal_matrix);
         self.cube_shader.set_uniform_3f(
             CString::new("camera_pos")?.as_c_str(),
             camera.get_camera_pos().x,
@@ -236,31 +263,59 @@ impl Renderer {
             camera.get_camera_pos().z,
         );
 
+        for cube_position in CUBE_POSTIONS {
+            // Model Matrix & Normal Matrix of cube
+            // let model_matrix_rotation = na::Rotation3::from_axis_angle(
+            //     &na::Unit::new_normalize(na::Vector3::new(0.5, 1.0, 0.0)),
+            //     -std::f32::consts::PI / 3.0 * delta_time,
+            // )
+            // .to_homogeneous();
+            let model_matrix_transform = na::Translation3::from(cube_position).to_homogeneous();
+            let cube_model_matrix = model_matrix_transform;
+            let cube_normal_matrix = cube_model_matrix
+                .fixed_view::<3, 3>(0, 0)
+                .try_inverse()
+                .unwrap()
+                .transpose();
+            
+            self.cube_shader
+                .set_uniform_mat4fv(model_name.as_c_str(), &cube_model_matrix);
+            self.cube_shader
+                .set_uniform_mat3fv(normal_matrix_name.as_c_str(), &cube_normal_matrix);
+
+            // Draw
+            unsafe {
+                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            }
+        }
+
         unsafe {
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
         }
 
         /* Draw lighting */
 
-        self.light_vao.bind();
-        self.light_shader.bind();
+        // self.light_vao.bind();
+        // self.light_shader.bind();
 
-        let light_model_matrix_scale = na::Matrix4::new_scaling(0.2);
-        let light_model_matrix = light_model_matrix_scale.append_translation(&na::Vector3::new(
-            LIGHT_POS[0],
-            LIGHT_POS[1],
-            LIGHT_POS[2],
-        ));
-        self.light_shader
-            .set_uniform_mat4fv(CString::new("model")?.as_c_str(), &light_model_matrix);
-        self.light_shader
-            .set_uniform_mat4fv(view_name.as_c_str(), &camera.get_lookat_matrix());
-        self.light_shader
-            .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
+        // // Model matrix of light
+        // let light_model_matrix_scale = na::Matrix4::new_scaling(0.2);
+        // let light_model_matrix = light_model_matrix_scale.append_translation(&na::Vector3::new(
+        //     LIGHT_POS[0],
+        //     LIGHT_POS[1],
+        //     LIGHT_POS[2],
+        // ));
 
-        unsafe {
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
-        }
+        // self.light_shader
+        //     .set_uniform_mat4fv(model_name.as_c_str(), &light_model_matrix);
+        // self.light_shader
+        //     .set_uniform_mat4fv(view_name.as_c_str(), &camera.get_lookat_matrix());
+        // self.light_shader
+        //     .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
+
+        // unsafe {
+        //     gl::DrawArrays(gl::TRIANGLES, 0, 36);
+        // }
 
         // Swap buffers of window
         win.swap_buffers()?;

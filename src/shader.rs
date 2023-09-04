@@ -4,7 +4,7 @@ use anyhow::bail;
 use gl::types::*;
 use nalgebra as na;
 
-use crate::{get_gl_error, MaterialPhong, Texture};
+use crate::{get_gl_error, MaterialPhong, Texture, DirectionalLight};
 
 /// enum of Shader types
 #[derive(Clone)]
@@ -362,6 +362,20 @@ impl ShaderProgram {
             let emission_map_name = CString::new(uniform_name + ".emission_map")?;
             self.set_texture_unit(&emission_map_name, emission_map);
         }
+
+        Ok(())
+    }
+
+    pub fn set_uniform_directional_light(
+        &self,
+        uniform_name: String,
+        dir_light: &DirectionalLight,
+    ) -> anyhow::Result<()> {
+        let dir_name = CString::new(uniform_name.clone() + ".direction")?;
+        self.set_uniform_3f(dir_name.as_c_str(), dir_light.direction.x, dir_light.direction.y, dir_light.direction.z);
+
+        let color_name = CString::new(uniform_name.clone() + ".color")?;
+        self.set_uniform_3f(color_name.as_c_str(), dir_light.color.x, dir_light.color.y, dir_light.color.z);
 
         Ok(())
     }
