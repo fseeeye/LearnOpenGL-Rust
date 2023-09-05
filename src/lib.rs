@@ -1,5 +1,6 @@
 mod buffer;
 mod camera;
+mod light;
 mod material_phong;
 mod shader;
 mod texture;
@@ -7,10 +8,10 @@ mod utils;
 mod vertex;
 mod window_glfw;
 mod window_winit;
-mod light;
 
 pub use buffer::*;
 pub use camera::*;
+pub use light::*;
 pub use material_phong::*;
 pub use shader::*;
 pub use texture::*;
@@ -18,4 +19,3 @@ pub use utils::*;
 pub use vertex::*;
 pub use window_glfw::*;
 pub use window_winit::*;
-pub use light::*;

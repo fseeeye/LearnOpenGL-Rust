@@ -9,8 +9,9 @@ use anyhow::bail;
 use gl::types::*;
 
 use learn::{
-    Buffer, BufferBit, BufferType, BufferUsage, Camera, MaterialPhong, ShaderProgram, Texture,
-    TextureFormat, TextureUnit, VertexArray, VertexDescription, WinitWindow, DirectionalLight, PointLight
+    Buffer, BufferBit, BufferType, BufferUsage, Camera, DirectionalLight, MaterialPhong,
+    PointLight, ShaderProgram, Texture, TextureFormat, TextureUnit, VertexArray, VertexDescription,
+    WinitWindow,
 };
 use learn_opengl_rs as learn;
 
@@ -111,17 +112,19 @@ impl Renderer {
     pub fn new() -> anyhow::Result<Self> {
         /* Extra Settings */
         // Set clear color
-        Buffer::set_clear_color(BACKGROUND_COLOR[0], BACKGROUND_COLOR[1], BACKGROUND_COLOR[2], BACKGROUND_COLOR[3]);
+        Buffer::set_clear_color(
+            BACKGROUND_COLOR[0],
+            BACKGROUND_COLOR[1],
+            BACKGROUND_COLOR[2],
+            BACKGROUND_COLOR[3],
+        );
         // Enable Depth Test
         unsafe { gl::Enable(gl::DEPTH_TEST) };
 
         /* Light */
 
         // Prepare light casters
-        let dir_light = DirectionalLight::new(
-            DIR_LIGHT_DIRECTION,
-            LIGHT_COLOR
-        );
+        let dir_light = DirectionalLight::new(DIR_LIGHT_DIRECTION, LIGHT_COLOR);
 
         let point_lights: Vec<PointLight> = POINT_LIGHT_POS
             .iter()
@@ -177,12 +180,7 @@ impl Renderer {
             TextureFormat::RGBA,
             TextureUnit::TEXTURE1,
         )?;
-        let cube_material = MaterialPhong::new(
-            texture_diffuse,
-            texture_specular,
-            128.0,
-            None,
-        );
+        let cube_material = MaterialPhong::new(texture_diffuse, texture_specular, 128.0, None);
 
         // Prepare vertex of cube
         let cube_vao = VertexArray::new()?;
@@ -207,15 +205,9 @@ impl Renderer {
             include_str!("../../assets/shaders/lighting/010-cube.frag"),
         )?;
         cube_shader.set_uniform_material_phong(String::from("material"), &cube_material)?;
-        cube_shader.set_uniform_directional_light(
-            String::from("dir_light"),
-            &dir_light,
-        )?;
+        cube_shader.set_uniform_directional_light(String::from("dir_light"), &dir_light)?;
         for (i, point_light) in point_lights.iter().enumerate() {
-            cube_shader.set_uniform_point_light(
-                format!("point_lights[{}]", i),
-                point_light
-            )?;
+            cube_shader.set_uniform_point_light(format!("point_lights[{}]", i), point_light)?;
         }
 
         Ok(Self {
@@ -269,7 +261,7 @@ impl Renderer {
 
         self.cube_vao.bind();
         self.cube_shader.bind();
-        
+
         self.cube_shader
             .set_uniform_mat4fv(view_name.as_c_str(), &cube_view_matrix);
         self.cube_shader
@@ -280,10 +272,8 @@ impl Renderer {
             camera.get_pos().y,
             camera.get_pos().z,
         );
-        self.cube_shader.set_uniform_spot_light(
-            String::from("spot_light"),
-            &spot_light,
-        )?;
+        self.cube_shader
+            .set_uniform_spot_light(String::from("spot_light"), &spot_light)?;
 
         for cube_position in CUBE_POSTIONS {
             // Model Matrix & Normal Matrix of cube
@@ -299,7 +289,7 @@ impl Renderer {
                 .try_inverse()
                 .unwrap()
                 .transpose();
-            
+
             self.cube_shader
                 .set_uniform_mat4fv(model_name.as_c_str(), &cube_model_matrix);
             self.cube_shader
