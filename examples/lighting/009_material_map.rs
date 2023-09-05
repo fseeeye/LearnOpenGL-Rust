@@ -1,4 +1,4 @@
-//! This example is about blinn-phong reflectance model.
+//! This example is about impl material map.
 
 // remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
@@ -9,8 +9,8 @@ use anyhow::bail;
 use gl::types::*;
 
 use learn::{
-    Buffer, BufferBit, BufferType, BufferUsage, Camera, ShaderProgram, VertexArray,
-    VertexDescription, WinitWindow,
+    Buffer, BufferBit, BufferType, BufferUsage, Camera, MaterialPhong, ShaderProgram, Texture,
+    TextureFormat, TextureUnit, VertexArray, VertexDescription, WinitWindow,
 };
 use learn_opengl_rs as learn;
 
@@ -26,50 +26,50 @@ const SCREEN_HEIGHT: u32 = 600;
 const CAMERA_POS: [f32; 3] = [0.0, 0.0, 5.0];
 
 /* Vertex data */
-type Vertex = [f32; 6]; // NDC coords(3) + Normal(3)
+type Vertex = [f32; 8]; // NDC coord(3) + Normal(3) + Texture coord(2)
 const CUBE_VERTICES: [Vertex; 36] = [
     // Panel 1
-    [-0.5, -0.5, -0.5, 0.0, 0.0, -1.0],
-    [0.5, -0.5, -0.5, 0.0, 0.0, -1.0],
-    [0.5, 0.5, -0.5, 0.0, 0.0, -1.0],
-    [0.5, 0.5, -0.5, 0.0, 0.0, -1.0],
-    [-0.5, 0.5, -0.5, 0.0, 0.0, -1.0],
-    [-0.5, -0.5, -0.5, 0.0, 0.0, -1.0],
+    [-0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 0.0],
+    [0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 0.0],
+    [0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 1.0],
+    [0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 1.0, 1.0],
+    [-0.5, 0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 1.0],
+    [-0.5, -0.5, -0.5, 0.0, 0.0, -1.0, 0.0, 0.0],
     // Panel 2
-    [-0.5, -0.5, 0.5, 0.0, 0.0, 1.0],
-    [0.5, -0.5, 0.5, 0.0, 0.0, 1.0],
-    [0.5, 0.5, 0.5, 0.0, 0.0, 1.0],
-    [0.5, 0.5, 0.5, 0.0, 0.0, 1.0],
-    [-0.5, 0.5, 0.5, 0.0, 0.0, 1.0],
-    [-0.5, -0.5, 0.5, 0.0, 0.0, 1.0],
+    [-0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0],
+    [0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 0.0],
+    [0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 1.0],
+    [0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 1.0, 1.0],
+    [-0.5, 0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 1.0],
+    [-0.5, -0.5, 0.5, 0.0, 0.0, 1.0, 0.0, 0.0],
     // Panel 3
-    [-0.5, 0.5, 0.5, -1.0, 0.0, 0.0],
-    [-0.5, 0.5, -0.5, -1.0, 0.0, 0.0],
-    [-0.5, -0.5, -0.5, -1.0, 0.0, 0.0],
-    [-0.5, -0.5, -0.5, -1.0, 0.0, 0.0],
-    [-0.5, -0.5, 0.5, -1.0, 0.0, 0.0],
-    [-0.5, 0.5, 0.5, -1.0, 0.0, 0.0],
+    [-0.5, 0.5, 0.5, -1.0, 0.0, 0.0, 1.0, 0.0],
+    [-0.5, 0.5, -0.5, -1.0, 0.0, 0.0, 1.0, 1.0],
+    [-0.5, -0.5, -0.5, -1.0, 0.0, 0.0, 0.0, 1.0],
+    [-0.5, -0.5, -0.5, -1.0, 0.0, 0.0, 0.0, 1.0],
+    [-0.5, -0.5, 0.5, -1.0, 0.0, 0.0, 0.0, 0.0],
+    [-0.5, 0.5, 0.5, -1.0, 0.0, 0.0, 1.0, 0.0],
     // Panel 4
-    [0.5, 0.5, 0.5, 1.0, 0.0, 0.0],
-    [0.5, 0.5, -0.5, 1.0, 0.0, 0.0],
-    [0.5, -0.5, -0.5, 1.0, 0.0, 0.0],
-    [0.5, -0.5, -0.5, 1.0, 0.0, 0.0],
-    [0.5, -0.5, 0.5, 1.0, 0.0, 0.0],
-    [0.5, 0.5, 0.5, 1.0, 0.0, 0.0],
+    [0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 1.0, 0.0],
+    [0.5, 0.5, -0.5, 1.0, 0.0, 0.0, 1.0, 1.0],
+    [0.5, -0.5, -0.5, 1.0, 0.0, 0.0, 0.0, 1.0],
+    [0.5, -0.5, -0.5, 1.0, 0.0, 0.0, 0.0, 1.0],
+    [0.5, -0.5, 0.5, 1.0, 0.0, 0.0, 0.0, 0.0],
+    [0.5, 0.5, 0.5, 1.0, 0.0, 0.0, 1.0, 0.0],
     // Panel 5
-    [-0.5, -0.5, -0.5, 0.0, -1.0, 0.0],
-    [0.5, -0.5, -0.5, 0.0, -1.0, 0.0],
-    [0.5, -0.5, 0.5, 0.0, -1.0, 0.0],
-    [0.5, -0.5, 0.5, 0.0, -1.0, 0.0],
-    [-0.5, -0.5, 0.5, 0.0, -1.0, 0.0],
-    [-0.5, -0.5, -0.5, 0.0, -1.0, 0.0],
+    [-0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 0.0, 1.0],
+    [0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 1.0, 1.0],
+    [0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 1.0, 0.0],
+    [0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 1.0, 0.0],
+    [-0.5, -0.5, 0.5, 0.0, -1.0, 0.0, 0.0, 0.0],
+    [-0.5, -0.5, -0.5, 0.0, -1.0, 0.0, 0.0, 1.0],
     // Panel 6
-    [-0.5, 0.5, -0.5, 0.0, 1.0, 0.0],
-    [0.5, 0.5, -0.5, 0.0, 1.0, 0.0],
-    [0.5, 0.5, 0.5, 0.0, 1.0, 0.0],
-    [0.5, 0.5, 0.5, 0.0, 1.0, 0.0],
-    [-0.5, 0.5, 0.5, 0.0, 1.0, 0.0],
-    [-0.5, 0.5, -0.5, 0.0, 1.0, 0.0],
+    [-0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0],
+    [0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 1.0, 1.0],
+    [0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 1.0, 0.0],
+    [0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 1.0, 0.0],
+    [-0.5, 0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 0.0],
+    [-0.5, 0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 1.0],
 ];
 
 /* Lighting data */
@@ -85,6 +85,28 @@ struct Renderer {
 
 impl Renderer {
     pub fn new() -> anyhow::Result<Self> {
+        let texture_diffuse = Texture::create(
+            "assets/textures/container2.png",
+            TextureFormat::RGBA,
+            TextureUnit::TEXTURE0,
+        )?;
+        let texture_specular = Texture::create(
+            "assets/textures/container2_specular.png",
+            TextureFormat::RGBA,
+            TextureUnit::TEXTURE1,
+        )?;
+        let texture_emission = Texture::create(
+            "assets/textures/matrix.jpg",
+            TextureFormat::RGB,
+            TextureUnit::TEXTURE2,
+        )?;
+        let cube_material = MaterialPhong::new(
+            texture_diffuse,
+            texture_specular,
+            128.0,
+            Some(texture_emission),
+        );
+
         /* Extra Settings */
         // Set clear color
         Buffer::set_clear_color(0.0, 0.0, 0.0, 1.0);
@@ -103,15 +125,15 @@ impl Renderer {
 
         cube_vao.bind();
         let mut cube_vertex_desc = VertexDescription::new();
-        cube_vertex_desc.add_attribute(gl::FLOAT, 3); // set NDC coords attribute
+        cube_vertex_desc.add_attribute(gl::FLOAT, 3); // set NDC coord attribute
         cube_vertex_desc.add_attribute(gl::FLOAT, 3); // set normal attribute
+        cube_vertex_desc.add_attribute(gl::FLOAT, 2); // set Texture coord attribute
         cube_vertex_desc.bind_to(&cube_vbo, Some(&cube_vao));
 
         let cube_shader = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/lighting/008-cube.vert"),
-            include_str!("../../assets/shaders/lighting/008-cube.frag"),
+            include_str!("../../assets/shaders/lighting/009-cube.vert"),
+            include_str!("../../assets/shaders/lighting/009-cube.frag"),
         )?;
-        cube_shader.set_uniform_3f(CString::new("object_color")?.as_c_str(), 1.0, 0.5, 0.31);
         cube_shader.set_uniform_3f(
             CString::new("light_color")?.as_c_str(),
             LIGHT_COLOR[0],
@@ -124,6 +146,7 @@ impl Renderer {
             LIGHT_POS[1],
             LIGHT_POS[2],
         );
+        cube_shader.set_uniform_material_phong(String::from("material"), &cube_material)?;
 
         /* Lighting */
         let light_vao = VertexArray::new()?;
@@ -139,6 +162,7 @@ impl Renderer {
         let mut cube_vertex_desc = VertexDescription::new();
         cube_vertex_desc.add_attribute(gl::FLOAT, 3); // set NDC coords attribute
         cube_vertex_desc.add_attribute(gl::FLOAT, 3); // set normal attribute
+        cube_vertex_desc.add_attribute(gl::FLOAT, 2); // set Texture coord attribute
         cube_vertex_desc.bind_to(&lighting_vbo, Some(&light_vao));
 
         let light_shader = ShaderProgram::create_from_source(

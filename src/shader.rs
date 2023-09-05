@@ -4,7 +4,7 @@ use anyhow::bail;
 use gl::types::*;
 use nalgebra as na;
 
-use crate::{get_gl_error, MaterialPhong};
+use crate::{get_gl_error, DirectionalLight, MaterialPhong, PointLight, SpotLight, Texture};
 
 /// enum of Shader types
 #[derive(Clone)]
@@ -254,9 +254,31 @@ impl ShaderProgram {
         unsafe { gl::GetUniformLocation(self.id, uniform_name.as_ptr().cast()) }
     }
 
-    /// Send uniform data: 4f
+    /// Bind Texture unit/slot to spec uniform sampler of spec shader program.
     ///
-    /// wrap `glUniform4f`
+    /// wrap `glUniform1i`
+    pub fn set_texture_unit(&self, uniform_name: &CStr, texture: &Texture) {
+        // Bind texture to spec texture unit
+        texture.bind();
+
+        self.set_uniform_1i(uniform_name, texture.unit.into()); // unnecessary for TEXTURE 0
+    }
+
+    /// Send uniform data: 1 int
+    ///
+    /// wrap `glUniform1i`
+    ///
+    /// Tips: it'll call `bind()` automatically.
+    pub fn set_uniform_1i(&self, uniform_name: &CStr, value: i32) {
+        let uniform_loc = self.get_uniform_location(uniform_name);
+
+        self.bind();
+        unsafe { gl::Uniform1i(uniform_loc, value) }
+    }
+
+    /// Send uniform data: 1 float
+    ///
+    /// wrap `glUniform1f`
     ///
     /// Tips: it'll call `bind()` automatically.
     pub fn set_uniform_1f(&self, uniform_name: &CStr, value: f32) {
@@ -327,33 +349,131 @@ impl ShaderProgram {
         uniform_name: String,
         material: &MaterialPhong,
     ) -> anyhow::Result<()> {
-        let ambient_coefficient_name = CString::new(uniform_name.clone() + ".ambient_coefficient")?;
-        self.set_uniform_3f(
-            ambient_coefficient_name.as_c_str(),
-            material.ambient_coefficient.x,
-            material.ambient_coefficient.y,
-            material.ambient_coefficient.z,
-        );
+        let diffuse_coefficient_name = CString::new(uniform_name.clone() + ".diffuse_map")?;
+        self.set_texture_unit(&diffuse_coefficient_name, &material.diffuse_map);
 
-        let diffuse_coefficient_name = CString::new(uniform_name.clone() + ".diffuse_coefficient")?;
-        self.set_uniform_3f(
-            diffuse_coefficient_name.as_c_str(),
-            material.diffuse_coefficient.x,
-            material.diffuse_coefficient.y,
-            material.diffuse_coefficient.z,
-        );
+        let specular_coefficient_name = CString::new(uniform_name.clone() + ".specular_map")?;
+        self.set_texture_unit(&specular_coefficient_name, &material.specular_map);
 
-        let specular_coefficient_name =
-            CString::new(uniform_name.clone() + ".specular_coefficient")?;
-        self.set_uniform_3f(
-            specular_coefficient_name.as_c_str(),
-            material.specular_coefficient.x,
-            material.specular_coefficient.y,
-            material.specular_coefficient.z,
-        );
-
-        let shininess_name = CString::new(uniform_name + ".shininess")?;
+        let shininess_name = CString::new(uniform_name.clone() + ".shininess")?;
         self.set_uniform_1f(shininess_name.as_c_str(), material.shininess);
+
+        if let Some(ref emission_map) = material.emission_map {
+            let emission_map_name = CString::new(uniform_name + ".emission_map")?;
+            self.set_texture_unit(&emission_map_name, emission_map);
+        }
+
+        Ok(())
+    }
+
+    pub fn set_uniform_directional_light(
+        &self,
+        uniform_name: String,
+        dir_light: &DirectionalLight,
+    ) -> anyhow::Result<()> {
+        let dir_name = CString::new(uniform_name.clone() + ".direction")?;
+        self.set_uniform_3f(
+            dir_name.as_c_str(),
+            dir_light.direction.x,
+            dir_light.direction.y,
+            dir_light.direction.z,
+        );
+
+        let color_name = CString::new(uniform_name + ".color")?;
+        self.set_uniform_3f(
+            color_name.as_c_str(),
+            dir_light.color.x,
+            dir_light.color.y,
+            dir_light.color.z,
+        );
+
+        Ok(())
+    }
+
+    pub fn set_uniform_point_light(
+        &self,
+        uniform_name: String,
+        point_light: &PointLight,
+    ) -> anyhow::Result<()> {
+        let pos_name = CString::new(uniform_name.clone() + ".position")?;
+        self.set_uniform_3f(
+            pos_name.as_c_str(),
+            point_light.position.x,
+            point_light.position.y,
+            point_light.position.z,
+        );
+
+        let color_name = CString::new(uniform_name.clone() + ".color")?;
+        self.set_uniform_3f(
+            color_name.as_c_str(),
+            point_light.color.x,
+            point_light.color.y,
+            point_light.color.z,
+        );
+
+        let attenuation_linear_name = CString::new(uniform_name.clone() + ".attenuation_linear")?;
+        self.set_uniform_1f(
+            attenuation_linear_name.as_c_str(),
+            point_light.attenuation_linear,
+        );
+
+        let attenuation_quadratic_name = CString::new(uniform_name + ".attenuation_quadratic")?;
+        self.set_uniform_1f(
+            attenuation_quadratic_name.as_c_str(),
+            point_light.attenuation_quadratic,
+        );
+
+        Ok(())
+    }
+
+    pub fn set_uniform_spot_light(
+        &self,
+        uniform_name: String,
+        spot_light: &SpotLight,
+    ) -> anyhow::Result<()> {
+        let color_name = CString::new(uniform_name.clone() + ".color")?;
+        self.set_uniform_3f(
+            color_name.as_c_str(),
+            spot_light.color.x,
+            spot_light.color.y,
+            spot_light.color.z,
+        );
+
+        let pos_name = CString::new(uniform_name.clone() + ".position")?;
+        let camera_pos = spot_light.camera.get_pos();
+        self.set_uniform_3f(
+            pos_name.as_c_str(),
+            camera_pos.x,
+            camera_pos.y,
+            camera_pos.z,
+        );
+
+        let dir_name = CString::new(uniform_name.clone() + ".direction")?;
+        let camera_dir = spot_light.camera.get_lookat();
+        self.set_uniform_3f(
+            dir_name.as_c_str(),
+            camera_dir.x,
+            camera_dir.y,
+            camera_dir.z,
+        );
+
+        let cutoff_name = CString::new(uniform_name.clone() + ".cutoff")?;
+        self.set_uniform_1f(cutoff_name.as_c_str(), spot_light.cutoff);
+
+        let outer_cutoff_name = CString::new(uniform_name.clone() + ".outer_cutoff")?;
+        self.set_uniform_1f(outer_cutoff_name.as_c_str(), spot_light.outer_cutoff);
+
+        let attenuation_linear_name = CString::new(uniform_name.clone() + ".attenuation_linear")?;
+        self.set_uniform_1f(
+            attenuation_linear_name.as_c_str(),
+            spot_light.attenuation_linear,
+        );
+
+        let attenuation_quadratic_name = CString::new(uniform_name + ".attenuation_quadratic")?;
+        self.set_uniform_1f(
+            attenuation_quadratic_name.as_c_str(),
+            spot_light.attenuation_quadratic,
+        );
 
         Ok(())
     }
