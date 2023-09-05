@@ -1,6 +1,15 @@
 use gl::types::*;
+use nalgebra as na;
 
 use crate::{get_gl_error, Buffer, BufferType};
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct Vertex {
+    pub position: na::Vector3<f32>,
+    pub normal: na::Vector3<f32>,
+    pub texture_coords: na::Vector2<f32>,
+}
 
 /// Wrapper of [Vertex Array Object](https://www.khronos.org/opengl/wiki/Vertex_Specification#Vertex_Array_Object)
 pub struct VertexArray {

@@ -31,6 +31,7 @@ lighting:
 
 ## TODO
 
+* [ ] fix glfw window.
 * [ ] add imgui.
 
 ## Core Dependencies
@@ -45,4 +46,5 @@ lighting:
 ## Ref
 
 * [LearnOpenGL](https://learnopengl.com/)
-* [LearnOpenGl - Rust](https://rust-tutorials.github.io/learn-opengl/)
+* [Learn OpenGL Rust](https://rust-tutorials.github.io/learn-opengl/)
+* [learn-opengl-rs](https://github.com/bwasty/learn-opengl-rs/)

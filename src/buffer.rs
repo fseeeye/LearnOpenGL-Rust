@@ -1,6 +1,7 @@
 use gl::types::*;
+use std::mem;
 
-use crate::get_gl_error;
+use crate::{get_gl_error, Vertex};
 
 /// Enum of Buffer Object types.
 /// TODO: complete all bindings
@@ -77,28 +78,48 @@ impl Buffer {
     /// Set Buffer Object data, it'll call `bind()` automatically.
     ///
     /// wrap `glBufferData`
-    pub fn set_buffer_data(&self, data: &[u8], usage: BufferUsage) {
+    pub fn set_buffer_data<T>(&self, data: &[T], usage: BufferUsage) {
         self.bind();
 
         unsafe {
             gl::BufferData(
                 self.buffer_type as GLenum,
-                data.len() as GLsizeiptr,
+                mem::size_of_val(data) as GLsizeiptr,
                 data.as_ptr().cast(),
                 usage as GLenum,
             );
         }
     }
 
-    /// wrap `glClearColor`
-    pub fn set_clear_color(red: f32, green: f32, blue: f32, alpha: f32) {
-        unsafe {
-            gl::ClearColor(red, green, blue, alpha);
-        }
+    /// Set indices to IndexBuffer, it'll call `bind()` automatically.
+    ///
+    /// wrap `glBufferData`
+    pub fn set_indices(&self, indices: &[u32], usage: BufferUsage) {
+        assert_eq!(self.buffer_type, BufferType::IndexBuffer);
+
+        self.set_buffer_data(indices, usage);
     }
 
-    /// wrap `glClear`
-    pub fn clear(bit_mast: GLbitfield) {
-        unsafe { gl::Clear(bit_mast) }
+    /// Set vertices to VertexBuffer, it'll call `bind()` automatically.
+    ///
+    /// wrap `glBufferData`
+    pub fn set_vertices(&self, vertices: &[Vertex], usage: BufferUsage) {
+        assert_eq!(self.buffer_type, BufferType::VertexBuffer);
+
+        self.set_buffer_data(vertices, usage);
     }
+}
+
+/// wrap `glClearColor`
+#[inline]
+pub fn set_clear_color(red: f32, green: f32, blue: f32, alpha: f32) {
+    unsafe {
+        gl::ClearColor(red, green, blue, alpha);
+    }
+}
+
+/// wrap `glClear`
+#[inline]
+pub fn clear_color(bit_mast: GLbitfield) {
+    unsafe { gl::Clear(bit_mast) }
 }

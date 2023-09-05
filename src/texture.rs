@@ -8,6 +8,7 @@ use crate::get_gl_error;
 pub struct Texture {
     pub id: GLuint,
     pub unit: TextureUnit,
+    // pub tex_type: String,
 }
 
 #[derive(Debug, Clone, Copy)]
