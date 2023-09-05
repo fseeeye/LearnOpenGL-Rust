@@ -32,7 +32,6 @@ impl Camera {
     }
 
     pub fn get_lookat_matrix(&self) -> na::Matrix4<f32> {
-        // TODO: return look_at
         let target_pos = self.pos + self.look_at.into_inner();
 
         // View Tranform Matrix (right-handed)
