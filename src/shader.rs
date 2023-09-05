@@ -379,7 +379,7 @@ impl ShaderProgram {
             dir_light.direction.z,
         );
 
-        let color_name = CString::new(uniform_name.clone() + ".color")?;
+        let color_name = CString::new(uniform_name + ".color")?;
         self.set_uniform_3f(
             color_name.as_c_str(),
             dir_light.color.x,
@@ -417,8 +417,7 @@ impl ShaderProgram {
             point_light.attenuation_linear,
         );
 
-        let attenuation_quadratic_name =
-            CString::new(uniform_name.clone() + ".attenuation_quadratic")?;
+        let attenuation_quadratic_name = CString::new(uniform_name + ".attenuation_quadratic")?;
         self.set_uniform_1f(
             attenuation_quadratic_name.as_c_str(),
             point_light.attenuation_quadratic,
@@ -470,8 +469,7 @@ impl ShaderProgram {
             spot_light.attenuation_linear,
         );
 
-        let attenuation_quadratic_name =
-            CString::new(uniform_name.clone() + ".attenuation_quadratic")?;
+        let attenuation_quadratic_name = CString::new(uniform_name + ".attenuation_quadratic")?;
         self.set_uniform_1f(
             attenuation_quadratic_name.as_c_str(),
             spot_light.attenuation_quadratic,

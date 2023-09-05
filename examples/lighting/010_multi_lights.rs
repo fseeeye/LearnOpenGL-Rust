@@ -230,8 +230,8 @@ impl Renderer {
         );
 
         let spot_light = learn::SpotLight::new(
-            &camera,
-            LIGHT_COLOR.clone(),
+            camera,
+            LIGHT_COLOR,
             SPOT_LIGHT_CUTOFF.to_radians().cos(),
             SPOT_LIGHT_OUTER_CUTOFF.to_radians().cos(),
             FALLOFF_LINEAR,
