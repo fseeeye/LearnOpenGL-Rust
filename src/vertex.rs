@@ -36,6 +36,12 @@ impl VertexArray {
         unsafe { gl::BindVertexArray(self.id) }
     }
 
+    /// Unbind this Vertex Array Object
+    /// wrap `glBindVertexArray`
+    pub fn unbind(&self) {
+        unsafe { gl::BindVertexArray(0) }
+    }
+
     /// Clear Vertex Array Object binding.
     /// wrap `glBindVertexArray`
     pub fn clear_binding() {

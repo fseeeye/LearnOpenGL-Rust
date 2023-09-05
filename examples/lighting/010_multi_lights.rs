@@ -11,7 +11,7 @@ use gl::types::*;
 use learn::{
     clear_color, set_clear_color, Buffer, BufferBit, BufferType, BufferUsage, Camera,
     DirectionalLight, MaterialPhong, PointLight, ShaderProgram, Texture, TextureFormat,
-    TextureUnit, VertexArray, VertexDescription, WinitWindow,
+    VertexArray, VertexDescription, WinitWindow,
 };
 use learn_opengl_rs as learn;
 
@@ -167,15 +167,12 @@ impl Renderer {
         /* Cube Vertexs & Shader */
 
         // Prepare cube material
-        let texture_diffuse = Texture::create(
-            "assets/textures/container2.png",
-            TextureFormat::RGBA,
-            TextureUnit::TEXTURE0,
-        )?;
+        let texture_diffuse =
+            Texture::create("assets/textures/container2.png", TextureFormat::RGBA, None)?;
         let texture_specular = Texture::create(
             "assets/textures/container2_specular.png",
             TextureFormat::RGBA,
-            TextureUnit::TEXTURE1,
+            None,
         )?;
         let cube_material = MaterialPhong::new(texture_diffuse, texture_specular, 128.0, None);
 
@@ -198,10 +195,11 @@ impl Renderer {
             include_str!("../../assets/shaders/lighting/010-cube.vert"),
             include_str!("../../assets/shaders/lighting/010-cube.frag"),
         )?;
+
         cube_shader.set_uniform_material_phong(String::from("material"), &cube_material)?;
         cube_shader.set_uniform_directional_light(String::from("dir_light"), &dir_light)?;
         for (i, point_light) in point_lights.iter().enumerate() {
-            cube_shader.set_uniform_point_light(format!("point_lights[{}]", i), point_light)?;
+            cube_shader.set_uniform_point_light(format!("point_lights[{i}]"), point_light)?;
         }
 
         Ok(Self {

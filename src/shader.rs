@@ -4,7 +4,9 @@ use anyhow::bail;
 use gl::types::*;
 use nalgebra as na;
 
-use crate::{get_gl_error, DirectionalLight, MaterialPhong, PointLight, SpotLight, Texture};
+use crate::{
+    get_gl_error, DirectionalLight, MaterialPhong, PointLight, SpotLight, Texture, TextureUnit,
+};
 
 /// enum of Shader types
 #[derive(Clone)]
@@ -257,11 +259,11 @@ impl ShaderProgram {
     /// Bind Texture unit/slot to spec uniform sampler of spec shader program.
     ///
     /// wrap `glUniform1i`
-    pub fn set_texture_unit(&self, uniform_name: &CStr, texture: &Texture) {
+    pub fn set_texture_unit(&self, uniform_name: &CStr, texture: &Texture, unit: TextureUnit) {
         // Bind texture to spec texture unit
-        texture.bind();
+        texture.bind(unit);
 
-        self.set_uniform_1i(uniform_name, texture.unit.into()); // unnecessary for TEXTURE 0
+        self.set_uniform_1i(uniform_name, unit.into()); // unnecessary for TEXTURE 0
     }
 
     /// Send uniform data: 1 int
@@ -344,23 +346,32 @@ impl ShaderProgram {
         unsafe { gl::UniformMatrix3fv(uniform_loc, 1, gl::FALSE, matrix.as_ptr()) };
     }
 
+    // TODO: remove this method
     pub fn set_uniform_material_phong(
         &self,
         uniform_name: String,
         material: &MaterialPhong,
     ) -> anyhow::Result<()> {
         let diffuse_coefficient_name = CString::new(uniform_name.clone() + ".diffuse_map")?;
-        self.set_texture_unit(&diffuse_coefficient_name, &material.diffuse_map);
+        self.set_texture_unit(
+            &diffuse_coefficient_name,
+            &material.diffuse_map,
+            TextureUnit::TEXTURE0,
+        );
 
         let specular_coefficient_name = CString::new(uniform_name.clone() + ".specular_map")?;
-        self.set_texture_unit(&specular_coefficient_name, &material.specular_map);
+        self.set_texture_unit(
+            &specular_coefficient_name,
+            &material.specular_map,
+            TextureUnit::TEXTURE1,
+        );
 
         let shininess_name = CString::new(uniform_name.clone() + ".shininess")?;
         self.set_uniform_1f(shininess_name.as_c_str(), material.shininess);
 
         if let Some(ref emission_map) = material.emission_map {
             let emission_map_name = CString::new(uniform_name + ".emission_map")?;
-            self.set_texture_unit(&emission_map_name, emission_map);
+            self.set_texture_unit(&emission_map_name, emission_map, TextureUnit::TEXTURE2);
         }
 
         Ok(())

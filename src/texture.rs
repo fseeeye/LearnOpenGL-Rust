@@ -7,11 +7,21 @@ use crate::get_gl_error;
 #[derive(Debug)]
 pub struct Texture {
     pub id: GLuint,
-    pub unit: TextureUnit,
-    // pub tex_type: String,
+    pub tex_type: TextureType,
+}
+
+#[repr(u8)]
+#[derive(Debug)]
+pub enum TextureType {
+    Diffuse,
+    Specular,
+    Normal,
+    Height,
+    Unknown,
 }
 
 #[derive(Debug, Clone, Copy)]
+#[repr(u8)]
 pub enum TextureUnit {
     TEXTURE0,
     TEXTURE1,
@@ -29,6 +39,13 @@ pub enum TextureUnit {
     TEXTURE13,
     TEXTURE14,
     TEXTURE15,
+}
+
+impl TextureUnit {
+    pub fn increase(&self) -> TextureUnit {
+        let val: GLint = (*self).into();
+        (val + 1).into()
+    }
 }
 
 impl From<TextureUnit> for GLint {
@@ -50,6 +67,30 @@ impl From<TextureUnit> for GLint {
             TextureUnit::TEXTURE13 => 13,
             TextureUnit::TEXTURE14 => 14,
             TextureUnit::TEXTURE15 => 15,
+        }
+    }
+}
+
+impl From<GLint> for TextureUnit {
+    fn from(val: GLint) -> Self {
+        match val {
+            0 => TextureUnit::TEXTURE0,
+            1 => TextureUnit::TEXTURE1,
+            2 => TextureUnit::TEXTURE2,
+            3 => TextureUnit::TEXTURE3,
+            4 => TextureUnit::TEXTURE4,
+            5 => TextureUnit::TEXTURE5,
+            6 => TextureUnit::TEXTURE6,
+            7 => TextureUnit::TEXTURE7,
+            8 => TextureUnit::TEXTURE8,
+            9 => TextureUnit::TEXTURE9,
+            10 => TextureUnit::TEXTURE10,
+            11 => TextureUnit::TEXTURE11,
+            12 => TextureUnit::TEXTURE12,
+            13 => TextureUnit::TEXTURE13,
+            14 => TextureUnit::TEXTURE14,
+            15 => TextureUnit::TEXTURE15,
+            _ => panic!("Invalid TextureUnit value."),
         }
     }
 }
@@ -85,7 +126,7 @@ pub enum TextureFormat {
 }
 
 impl Texture {
-    fn new(texture_unit: TextureUnit) -> anyhow::Result<Self> {
+    fn new(texture_type: TextureType) -> anyhow::Result<Self> {
         let mut texture = 0;
         unsafe {
             gl::GenTextures(1, &mut texture);
@@ -94,7 +135,7 @@ impl Texture {
         if texture != 0 {
             Ok(Self {
                 id: texture,
-                unit: texture_unit,
+                tex_type: texture_type,
             })
         } else {
             Err(get_gl_error().unwrap().into())
@@ -105,10 +146,14 @@ impl Texture {
     pub fn create(
         path: &str,
         format: TextureFormat,
-        texture_unit: TextureUnit,
+        texture_type: Option<TextureType>,
     ) -> anyhow::Result<Self> {
         // Generate Texture
-        let texture = Self::new(texture_unit)?;
+        let tex_type: TextureType = match texture_type {
+            Some(t) => t,
+            None => TextureType::Unknown,
+        };
+        let texture = Self::new(tex_type)?;
 
         // Bind Texture
         unsafe {
@@ -147,18 +192,18 @@ impl Texture {
         Ok(texture)
     }
 
-    pub fn reset_texture_unit(&mut self, texture_unit: TextureUnit) {
-        self.unit = texture_unit;
-    }
-
     /// Active texture unit/slot and Bind this Texture Object to it.
-    pub fn bind(&self) {
+    pub fn bind(&self, unit: TextureUnit) {
         // Active Texture unit
-        unsafe {
-            gl::ActiveTexture(self.unit.into()) // unnecessary for TEXTURE 0
-        }
+        Self::active(unit);
 
         // Bind Texture
         unsafe { gl::BindTexture(gl::TEXTURE_2D, self.id) }
+    }
+
+    pub fn active(unit: TextureUnit) {
+        unsafe {
+            gl::ActiveTexture(unit.into());
+        }
     }
 }

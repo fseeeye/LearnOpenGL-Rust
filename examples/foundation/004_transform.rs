@@ -104,18 +104,20 @@ fn main() -> anyhow::Result<()> {
     unsafe { gl::UniformMatrix4fv(projection_loc, 1, gl::FALSE, projection_matrix.as_ptr()) };
 
     /* Texture */
-    let texture_container = Texture::create(
-        "assets/textures/container.jpg",
-        TextureFormat::RGB,
+    let texture_container =
+        Texture::create("assets/textures/container.jpg", TextureFormat::RGB, None)?;
+    let texture_face =
+        Texture::create("assets/textures/awesomeface.png", TextureFormat::RGBA, None)?;
+    shader_program.set_texture_unit(
+        &CString::new("t_container")?,
+        &texture_container,
         TextureUnit::TEXTURE0,
-    )?;
-    let texture_face = Texture::create(
-        "assets/textures/awesomeface.png",
-        TextureFormat::RGBA,
+    );
+    shader_program.set_texture_unit(
+        &CString::new("t_face")?,
+        &texture_face,
         TextureUnit::TEXTURE1,
-    )?;
-    shader_program.set_texture_unit(&CString::new("t_container")?, &texture_container);
-    shader_program.set_texture_unit(&CString::new("t_face")?, &texture_face);
+    );
 
     /* Extra Settings */
     set_clear_color(0.2, 0.3, 0.3, 1.0);

@@ -10,8 +10,8 @@ use gl::types::*;
 
 use learn::{
     clear_color, set_clear_color, Buffer, BufferBit, BufferType, BufferUsage, Camera,
-    MaterialPhong, ShaderProgram, Texture, TextureFormat, TextureUnit, VertexArray,
-    VertexDescription, WinitWindow,
+    MaterialPhong, ShaderProgram, Texture, TextureFormat, VertexArray, VertexDescription,
+    WinitWindow,
 };
 use learn_opengl_rs as learn;
 
@@ -86,21 +86,15 @@ struct Renderer {
 
 impl Renderer {
     pub fn new() -> anyhow::Result<Self> {
-        let texture_diffuse = Texture::create(
-            "assets/textures/container2.png",
-            TextureFormat::RGBA,
-            TextureUnit::TEXTURE0,
-        )?;
+        let texture_diffuse =
+            Texture::create("assets/textures/container2.png", TextureFormat::RGBA, None)?;
         let texture_specular = Texture::create(
             "assets/textures/container2_specular.png",
             TextureFormat::RGBA,
-            TextureUnit::TEXTURE1,
+            None,
         )?;
-        let texture_emission = Texture::create(
-            "assets/textures/matrix.jpg",
-            TextureFormat::RGB,
-            TextureUnit::TEXTURE2,
-        )?;
+        let texture_emission =
+            Texture::create("assets/textures/matrix.jpg", TextureFormat::RGB, None)?;
         let cube_material = MaterialPhong::new(
             texture_diffuse,
             texture_specular,
