@@ -87,14 +87,18 @@ const CUBE_POSTIONS: [na::Vector3<f32>; 10] = [
 ];
 
 /* Lighting data */
-const LIGHT_COLOR: [f32; 3] = [1.0, 1.0, 1.0];
-const DIR_LIGHT_DIRECTION: [f32; 3] = [-0.2, -1.0, -0.3];
+const LIGHT_COLOR: na::Vector3<f32> = na::Vector3::new(1.0, 1.0, 1.0);
+const FALLOFF_LINEAR: f32 = 0.09;
+const FALLOFF_QUADRATIC: f32 = 0.032;
+const DIR_LIGHT_DIRECTION: na::Vector3<f32> = na::Vector3::new(-0.2, -1.0, -0.3);
 const POINT_LIGHT_POS: [na::Vector3<f32>; 4] = [
     na::Vector3::new(0.7, 0.2, 2.0),
     na::Vector3::new(2.3, -3.3, -4.0),
     na::Vector3::new(-4.0, 2.0, -12.0),
     na::Vector3::new(0.0, 0.0, -3.0),
 ];
+const SPOT_LIGHT_CUTOFF: f32 = 12.5_f32;
+const SPOT_LIGHT_OUTER_CUTOFF: f32 = 15.0_f32;
 
 struct Renderer {
     cube_shader: ShaderProgram,
@@ -115,18 +119,18 @@ impl Renderer {
 
         // Prepare light casters
         let dir_light = DirectionalLight::new(
-            na::Vector3::new(DIR_LIGHT_DIRECTION[0], DIR_LIGHT_DIRECTION[1], DIR_LIGHT_DIRECTION[2]),
-            na::Vector3::new(LIGHT_COLOR[0], LIGHT_COLOR[1], LIGHT_COLOR[2])
+            DIR_LIGHT_DIRECTION,
+            LIGHT_COLOR
         );
 
         let point_lights: Vec<PointLight> = POINT_LIGHT_POS
             .iter()
-            .map(|point_light_pos| {
+            .map(|&point_light_pos| {
                 PointLight::new(
-                    point_light_pos.clone(),
-                    na::Vector3::new(LIGHT_COLOR[0], LIGHT_COLOR[1], LIGHT_COLOR[2]),
-                    0.09,
-                    0.032,
+                    point_light_pos,
+                    LIGHT_COLOR,
+                    FALLOFF_LINEAR,
+                    FALLOFF_QUADRATIC,
                 )
             })
             .collect();
@@ -233,6 +237,15 @@ impl Renderer {
                 as gl::types::GLbitfield,
         );
 
+        let spot_light = learn::SpotLight::new(
+            &camera,
+            LIGHT_COLOR.clone(),
+            SPOT_LIGHT_CUTOFF.to_radians().cos(),
+            SPOT_LIGHT_OUTER_CUTOFF.to_radians().cos(),
+            FALLOFF_LINEAR,
+            FALLOFF_QUADRATIC,
+        );
+
         // Model Matrix
         let model_name = CString::new("model")?;
         let normal_matrix_name = CString::new("normal_matrix")?;
@@ -263,10 +276,14 @@ impl Renderer {
             .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
         self.cube_shader.set_uniform_3f(
             CString::new("camera_pos")?.as_c_str(),
-            camera.get_camera_pos().x,
-            camera.get_camera_pos().y,
-            camera.get_camera_pos().z,
+            camera.get_pos().x,
+            camera.get_pos().y,
+            camera.get_pos().z,
         );
+        self.cube_shader.set_uniform_spot_light(
+            String::from("spot_light"),
+            &spot_light,
+        )?;
 
         for cube_position in CUBE_POSTIONS {
             // Model Matrix & Normal Matrix of cube

@@ -8,7 +8,7 @@ use tracing::trace;
 pub struct Camera {
     // basic attributes
     pos: na::Point3<f32>,
-    look_at: na::Unit<na::Vector3<f32>>, // TODO: use vector to replace target pos
+    look_at: na::Unit<na::Vector3<f32>>,
     up: na::Unit<na::Vector3<f32>>,
     camera_speed: f32,
     // motion attributes
@@ -32,6 +32,7 @@ impl Camera {
     }
 
     pub fn get_lookat_matrix(&self) -> na::Matrix4<f32> {
+        // TODO: return look_at
         let target_pos = self.pos + self.look_at.into_inner();
 
         // View Tranform Matrix (right-handed)
@@ -40,7 +41,11 @@ impl Camera {
         na::Matrix4::look_at_rh(&self.pos, &target_pos, &self.up)
     }
 
-    pub fn get_camera_pos(&self) -> na::Point3<f32> {
+    pub fn get_lookat(&self) -> na::Unit<na::Vector3<f32>> {
+        self.look_at
+    }
+
+    pub fn get_pos(&self) -> na::Point3<f32> {
         self.pos
     }
 
