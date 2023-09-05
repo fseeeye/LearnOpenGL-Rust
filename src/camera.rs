@@ -23,7 +23,7 @@ impl Camera {
             pos,
             look_at: na::Unit::new_normalize(look_at),
             up: na::Unit::new_normalize(up),
-            camera_speed: 0.05,
+            camera_speed: 0.1,
 
             first_move: false,
             is_moving: false,

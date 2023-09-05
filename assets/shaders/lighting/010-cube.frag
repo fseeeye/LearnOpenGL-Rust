@@ -2,26 +2,16 @@
 
 out vec4 frag_color;
 
-in vec3 normal;
-in vec3 world_pos;
-in vec2 texture_coord;
-
-// uniform vec3 light_color;
-// uniform vec3 light_pos;
-uniform vec3 camera_pos;
-
 struct Material {
     sampler2D diffuse_map;
     sampler2D specular_map;
     float shininess;
 }; 
-uniform Material material;
 
 struct DirLight {
     vec3 direction;
     vec3 color;
 };  
-uniform DirLight dir_light;
 
 struct PointLight {
     vec3 position;
@@ -31,7 +21,15 @@ struct PointLight {
     float attenuation_quadratic;
 };  
 #define POINT_LIGHTS_NUM 4
-uniform PointLight pointLights[POINT_LIGHTS_NUM];
+
+in vec3 normal;
+in vec3 world_pos;
+in vec2 texture_coord;
+
+uniform vec3 camera_pos;
+uniform Material material;
+uniform DirLight dir_light;
+uniform PointLight point_lights[POINT_LIGHTS_NUM];
 
 vec3 blinn_phong_ambient_term() {
     vec3 k_a = vec3(texture(material.diffuse_map, texture_coord));
@@ -75,7 +73,7 @@ vec3 calc_point_light(PointLight light, vec3 n, vec3 view_dir) {
 
     float light_distance = distance(light.position, world_pos);
     float attenuation = 1.0 / (1.0 + light.attenuation_linear * light_distance + light.attenuation_quadratic * (light_distance * light_distance));
-    vec3 light_arrived = light.color / attenuation;
+    vec3 light_arrived = light.color * attenuation;
 
     vec3 diffuse_term = blinn_phong_diffuse_term(light_dir, light_arrived, n);
     vec3 specular_term = blinn_phong_specular_term(light_dir, light_arrived, n, view_dir);
@@ -91,7 +89,7 @@ void main() {
     rst += blinn_phong_ambient_term();
     rst += calc_dir_light(dir_light, n, view_dir);
     for(int i = 0; i < POINT_LIGHTS_NUM; i++)
-        rst += calc_point_light(pointLights[i], n, view_dir);
+        rst += calc_point_light(point_lights[i], n, view_dir);
 
     frag_color = vec4(rst, 1.0);
 }

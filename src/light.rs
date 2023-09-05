@@ -12,7 +12,7 @@ impl DirectionalLight {
 }
 
 pub struct PointLight {
-    pub pos: na::Vector3<f32>,
+    pub position: na::Vector3<f32>,
     pub color: na::Vector3<f32>,
 
     pub attenuation_linear: f32,
@@ -21,13 +21,13 @@ pub struct PointLight {
 
 impl PointLight {
     pub fn new(
-        pos: na::Vector3<f32>,
+        position: na::Vector3<f32>,
         color: na::Vector3<f32>,
         attenuation_linear: f32,
         attenuation_quadratic: f32,
     ) -> Self {
         Self {
-            pos,
+            position,
             color,
             attenuation_linear,
             attenuation_quadratic,

@@ -4,7 +4,7 @@ use anyhow::bail;
 use gl::types::*;
 use nalgebra as na;
 
-use crate::{get_gl_error, MaterialPhong, Texture, DirectionalLight};
+use crate::{get_gl_error, MaterialPhong, Texture, DirectionalLight, PointLight};
 
 /// enum of Shader types
 #[derive(Clone)]
@@ -376,6 +376,26 @@ impl ShaderProgram {
 
         let color_name = CString::new(uniform_name.clone() + ".color")?;
         self.set_uniform_3f(color_name.as_c_str(), dir_light.color.x, dir_light.color.y, dir_light.color.z);
+
+        Ok(())
+    }
+
+    pub fn set_uniform_point_light(
+        &self,
+        uniform_name: String,
+        point_light: &PointLight,
+    ) -> anyhow::Result<()> {
+        let dir_name = CString::new(uniform_name.clone() + ".position")?;
+        self.set_uniform_3f(dir_name.as_c_str(), point_light.position.x, point_light.position.y, point_light.position.z);
+
+        let color_name = CString::new(uniform_name.clone() + ".color")?;
+        self.set_uniform_3f(color_name.as_c_str(), point_light.color.x, point_light.color.y, point_light.color.z);
+
+        let attenuation_linear_name = CString::new(uniform_name.clone() + ".attenuation_linear")?;
+        self.set_uniform_1f(attenuation_linear_name.as_c_str(), point_light.attenuation_linear);
+
+        let attenuation_quadratic_name = CString::new(uniform_name.clone() + ".attenuation_quadratic")?;
+        self.set_uniform_1f(attenuation_quadratic_name.as_c_str(), point_light.attenuation_quadratic);
 
         Ok(())
     }

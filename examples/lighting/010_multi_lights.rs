@@ -89,6 +89,12 @@ const CUBE_POSTIONS: [na::Vector3<f32>; 10] = [
 /* Lighting data */
 const LIGHT_COLOR: [f32; 3] = [1.0, 1.0, 1.0];
 const DIR_LIGHT_DIRECTION: [f32; 3] = [-0.2, -1.0, -0.3];
+const POINT_LIGHT_POS: [na::Vector3<f32>; 4] = [
+    na::Vector3::new(0.7, 0.2, 2.0),
+    na::Vector3::new(2.3, -3.3, -4.0),
+    na::Vector3::new(-4.0, 2.0, -12.0),
+    na::Vector3::new(0.0, 0.0, -3.0),
+];
 
 struct Renderer {
     cube_shader: ShaderProgram,
@@ -113,12 +119,17 @@ impl Renderer {
             na::Vector3::new(LIGHT_COLOR[0], LIGHT_COLOR[1], LIGHT_COLOR[2])
         );
 
-        let point_light = PointLight::new(
-            na::Vector3::new(0.7, 0.2, 2.0),
-            na::Vector3::new(LIGHT_COLOR[0], LIGHT_COLOR[1], LIGHT_COLOR[2]),
-            1.0,
-            0.09,
-        );
+        let point_lights: Vec<PointLight> = POINT_LIGHT_POS
+            .iter()
+            .map(|point_light_pos| {
+                PointLight::new(
+                    point_light_pos.clone(),
+                    na::Vector3::new(LIGHT_COLOR[0], LIGHT_COLOR[1], LIGHT_COLOR[2]),
+                    0.09,
+                    0.032,
+                )
+            })
+            .collect();
 
         // Prepare vertex of light
         let light_vao = VertexArray::new()?;
@@ -186,28 +197,22 @@ impl Renderer {
         cube_vertex_desc.add_attribute(gl::FLOAT, 2); // set Texture coord attribute
         cube_vertex_desc.bind_to(&cube_vbo, Some(&cube_vao));
 
-        // Prepare vertex of shader
+        // Prepare shader of cube
         let cube_shader = ShaderProgram::create_from_source(
             include_str!("../../assets/shaders/lighting/010-cube.vert"),
             include_str!("../../assets/shaders/lighting/010-cube.frag"),
         )?;
-        // cube_shader.set_uniform_3f(
-        //     CString::new("light_color")?.as_c_str(),
-        //     LIGHT_COLOR[0],
-        //     LIGHT_COLOR[1],
-        //     LIGHT_COLOR[2],
-        // );
-        // cube_shader.set_uniform_3f(
-        //     CString::new("light_pos")?.as_c_str(),
-        //     LIGHT_POS[0],
-        //     LIGHT_POS[1],
-        //     LIGHT_POS[2],
-        // );
         cube_shader.set_uniform_material_phong(String::from("material"), &cube_material)?;
         cube_shader.set_uniform_directional_light(
             String::from("dir_light"),
             &dir_light,
         )?;
+        for (i, point_light) in point_lights.iter().enumerate() {
+            cube_shader.set_uniform_point_light(
+                format!("point_lights[{}]", i),
+                point_light
+            )?;
+        }
 
         Ok(Self {
             cube_shader,
@@ -289,33 +294,27 @@ impl Renderer {
             }
         }
 
-        unsafe {
-            gl::DrawArrays(gl::TRIANGLES, 0, 36);
-        }
-
         /* Draw lighting */
 
-        // self.light_vao.bind();
-        // self.light_shader.bind();
+        self.light_vao.bind();
+        self.light_shader.bind();
 
-        // // Model matrix of light
-        // let light_model_matrix_scale = na::Matrix4::new_scaling(0.2);
-        // let light_model_matrix = light_model_matrix_scale.append_translation(&na::Vector3::new(
-        //     LIGHT_POS[0],
-        //     LIGHT_POS[1],
-        //     LIGHT_POS[2],
-        // ));
+        self.light_shader
+            .set_uniform_mat4fv(view_name.as_c_str(), &camera.get_lookat_matrix());
+        self.light_shader
+            .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
 
-        // self.light_shader
-        //     .set_uniform_mat4fv(model_name.as_c_str(), &light_model_matrix);
-        // self.light_shader
-        //     .set_uniform_mat4fv(view_name.as_c_str(), &camera.get_lookat_matrix());
-        // self.light_shader
-        //     .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
+        for point_light_pos in POINT_LIGHT_POS {
+            // Model matrix of light
+            let light_model_matrix_scale = na::Matrix4::new_scaling(0.2);
+            let light_model_matrix = light_model_matrix_scale.append_translation(&point_light_pos);
+            self.light_shader
+                .set_uniform_mat4fv(model_name.as_c_str(), &light_model_matrix);
 
-        // unsafe {
-        //     gl::DrawArrays(gl::TRIANGLES, 0, 36);
-        // }
+            unsafe {
+                gl::DrawArrays(gl::TRIANGLES, 0, 36);
+            }
+        }
 
         // Swap buffers of window
         win.swap_buffers()?;
