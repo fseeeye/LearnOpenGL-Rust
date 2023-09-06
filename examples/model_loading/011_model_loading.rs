@@ -9,7 +9,7 @@ use anyhow::bail;
 use gl::types::*;
 
 use learn::{
-    clear_color, set_clear_color, BufferBit, Camera, FlashLight, Model, ShaderProgram, WinitWindow,
+    clear_color, set_clear_color, BufferBit, Camera, FlashLight, Model, ShaderProgram, WinitWindow, PointLight,
 };
 use learn_opengl_rs as learn;
 
@@ -23,12 +23,18 @@ const SCREEN_HEIGHT: u32 = 600;
 const BACKGROUND_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 /* Camera data */
-const CAMERA_POS: [f32; 3] = [0.0, 0.0, 5.0];
+const CAMERA_POS: [f32; 3] = [0.0, 6.0, 25.0];
 
 /* Lighting data */
 const LIGHT_COLOR: na::Vector3<f32> = na::Vector3::new(1.0, 1.0, 1.0);
-const FALLOFF_LINEAR: f32 = 0.09;
-const FALLOFF_QUADRATIC: f32 = 0.032;
+const FALLOFF_LINEAR: f32 = 0.07;
+const FALLOFF_QUADRATIC: f32 = 0.017;
+const POINT_LIGHT_POS: [na::Vector3<f32>; 4] = [
+    na::Vector3::new(0.0, 15.0, 7.0),
+    na::Vector3::new(-8.0, 16.0, 0.0),
+    na::Vector3::new(8.0, 16.0, 0.0),
+    na::Vector3::new(0.0, 5.0, 7.0),
+];
 const FLASH_LIGHT_CUTOFF: f32 = 12.5_f32;
 const FLASH_LIGHT_OUTER_CUTOFF: f32 = 15.0_f32;
 
@@ -54,6 +60,18 @@ impl Renderer {
 
         /* Lighting */
 
+        let point_lights: Vec<PointLight> = POINT_LIGHT_POS
+            .iter()
+            .map(|&point_light_pos| {
+                PointLight::new(
+                    point_light_pos,
+                    LIGHT_COLOR,
+                    FALLOFF_LINEAR,
+                    FALLOFF_QUADRATIC,
+                )
+            })
+            .collect();
+
         let flash_light = FlashLight::new(
             LIGHT_COLOR,
             FLASH_LIGHT_CUTOFF.to_radians().cos(),
@@ -72,6 +90,10 @@ impl Renderer {
             include_str!("../../assets/shaders/model_loading/011-object.vert"),
             include_str!("../../assets/shaders/model_loading/011-object.frag"),
         )?;
+
+        for (i, point_light) in point_lights.iter().enumerate() {
+            object_shader.set_uniform_point_light(format!("point_lights[{i}]"), point_light)?;
+        }
 
         Ok(Self {
             object_model,
