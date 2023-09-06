@@ -1,7 +1,5 @@
 use nalgebra as na;
 
-use crate::Camera;
-
 pub struct DirectionalLight {
     pub direction: na::Vector3<f32>,
     pub color: na::Vector3<f32>,
@@ -37,9 +35,8 @@ impl PointLight {
     }
 }
 
-pub struct SpotLight<'a> {
-    pub camera: &'a Camera,
-
+/// A kind of spot light which depends on the camera postion & direction
+pub struct FlashLight {
     pub color: na::Vector3<f32>,
 
     pub cutoff: f32,
@@ -49,9 +46,8 @@ pub struct SpotLight<'a> {
     pub attenuation_quadratic: f32,
 }
 
-impl<'a> SpotLight<'a> {
+impl FlashLight {
     pub fn new(
-        camera: &'a Camera,
         color: na::Vector3<f32>,
         cutoff: f32,
         outer_cutoff: f32,
@@ -59,7 +55,6 @@ impl<'a> SpotLight<'a> {
         attenuation_quadratic: f32,
     ) -> Self {
         Self {
-            camera,
             color,
             cutoff,
             outer_cutoff,

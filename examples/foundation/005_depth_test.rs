@@ -3,14 +3,14 @@
 // remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::ffi::CString;
+use std::{ffi::CString, path::PathBuf};
 
 use gl::types::*;
 use nalgebra as na;
 
 use learn::{
     clear_color, set_clear_color, Buffer, BufferBit, BufferType, BufferUsage, ShaderProgram,
-    Texture, TextureFormat, TextureUnit, VertexArray, VertexDescription,
+    Texture, TextureUnit, VertexArray, VertexDescription,
 };
 use learn_opengl_rs as learn;
 
@@ -112,10 +112,8 @@ fn main() -> anyhow::Result<()> {
     )?;
 
     /* Texture */
-    let texture_container =
-        Texture::create("assets/textures/container.jpg", TextureFormat::RGB, None)?;
-    let texture_face =
-        Texture::create("assets/textures/awesomeface.png", TextureFormat::RGBA, None)?;
+    let texture_container = Texture::create(PathBuf::from("assets/textures/container.jpg"), None)?;
+    let texture_face = Texture::create(PathBuf::from("assets/textures/awesomeface.png"), None)?;
     shader_program.set_texture_unit(
         &CString::new("t_container")?,
         &texture_container,

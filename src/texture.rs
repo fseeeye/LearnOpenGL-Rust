@@ -1,22 +1,24 @@
+use std::path::PathBuf;
+
 use gl::types::*;
 use image::GenericImageView;
 
 use crate::get_gl_error;
 
 /// Wrapper of [Texture Object](https://www.khronos.org/opengl/wiki/Texture)
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Texture {
     pub id: GLuint,
     pub tex_type: TextureType,
+    pub path: PathBuf,
 }
 
 #[repr(u8)]
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TextureType {
     Diffuse,
     Specular,
     Normal,
-    Height,
     Unknown,
 }
 
@@ -118,15 +120,8 @@ impl From<TextureUnit> for GLenum {
     }
 }
 
-// TODO: complete
-#[derive(Debug, Clone, Copy)]
-pub enum TextureFormat {
-    RGB = gl::RGB as isize,
-    RGBA = gl::RGBA as isize,
-}
-
 impl Texture {
-    fn new(texture_type: TextureType) -> anyhow::Result<Self> {
+    fn new(path: PathBuf, texture_type: TextureType) -> anyhow::Result<Self> {
         let mut texture = 0;
         unsafe {
             gl::GenTextures(1, &mut texture);
@@ -136,6 +131,7 @@ impl Texture {
             Ok(Self {
                 id: texture,
                 tex_type: texture_type,
+                path,
             })
         } else {
             Err(get_gl_error().unwrap().into())
@@ -143,17 +139,13 @@ impl Texture {
     }
 
     /// Create Texture
-    pub fn create(
-        path: &str,
-        format: TextureFormat,
-        texture_type: Option<TextureType>,
-    ) -> anyhow::Result<Self> {
+    pub fn create(path: PathBuf, texture_type: Option<TextureType>) -> anyhow::Result<Self> {
         // Generate Texture
         let tex_type: TextureType = match texture_type {
             Some(t) => t,
             None => TextureType::Unknown,
         };
-        let texture = Self::new(tex_type)?;
+        let texture = Self::new(path, tex_type)?;
 
         // Bind Texture
         unsafe {
@@ -169,23 +161,40 @@ impl Texture {
         }
 
         // Load Texture image
-        let img = image::open(path).unwrap().flipv();
+        let img = image::open(&texture.path).unwrap().flipv();
         let (width, height) = img.dimensions();
+        let img_format: GLenum;
+        let img_type: GLenum;
+        match img.color() {
+            image::ColorType::Rgb8 => {
+                img_format = gl::RGB;
+                img_type = gl::UNSIGNED_BYTE;
+            }
+            image::ColorType::Rgba8 => {
+                img_format = gl::RGBA;
+                img_type = gl::UNSIGNED_BYTE;
+            }
+            _ => {
+                anyhow::bail!("Unsupported image color type: {:?}", img.color())
+            }
+        }
         let pixels = img.into_bytes();
+
         // Send Texture image data
         unsafe {
             gl::TexImage2D(
                 gl::TEXTURE_2D,
                 0,
-                format as GLint,
+                img_format as GLint,
                 width.try_into()?,
                 height.try_into()?,
                 0,
-                format as GLenum,
-                gl::UNSIGNED_BYTE,
+                img_format,
+                img_type,
                 pixels.as_ptr().cast(),
             );
         }
+
         // Generate mipmap
         unsafe { gl::GenerateMipmap(gl::TEXTURE_2D) }
 

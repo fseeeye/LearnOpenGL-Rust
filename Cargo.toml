@@ -14,6 +14,7 @@ anyhow = "1" # error handling
 image = "0.24.5" # image processing
 nalgebra = "0.32.2" # Linear algebra : https://nalgebra.org/docs/
 russimp = { version = "=2.0.5", features=["prebuilt"] } # model loading
+tobj = "4.0.0" # OBJ loader
 
 # window related dependencies
 winit = "0.28"
@@ -32,8 +33,8 @@ name = "test_nalgebra"
 path = "examples/test_deps/test_nalgebra.rs"
 
 [[example]]
-name = "test_assimp"
-path = "examples/test_deps/test_assimp.rs"
+name = "test_tobj"
+path = "examples/test_deps/test_tobj.rs"
 
 [[example]]
 name = "001_draw_triangle"

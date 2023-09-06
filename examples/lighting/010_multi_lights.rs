@@ -3,15 +3,15 @@
 // remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::ffi::CString;
+use std::{ffi::CString, path::PathBuf};
 
 use anyhow::bail;
 use gl::types::*;
 
 use learn::{
     clear_color, set_clear_color, Buffer, BufferBit, BufferType, BufferUsage, Camera,
-    DirectionalLight, MaterialPhong, PointLight, ShaderProgram, Texture, TextureFormat,
-    VertexArray, VertexDescription, WinitWindow,
+    DirectionalLight, FlashLight, MaterialPhong, PointLight, ShaderProgram, Texture, VertexArray,
+    VertexDescription, WinitWindow,
 };
 use learn_opengl_rs as learn;
 
@@ -98,8 +98,8 @@ const POINT_LIGHT_POS: [na::Vector3<f32>; 4] = [
     na::Vector3::new(-4.0, 2.0, -12.0),
     na::Vector3::new(0.0, 0.0, -3.0),
 ];
-const SPOT_LIGHT_CUTOFF: f32 = 12.5_f32;
-const SPOT_LIGHT_OUTER_CUTOFF: f32 = 15.0_f32;
+const FLASH_LIGHT_CUTOFF: f32 = 12.5_f32;
+const FLASH_LIGHT_OUTER_CUTOFF: f32 = 15.0_f32;
 
 struct Renderer {
     cube_shader: ShaderProgram,
@@ -168,10 +168,9 @@ impl Renderer {
 
         // Prepare cube material
         let texture_diffuse =
-            Texture::create("assets/textures/container2.png", TextureFormat::RGBA, None)?;
+            Texture::create(PathBuf::from("assets/textures/container2.png"), None)?;
         let texture_specular = Texture::create(
-            "assets/textures/container2_specular.png",
-            TextureFormat::RGBA,
+            PathBuf::from("assets/textures/container2_specular.png"),
             None,
         )?;
         let cube_material = MaterialPhong::new(texture_diffuse, texture_specular, 128.0, None);
@@ -221,11 +220,10 @@ impl Renderer {
                 as gl::types::GLbitfield,
         );
 
-        let spot_light = learn::SpotLight::new(
-            camera,
+        let flash_light = FlashLight::new(
             LIGHT_COLOR,
-            SPOT_LIGHT_CUTOFF.to_radians().cos(),
-            SPOT_LIGHT_OUTER_CUTOFF.to_radians().cos(),
+            FLASH_LIGHT_CUTOFF.to_radians().cos(),
+            FLASH_LIGHT_OUTER_CUTOFF.to_radians().cos(),
             FALLOFF_LINEAR,
             FALLOFF_QUADRATIC,
         );
@@ -264,8 +262,11 @@ impl Renderer {
             camera.get_pos().y,
             camera.get_pos().z,
         );
-        self.cube_shader
-            .set_uniform_spot_light(String::from("spot_light"), &spot_light)?;
+        self.cube_shader.set_uniform_flash_light(
+            String::from("spot_light"),
+            &flash_light,
+            camera,
+        )?;
 
         for cube_position in CUBE_POSTIONS {
             // Model Matrix & Normal Matrix of cube
@@ -339,7 +340,7 @@ fn main() -> anyhow::Result<()> {
     let camera_pos = na::Point3::new(CAMERA_POS[0], CAMERA_POS[1], CAMERA_POS[2]);
     let camera_look_at = na::Vector3::new(0.0, 0.0, -1.0);
     let camera_up = na::Vector3::new(0.0, 1.0, 0.0);
-    let mut camera = learn::Camera::new(camera_pos, camera_look_at, camera_up);
+    let mut camera = Camera::new(camera_pos, camera_look_at, camera_up);
 
     /* Window */
     let (win, event_loop) = match WinitWindow::new("Simple Triangle", SCREEN_WIDTH, SCREEN_HEIGHT) {

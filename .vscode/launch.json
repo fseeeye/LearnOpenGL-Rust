@@ -74,39 +74,10 @@
             "sourceLanguages": ["rust"]
         },
         {
+            "name": "Debug example 'test_tobj'",
             "type": "lldb",
             "request": "launch",
-            "name": "Debug example '003-texture'",
-            "cargo": {
-                "args": [
-                    "build",
-                    "--example=003-texture",
-                    "--package=learn-opengl-rs"
-                ],
-                "filter": {
-                    "name": "003-texture",
-                    "kind": "example"
-                }
-            },
-            "args": [],
-            "cwd": "${workspaceFolder}",
-            "sourceLanguages": ["rust"]
-        },
-        {
-            "type": "lldb",
-            "request": "launch",
-            "name": "Debug example '004-transform'",
-            "cargo": {
-                "args": [
-                    "build",
-                    "--example=004-transform",
-                    "--package=learn-opengl-rs"
-                ],
-                "filter": {
-                    "name": "004-transform",
-                    "kind": "example"
-                }
-            },
+            "program": "${workspaceFolder}/target/debug/examples/test_tobj.exe",
             "args": [],
             "cwd": "${workspaceFolder}",
             "sourceLanguages": ["rust"]

@@ -5,7 +5,8 @@ use gl::types::*;
 use nalgebra as na;
 
 use crate::{
-    get_gl_error, DirectionalLight, MaterialPhong, PointLight, SpotLight, Texture, TextureUnit,
+    get_gl_error, Camera, DirectionalLight, FlashLight, MaterialPhong, PointLight, Texture,
+    TextureUnit,
 };
 
 /// enum of Shader types
@@ -437,21 +438,22 @@ impl ShaderProgram {
         Ok(())
     }
 
-    pub fn set_uniform_spot_light(
+    pub fn set_uniform_flash_light(
         &self,
         uniform_name: String,
-        spot_light: &SpotLight,
+        flash_light: &FlashLight,
+        camera: &Camera,
     ) -> anyhow::Result<()> {
         let color_name = CString::new(uniform_name.clone() + ".color")?;
         self.set_uniform_3f(
             color_name.as_c_str(),
-            spot_light.color.x,
-            spot_light.color.y,
-            spot_light.color.z,
+            flash_light.color.x,
+            flash_light.color.y,
+            flash_light.color.z,
         );
 
         let pos_name = CString::new(uniform_name.clone() + ".position")?;
-        let camera_pos = spot_light.camera.get_pos();
+        let camera_pos = camera.get_pos();
         self.set_uniform_3f(
             pos_name.as_c_str(),
             camera_pos.x,
@@ -460,7 +462,7 @@ impl ShaderProgram {
         );
 
         let dir_name = CString::new(uniform_name.clone() + ".direction")?;
-        let camera_dir = spot_light.camera.get_lookat();
+        let camera_dir = camera.get_lookat();
         self.set_uniform_3f(
             dir_name.as_c_str(),
             camera_dir.x,
@@ -469,21 +471,21 @@ impl ShaderProgram {
         );
 
         let cutoff_name = CString::new(uniform_name.clone() + ".cutoff")?;
-        self.set_uniform_1f(cutoff_name.as_c_str(), spot_light.cutoff);
+        self.set_uniform_1f(cutoff_name.as_c_str(), flash_light.cutoff);
 
         let outer_cutoff_name = CString::new(uniform_name.clone() + ".outer_cutoff")?;
-        self.set_uniform_1f(outer_cutoff_name.as_c_str(), spot_light.outer_cutoff);
+        self.set_uniform_1f(outer_cutoff_name.as_c_str(), flash_light.outer_cutoff);
 
         let attenuation_linear_name = CString::new(uniform_name.clone() + ".attenuation_linear")?;
         self.set_uniform_1f(
             attenuation_linear_name.as_c_str(),
-            spot_light.attenuation_linear,
+            flash_light.attenuation_linear,
         );
 
         let attenuation_quadratic_name = CString::new(uniform_name + ".attenuation_quadratic")?;
         self.set_uniform_1f(
             attenuation_quadratic_name.as_c_str(),
-            spot_light.attenuation_quadratic,
+            flash_light.attenuation_quadratic,
         );
 
         Ok(())
