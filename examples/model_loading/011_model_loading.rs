@@ -9,7 +9,8 @@ use anyhow::bail;
 use gl::types::*;
 
 use learn::{
-    clear_color, set_clear_color, BufferBit, Camera, FlashLight, Model, ShaderProgram, WinitWindow, PointLight,
+    clear_color, set_clear_color, BufferBit, Camera, FlashLight, Model, PointLight, ShaderProgram,
+    WinitWindow,
 };
 use learn_opengl_rs as learn;
 
