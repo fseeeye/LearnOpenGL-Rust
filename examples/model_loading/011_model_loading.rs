@@ -1,4 +1,4 @@
-//! This example is about model loading.
+//! This example is about load OBJ model from file.
 
 // remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
