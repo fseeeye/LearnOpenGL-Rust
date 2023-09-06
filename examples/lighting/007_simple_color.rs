@@ -9,8 +9,8 @@ use anyhow::bail;
 use gl::types::*;
 
 use learn::{
-    Buffer, BufferBit, BufferType, BufferUsage, Camera, ShaderProgram, VertexArray,
-    VertexDescription, WinitWindow,
+    clear_color, set_clear_color, Buffer, BufferBit, BufferType, BufferUsage, Camera,
+    ShaderProgram, VertexArray, VertexDescription, WinitWindow,
 };
 use learn_opengl_rs as learn;
 
@@ -87,7 +87,7 @@ impl Renderer {
     pub fn new() -> anyhow::Result<Self> {
         /* Extra Settings */
         // Set clear color
-        Buffer::set_clear_color(0.0, 0.0, 0.0, 1.0);
+        set_clear_color(0.0, 0.0, 0.0, 1.0);
         // Enable Depth Test
         unsafe { gl::Enable(gl::DEPTH_TEST) };
 
@@ -96,10 +96,7 @@ impl Renderer {
 
         let cube_vbo = Buffer::new(BufferType::VertexBuffer)?;
         cube_vbo.bind();
-        cube_vbo.set_buffer_data(
-            bytemuck::cast_slice(&CUBE_VERTICES),
-            BufferUsage::StaticDraw,
-        );
+        cube_vbo.set_buffer_data(CUBE_VERTICES.as_slice(), BufferUsage::StaticDraw);
 
         cube_vao.bind();
         let mut cube_vertex_desc = VertexDescription::new();
@@ -123,10 +120,7 @@ impl Renderer {
 
         let lighting_vbo = Buffer::new(BufferType::VertexBuffer)?;
         lighting_vbo.bind();
-        lighting_vbo.set_buffer_data(
-            bytemuck::cast_slice(&CUBE_VERTICES),
-            BufferUsage::StaticDraw,
-        );
+        lighting_vbo.set_buffer_data(CUBE_VERTICES.as_slice(), BufferUsage::StaticDraw);
 
         light_vao.bind();
         let mut cube_vertex_desc = VertexDescription::new();
@@ -158,7 +152,7 @@ impl Renderer {
         camera: &Camera,
         _delta_time: f32,
     ) -> anyhow::Result<()> {
-        Buffer::clear(
+        clear_color(
             (BufferBit::ColorBufferBit as GLenum | BufferBit::DepthBufferBit as GLenum)
                 as gl::types::GLbitfield,
         );

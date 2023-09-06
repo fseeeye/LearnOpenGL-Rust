@@ -147,24 +147,19 @@ module.exports = {
 		{ name: 'lib' },
 		{ name: 'foundation' },
 		{ name: 'lighting' },
+		{ name: 'model' },
+		{ name: 'advanced_opengl' },
+		{ name: 'advanced_lighting' },
 	],
 
 	// it needs to match the value for field type. Eg.: 'fix'
 
 	// scopeOverrides: {
-	// 	fix: [
-	// 		{ name: 'merge' },
-	// 		{ name: 'style' },
-	// 		{ name: 'e2eTest' },
-	// 		{ name: 'unitTest' },
+	// 	':wrench: docs': [
+	// 		{ name: ':wrench: docs' },
+	// 		{ name: ':bulb: docs_code' },
 	// 	],
 	// },
-	scopeOverrides: {
-		':wrench: docs': [
-			{ name: ':wrench: docs' },
-			{ name: ':bulb: docs_code' },
-		],
-	},
 
 	// override the messages, defaults are as follows
 	messages: {

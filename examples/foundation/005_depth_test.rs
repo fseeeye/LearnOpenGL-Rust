@@ -3,14 +3,14 @@
 // remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::ffi::CString;
+use std::{ffi::CString, path::PathBuf};
 
 use gl::types::*;
 use nalgebra as na;
 
 use learn::{
-    Buffer, BufferBit, BufferType, BufferUsage, ShaderProgram, Texture, TextureFormat, TextureUnit,
-    VertexArray, VertexDescription,
+    clear_color, set_clear_color, Buffer, BufferBit, BufferType, BufferUsage, ShaderProgram,
+    Texture, TextureUnit, VertexArray, VertexDescription,
 };
 use learn_opengl_rs as learn;
 
@@ -97,7 +97,7 @@ fn main() -> anyhow::Result<()> {
 
     /* Vertex Buffer Object */
     let vbo = Buffer::new(BufferType::VertexBuffer)?;
-    vbo.set_buffer_data(bytemuck::cast_slice(&VERTICES), BufferUsage::StaticDraw);
+    vbo.set_buffer_data(VERTICES.as_slice(), BufferUsage::StaticDraw);
 
     /* Vertex Attribute description */
     let mut vertex_desc = VertexDescription::new();
@@ -112,21 +112,21 @@ fn main() -> anyhow::Result<()> {
     )?;
 
     /* Texture */
-    let texture_container = Texture::create(
-        "assets/textures/container.jpg",
-        TextureFormat::RGB,
+    let texture_container = Texture::create(PathBuf::from("assets/textures/container.jpg"), None)?;
+    let texture_face = Texture::create(PathBuf::from("assets/textures/awesomeface.png"), None)?;
+    shader_program.set_texture_unit(
+        &CString::new("t_container")?,
+        &texture_container,
         TextureUnit::TEXTURE0,
-    )?;
-    let texture_face = Texture::create(
-        "assets/textures/awesomeface.png",
-        TextureFormat::RGBA,
+    );
+    shader_program.set_texture_unit(
+        &CString::new("t_face")?,
+        &texture_face,
         TextureUnit::TEXTURE1,
-    )?;
-    shader_program.set_texture_unit(&CString::new("t_container")?, &texture_container);
-    shader_program.set_texture_unit(&CString::new("t_face")?, &texture_face);
+    );
 
     /* Extra Settings */
-    Buffer::set_clear_color(0.2, 0.3, 0.3, 1.0);
+    set_clear_color(0.2, 0.3, 0.3, 1.0);
     // Enable Depth Test
     unsafe { gl::Enable(gl::DEPTH_TEST) };
 
@@ -142,7 +142,7 @@ fn main() -> anyhow::Result<()> {
         }
 
         /* On Update (Drawing) */
-        Buffer::clear(
+        clear_color(
             (BufferBit::ColorBufferBit as GLenum | BufferBit::DepthBufferBit as GLenum)
                 as gl::types::GLbitfield,
         );

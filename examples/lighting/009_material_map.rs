@@ -3,14 +3,14 @@
 // remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::ffi::CString;
+use std::{ffi::CString, path::PathBuf};
 
 use anyhow::bail;
 use gl::types::*;
 
 use learn::{
-    Buffer, BufferBit, BufferType, BufferUsage, Camera, MaterialPhong, ShaderProgram, Texture,
-    TextureFormat, TextureUnit, VertexArray, VertexDescription, WinitWindow,
+    clear_color, set_clear_color, Buffer, BufferBit, BufferType, BufferUsage, Camera,
+    MaterialPhong, ShaderProgram, Texture, VertexArray, VertexDescription, WinitWindow,
 };
 use learn_opengl_rs as learn;
 
@@ -85,21 +85,13 @@ struct Renderer {
 
 impl Renderer {
     pub fn new() -> anyhow::Result<Self> {
-        let texture_diffuse = Texture::create(
-            "assets/textures/container2.png",
-            TextureFormat::RGBA,
-            TextureUnit::TEXTURE0,
-        )?;
+        let texture_diffuse =
+            Texture::create(PathBuf::from("assets/textures/container2.png"), None)?;
         let texture_specular = Texture::create(
-            "assets/textures/container2_specular.png",
-            TextureFormat::RGBA,
-            TextureUnit::TEXTURE1,
+            PathBuf::from("assets/textures/container2_specular.png"),
+            None,
         )?;
-        let texture_emission = Texture::create(
-            "assets/textures/matrix.jpg",
-            TextureFormat::RGB,
-            TextureUnit::TEXTURE2,
-        )?;
+        let texture_emission = Texture::create(PathBuf::from("assets/textures/matrix.jpg"), None)?;
         let cube_material = MaterialPhong::new(
             texture_diffuse,
             texture_specular,
@@ -109,7 +101,7 @@ impl Renderer {
 
         /* Extra Settings */
         // Set clear color
-        Buffer::set_clear_color(0.0, 0.0, 0.0, 1.0);
+        set_clear_color(0.0, 0.0, 0.0, 1.0);
         // Enable Depth Test
         unsafe { gl::Enable(gl::DEPTH_TEST) };
 
@@ -118,10 +110,7 @@ impl Renderer {
 
         let cube_vbo = Buffer::new(BufferType::VertexBuffer)?;
         cube_vbo.bind();
-        cube_vbo.set_buffer_data(
-            bytemuck::cast_slice(&CUBE_VERTICES),
-            BufferUsage::StaticDraw,
-        );
+        cube_vbo.set_buffer_data(CUBE_VERTICES.as_slice(), BufferUsage::StaticDraw);
 
         cube_vao.bind();
         let mut cube_vertex_desc = VertexDescription::new();
@@ -153,10 +142,7 @@ impl Renderer {
 
         let lighting_vbo = Buffer::new(BufferType::VertexBuffer)?;
         lighting_vbo.bind();
-        lighting_vbo.set_buffer_data(
-            bytemuck::cast_slice(&CUBE_VERTICES),
-            BufferUsage::StaticDraw,
-        );
+        lighting_vbo.set_buffer_data(CUBE_VERTICES.as_slice(), BufferUsage::StaticDraw);
 
         light_vao.bind();
         let mut cube_vertex_desc = VertexDescription::new();
@@ -190,7 +176,7 @@ impl Renderer {
         camera: &Camera,
         _delta_time: f32,
     ) -> anyhow::Result<()> {
-        Buffer::clear(
+        clear_color(
             (BufferBit::ColorBufferBit as GLenum | BufferBit::DepthBufferBit as GLenum)
                 as gl::types::GLbitfield,
         );

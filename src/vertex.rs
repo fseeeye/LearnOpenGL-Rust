@@ -1,6 +1,15 @@
 use gl::types::*;
+use nalgebra as na;
 
 use crate::{get_gl_error, Buffer, BufferType};
+
+#[derive(Debug)]
+#[repr(C)]
+pub struct Vertex {
+    pub position: na::Vector3<f32>,
+    pub normal: na::Vector3<f32>,
+    pub texture_coords: na::Vector2<f32>,
+}
 
 /// Wrapper of [Vertex Array Object](https://www.khronos.org/opengl/wiki/Vertex_Specification#Vertex_Array_Object)
 pub struct VertexArray {
@@ -25,6 +34,12 @@ impl VertexArray {
     /// wrap `glBindVertexArray`
     pub fn bind(&self) {
         unsafe { gl::BindVertexArray(self.id) }
+    }
+
+    /// Unbind this Vertex Array Object
+    /// wrap `glBindVertexArray`
+    pub fn unbind(&self) {
+        unsafe { gl::BindVertexArray(0) }
     }
 
     /// Clear Vertex Array Object binding.

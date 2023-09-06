@@ -94,7 +94,7 @@ impl Renderer {
 
         /* Extra Settings */
         // Set clear color
-        Buffer::set_clear_color(0.0, 0.0, 0.0, 1.0);
+        set_clear_color(0.0, 0.0, 0.0, 1.0);
         // Enable Depth Test
         unsafe { gl::Enable(gl::DEPTH_TEST) };
 
@@ -104,7 +104,7 @@ impl Renderer {
         let cube_vbo = Buffer::new(BufferType::VertexBuffer)?;
         cube_vbo.bind();
         cube_vbo.set_buffer_data(
-            bytemuck::cast_slice(&CUBE_VERTICES),
+            CUBE_VERTICES.as_slice(),
             BufferUsage::StaticDraw,
         );
 
@@ -138,7 +138,7 @@ impl Renderer {
         let lighting_vbo = Buffer::new(BufferType::VertexBuffer)?;
         lighting_vbo.bind();
         lighting_vbo.set_buffer_data(
-            bytemuck::cast_slice(&CUBE_VERTICES),
+            CUBE_VERTICES.as_slice(),
             BufferUsage::StaticDraw,
         );
 
@@ -173,7 +173,7 @@ impl Renderer {
         camera: &Camera,
         _delta_time: f32,
     ) -> anyhow::Result<()> {
-        Buffer::clear(
+        clear_color(
             (BufferBit::ColorBufferBit as GLenum | BufferBit::DepthBufferBit as GLenum)
                 as gl::types::GLbitfield,
         );

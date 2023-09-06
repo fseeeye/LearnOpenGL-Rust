@@ -13,6 +13,7 @@ thiserror = "1" # error derive macro
 anyhow = "1" # error handling
 image = "0.24.5" # image processing
 nalgebra = "0.32.2" # Linear algebra : https://nalgebra.org/docs/
+tobj = "4.0.0" # OBJ loader
 
 # window related dependencies
 winit = "0.28"
@@ -21,9 +22,7 @@ glutin-winit = "0.3"
 raw-window-handle = "0.5.0"
 
 [dev-dependencies]
-bytemuck = "1.13.0" # bit cast
 tracing-subscriber = "0.3.16" # Utilities for implementing and composing tracing subscribers.
-
 
 [build-dependencies]
 cfg_aliases = "0.1.1"
@@ -31,6 +30,10 @@ cfg_aliases = "0.1.1"
 [[example]]
 name = "test_nalgebra"
 path = "examples/test_deps/test_nalgebra.rs"
+
+[[example]]
+name = "test_tobj"
+path = "examples/test_deps/test_tobj.rs"
 
 [[example]]
 name = "001_draw_triangle"
@@ -80,4 +83,9 @@ doc-scrape-examples = true
 [[example]]
 name = "multi_lights"
 path = "examples/lighting/010_multi_lights.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "model_loading"
+path = "examples/model_loading/011_model_loading.rs"
 doc-scrape-examples = true

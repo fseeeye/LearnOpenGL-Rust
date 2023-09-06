@@ -3,15 +3,15 @@
 // remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::ffi::CString;
+use std::{ffi::CString, path::PathBuf};
 
 use anyhow::bail;
 use gl::types::*;
 
 use learn::{
-    Buffer, BufferBit, BufferType, BufferUsage, Camera, DirectionalLight, MaterialPhong,
-    PointLight, ShaderProgram, Texture, TextureFormat, TextureUnit, VertexArray, VertexDescription,
-    WinitWindow,
+    clear_color, set_clear_color, Buffer, BufferBit, BufferType, BufferUsage, Camera,
+    DirectionalLight, FlashLight, MaterialPhong, PointLight, ShaderProgram, Texture, VertexArray,
+    VertexDescription, WinitWindow,
 };
 use learn_opengl_rs as learn;
 
@@ -98,8 +98,8 @@ const POINT_LIGHT_POS: [na::Vector3<f32>; 4] = [
     na::Vector3::new(-4.0, 2.0, -12.0),
     na::Vector3::new(0.0, 0.0, -3.0),
 ];
-const SPOT_LIGHT_CUTOFF: f32 = 12.5_f32;
-const SPOT_LIGHT_OUTER_CUTOFF: f32 = 15.0_f32;
+const FLASH_LIGHT_CUTOFF: f32 = 12.5_f32;
+const FLASH_LIGHT_OUTER_CUTOFF: f32 = 15.0_f32;
 
 struct Renderer {
     cube_shader: ShaderProgram,
@@ -112,7 +112,7 @@ impl Renderer {
     pub fn new() -> anyhow::Result<Self> {
         /* Extra Settings */
         // Set clear color
-        Buffer::set_clear_color(
+        set_clear_color(
             BACKGROUND_COLOR[0],
             BACKGROUND_COLOR[1],
             BACKGROUND_COLOR[2],
@@ -143,10 +143,7 @@ impl Renderer {
 
         let lighting_vbo = Buffer::new(BufferType::VertexBuffer)?;
         lighting_vbo.bind();
-        lighting_vbo.set_buffer_data(
-            bytemuck::cast_slice(&CUBE_VERTICES),
-            BufferUsage::StaticDraw,
-        );
+        lighting_vbo.set_buffer_data(CUBE_VERTICES.as_slice(), BufferUsage::StaticDraw);
 
         light_vao.bind();
         let mut cube_vertex_desc = VertexDescription::new();
@@ -170,15 +167,11 @@ impl Renderer {
         /* Cube Vertexs & Shader */
 
         // Prepare cube material
-        let texture_diffuse = Texture::create(
-            "assets/textures/container2.png",
-            TextureFormat::RGBA,
-            TextureUnit::TEXTURE0,
-        )?;
+        let texture_diffuse =
+            Texture::create(PathBuf::from("assets/textures/container2.png"), None)?;
         let texture_specular = Texture::create(
-            "assets/textures/container2_specular.png",
-            TextureFormat::RGBA,
-            TextureUnit::TEXTURE1,
+            PathBuf::from("assets/textures/container2_specular.png"),
+            None,
         )?;
         let cube_material = MaterialPhong::new(texture_diffuse, texture_specular, 128.0, None);
 
@@ -187,10 +180,7 @@ impl Renderer {
 
         let cube_vbo = Buffer::new(BufferType::VertexBuffer)?;
         cube_vbo.bind();
-        cube_vbo.set_buffer_data(
-            bytemuck::cast_slice(&CUBE_VERTICES),
-            BufferUsage::StaticDraw,
-        );
+        cube_vbo.set_buffer_data(CUBE_VERTICES.as_slice(), BufferUsage::StaticDraw);
 
         cube_vao.bind();
         let mut cube_vertex_desc = VertexDescription::new();
@@ -204,10 +194,11 @@ impl Renderer {
             include_str!("../../assets/shaders/lighting/010-cube.vert"),
             include_str!("../../assets/shaders/lighting/010-cube.frag"),
         )?;
+
         cube_shader.set_uniform_material_phong(String::from("material"), &cube_material)?;
         cube_shader.set_uniform_directional_light(String::from("dir_light"), &dir_light)?;
         for (i, point_light) in point_lights.iter().enumerate() {
-            cube_shader.set_uniform_point_light(format!("point_lights[{}]", i), point_light)?;
+            cube_shader.set_uniform_point_light(format!("point_lights[{i}]"), point_light)?;
         }
 
         Ok(Self {
@@ -224,16 +215,15 @@ impl Renderer {
         camera: &Camera,
         _delta_time: f32,
     ) -> anyhow::Result<()> {
-        Buffer::clear(
+        clear_color(
             (BufferBit::ColorBufferBit as GLenum | BufferBit::DepthBufferBit as GLenum)
                 as gl::types::GLbitfield,
         );
 
-        let spot_light = learn::SpotLight::new(
-            camera,
+        let flash_light = FlashLight::new(
             LIGHT_COLOR,
-            SPOT_LIGHT_CUTOFF.to_radians().cos(),
-            SPOT_LIGHT_OUTER_CUTOFF.to_radians().cos(),
+            FLASH_LIGHT_CUTOFF.to_radians().cos(),
+            FLASH_LIGHT_OUTER_CUTOFF.to_radians().cos(),
             FALLOFF_LINEAR,
             FALLOFF_QUADRATIC,
         );
@@ -272,8 +262,11 @@ impl Renderer {
             camera.get_pos().y,
             camera.get_pos().z,
         );
-        self.cube_shader
-            .set_uniform_spot_light(String::from("spot_light"), &spot_light)?;
+        self.cube_shader.set_uniform_flash_light(
+            String::from("spot_light"),
+            &flash_light,
+            camera,
+        )?;
 
         for cube_position in CUBE_POSTIONS {
             // Model Matrix & Normal Matrix of cube
@@ -347,7 +340,7 @@ fn main() -> anyhow::Result<()> {
     let camera_pos = na::Point3::new(CAMERA_POS[0], CAMERA_POS[1], CAMERA_POS[2]);
     let camera_look_at = na::Vector3::new(0.0, 0.0, -1.0);
     let camera_up = na::Vector3::new(0.0, 1.0, 0.0);
-    let mut camera = learn::Camera::new(camera_pos, camera_look_at, camera_up);
+    let mut camera = Camera::new(camera_pos, camera_look_at, camera_up);
 
     /* Window */
     let (win, event_loop) = match WinitWindow::new("Simple Triangle", SCREEN_WIDTH, SCREEN_HEIGHT) {

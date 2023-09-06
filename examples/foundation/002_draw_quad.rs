@@ -11,7 +11,8 @@ use std::ffi::CString;
 
 use anyhow::Ok;
 use learn::{
-    Buffer, BufferBit, BufferType, BufferUsage, ShaderProgram, VertexArray, VertexDescription,
+    clear_color, set_clear_color, Buffer, BufferBit, BufferType, BufferUsage, ShaderProgram,
+    VertexArray, VertexDescription,
 };
 use learn_opengl_rs as learn;
 
@@ -43,7 +44,7 @@ fn main() -> anyhow::Result<()> {
 
     /* Vertex Buffer Object */
     let vbo = Buffer::new(BufferType::VertexBuffer)?;
-    vbo.set_buffer_data(bytemuck::cast_slice(&VERTICES), BufferUsage::StaticDraw);
+    vbo.set_buffer_data(VERTICES.as_slice(), BufferUsage::StaticDraw);
 
     /* Vertex Attribute description */
     let mut vertex_desc = VertexDescription::new();
@@ -81,7 +82,7 @@ fn main() -> anyhow::Result<()> {
         unsafe { gl::GetUniformLocation(shader_program.id, uniform_color_name.as_ptr()) };
 
     /* Extra Settings */
-    Buffer::set_clear_color(0.2, 0.3, 0.3, 1.0);
+    set_clear_color(0.2, 0.3, 0.3, 1.0);
 
     /* Main Loop */
     'main_loop: loop {
@@ -95,7 +96,7 @@ fn main() -> anyhow::Result<()> {
         }
 
         /* On Update (Drawing) */
-        Buffer::clear(BufferBit::ColorBufferBit as gl::types::GLbitfield);
+        clear_color(BufferBit::ColorBufferBit as gl::types::GLbitfield);
 
         shader_program.bind();
 

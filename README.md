@@ -29,8 +29,12 @@ lighting:
 3. [**Material Map**](examples/lighting/009_material_map.rs): Abstract simplest Blinn-Phong material.
 4. [**Multiple Lights**](examples/lighting/010_multi_lights.rs): implement multiple types of light source.
 
+model_loading:
+1. [**Model Loading**](examples/model_loading/011_model_loading.rs): Load OBJ model from file.
+
 ## TODO
 
+* [ ] fix glfw window.
 * [ ] add imgui.
 
 ## Core Dependencies
@@ -45,4 +49,5 @@ lighting:
 ## Ref
 
 * [LearnOpenGL](https://learnopengl.com/)
-* [LearnOpenGl - Rust](https://rust-tutorials.github.io/learn-opengl/)
+* [Learn OpenGL Rust](https://rust-tutorials.github.io/learn-opengl/)
+* [learn-opengl-rs](https://github.com/bwasty/learn-opengl-rs/)
