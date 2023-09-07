@@ -66,26 +66,31 @@ path = "examples/foundation/006_camera.rs"
 doc-scrape-examples = true
 
 [[example]]
-name = "simple_color"
+name = "007_simple_color"
 path = "examples/lighting/007_simple_color.rs"
 doc-scrape-examples = true
 
 [[example]]
-name = "blinn_phong"
+name = "008_blinn_phong"
 path = "examples/lighting/008_blinn_phong.rs"
 doc-scrape-examples = true
 
 [[example]]
-name = "material_map"
+name = "009_material_map"
 path = "examples/lighting/009_material_map.rs"
 doc-scrape-examples = true
 
 [[example]]
-name = "multi_lights"
+name = "010_multi_lights"
 path = "examples/lighting/010_multi_lights.rs"
 doc-scrape-examples = true
 
 [[example]]
-name = "model_loading"
+name = "011_model_loading"
 path = "examples/model_loading/011_model_loading.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "012_advanced_depth_test"
+path = "examples/advanced_opengl/012_advanced_depth_test.rs"
 doc-scrape-examples = true

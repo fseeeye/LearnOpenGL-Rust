@@ -101,12 +101,15 @@ impl Model {
             })
         }
 
-        // Handle textures of mesh
-        let mut diffuse_texture = None;
-        let mut specular_texture = None;
-        let mut normal_texture = None;
+        // Handle material of mesh
         if let Some(material_id) = mesh.material_id {
             let material = &materials[material_id];
+
+            let shininess = material.shininess;
+            let mut diffuse_texture = None;
+            let mut specular_texture = None;
+            let mut normal_texture = None;
+
             // load diffuse map
             if let Some(ref diffuse_texture_filename) = material.diffuse_texture {
                 diffuse_texture =
@@ -129,17 +132,18 @@ impl Model {
                 warn!("No normal texture for mesh in model({})!", model_name)
             }
             // TODO: load ambient & shiness map
+
+            Ok(Mesh::new(
+                vertices,
+                indices,
+                diffuse_texture,
+                specular_texture,
+                normal_texture,
+                shininess,
+            )?)
         } else {
             bail!("No material id for mesh")
         }
-
-        Ok(Mesh::new(
-            vertices,
-            indices,
-            diffuse_texture,
-            specular_texture,
-            normal_texture,
-        )?)
     }
 
     fn load_texture(

@@ -8,16 +8,20 @@ use crate::{
     VertexArray, VertexDescription,
 };
 
+const DEFAULT_SHININESS: f32 = 128.0;
+
 #[allow(dead_code)]
 pub struct Mesh {
-    pub vertices: Vec<Vertex>,
-    pub indices: Vec<u32>,
-    pub diffuse_texture: Option<Texture>,
-    pub specular_texture: Option<Texture>,
-    pub normal_texture: Option<Texture>,
     vao: VertexArray,
     vbo: Buffer,
     ibo: Buffer,
+    pub vertices: Vec<Vertex>,
+    pub indices: Vec<u32>,
+    // attributes about
+    pub diffuse_texture: Option<Texture>,
+    pub specular_texture: Option<Texture>,
+    pub normal_texture: Option<Texture>,
+    pub shininess: Option<f32>,
 }
 
 impl Mesh {
@@ -27,6 +31,7 @@ impl Mesh {
         diffuse_texture: Option<Texture>,
         specular_texture: Option<Texture>,
         normal_texture: Option<Texture>,
+        shininess: Option<f32>,
     ) -> anyhow::Result<Self> {
         /* Vertex Array Object */
         let vao = VertexArray::new()?;
@@ -60,19 +65,34 @@ impl Mesh {
         }
 
         Ok(Self {
+            vao,
+            vbo,
+            ibo,
             vertices,
             indices,
             diffuse_texture,
             specular_texture,
             normal_texture,
-            vao,
-            vbo,
-            ibo,
+            shininess,
         })
     }
 
     pub fn draw(&self, shader: &ShaderProgram, material_uniform_name: &str) -> anyhow::Result<()> {
-        // Bind textures
+        /* Bind uniforms */
+
+        if let Some(shininess) = self.shininess {
+            assert!(shininess >= 0.0);
+            shader.set_uniform_1f(
+                &CString::new(format!("{material_uniform_name}.shininess"))?,
+                shininess,
+            );
+        } else {
+            shader.set_uniform_1f(
+                &CString::new(format!("{material_uniform_name}.shininess"))?,
+                DEFAULT_SHININESS,
+            );
+        }
+
         let mut texture_unit = TextureUnit::TEXTURE0;
         if let Some(diffuse_texture) = &self.diffuse_texture {
             shader.set_texture_unit(
@@ -99,7 +119,8 @@ impl Mesh {
             // texture_unit = texture_unit.increase();
         }
 
-        // Draw mesh
+        /* Draw mesh */
+
         self.vao.bind();
         unsafe {
             gl::DrawElements(
@@ -109,7 +130,6 @@ impl Mesh {
                 std::ptr::null(),
             );
         }
-
         // always good practice to set everything back to defaults once configured.
         self.vao.unbind();
         Texture::active(TextureUnit::TEXTURE0);
