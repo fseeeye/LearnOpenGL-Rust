@@ -22,8 +22,6 @@ fn main() -> anyhow::Result<()> {
     /* Window */
     let (mut win, mut event_loop) =
         learn::GlfwWindow::new("Simple Texture", 800, 600, glfw::WindowMode::Windowed)?;
-    win.setup();
-    win.load_gl();
 
     /* Vertex data */
     type Vertex = [f32; 3 + 2]; // NDC coords(3) + texture coords(3)

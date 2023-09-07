@@ -35,7 +35,7 @@ impl GlfwWindow {
             Err(e) => bail!("GLFW window init error: {e}"),
         };
 
-        // Setting up GL Context in window: use OpenGL 3.3 with core profile
+        // Setup GL version : use OpenGL 3.3 with core profile
         glfw.window_hint(glfw::WindowHint::ContextVersion(3, 3));
         glfw.window_hint(glfw::WindowHint::OpenGlProfile(
             glfw::OpenGlProfileHint::Core,
@@ -47,17 +47,16 @@ impl GlfwWindow {
 
         // Make window
         let (inner_win, events) = glfw.create_window(width, height, title, mode).unwrap();
+        let mut win = Self {
+            glfw: glfw.clone(),
+            inner_win,
+        };
 
-        let (width, height) = inner_win.get_framebuffer_size();
-        unsafe {
-            gl::Viewport(0, 0, width, height);
-        }
+        // Setup window
+        win.setup();
 
         Ok((
-            Self {
-                glfw: glfw.clone(),
-                inner_win,
-            },
+            win,
             GlfwEventloop {
                 glfw,
                 receiver: events,
@@ -65,19 +64,26 @@ impl GlfwWindow {
         ))
     }
 
-    pub fn setup(&mut self) {
-        // Make OpenGL Context in inner window, wrapper for `glfwMakeContextCurrent`
+    fn setup(&mut self) {
+        // Setup OpenGL Context
         self.inner_win.make_current();
+        self.load_gl();
 
         // Enable Vsync
         self.glfw.set_swap_interval(glfw::SwapInterval::Sync(1));
+
+        // Setup Viewport
+        let (width, height) = self.inner_win.get_framebuffer_size();
+        unsafe {
+            gl::Viewport(0, 0, width, height);
+        }
 
         // Start polling for all available events
         self.inner_win.set_all_polling(true);
     }
 
     /// Load Gl Functions from window
-    pub fn load_gl(&mut self) {
+    fn load_gl(&mut self) {
         gl::load_with(|symbol| self.inner_win.get_proc_address(symbol));
 
         unsafe {

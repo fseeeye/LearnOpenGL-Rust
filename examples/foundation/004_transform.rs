@@ -28,8 +28,6 @@ fn main() -> anyhow::Result<()> {
         SCREEN_HEIGHT,
         glfw::WindowMode::Windowed,
     )?;
-    win.setup();
-    win.load_gl();
 
     /* Vertex data */
     type Vertex = [f32; 3 + 2]; // NDC coords(3) + texture coords(3)
