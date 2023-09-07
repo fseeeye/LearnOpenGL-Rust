@@ -1,6 +1,6 @@
 # LearnOpenGL-Rust
 
-My OpenGL Learning code in Rust, depends on OpenGL3.3 & GLFW.
+My OpenGL Learning code in Rust, depends on OpenGL3.3.
 
 ## Pre-requisities
 
@@ -47,6 +47,6 @@ model_loading:
 
 ## Ref
 
-* [LearnOpenGL](https://learnopengl.com/)
+* [learnopengl](https://learnopengl.com/)
 * [Learn OpenGL Rust](https://rust-tutorials.github.io/learn-opengl/)
 * [learn-opengl-rs](https://github.com/bwasty/learn-opengl-rs/)
