@@ -34,7 +34,6 @@ model_loading:
 
 ## TODO
 
-* [ ] fix glfw window.
 * [ ] add imgui.
 
 ## Core Dependencies
