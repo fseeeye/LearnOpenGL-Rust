@@ -94,3 +94,8 @@ doc-scrape-examples = true
 name = "012_advanced_depth_test"
 path = "examples/advanced_opengl/012_advanced_depth_test.rs"
 doc-scrape-examples = true
+
+[[example]]
+name = "013_advanced_stencil_test"
+path = "examples/advanced_opengl/013_advanced_stencil_test.rs"
+doc-scrape-examples = true
