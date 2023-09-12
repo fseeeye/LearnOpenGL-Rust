@@ -63,4 +63,17 @@ fn main() {
     assert_eq!(p0, p3);
 
     /* Transformations of points */
+
+    // Test projection
+    let point_near = na::Point3::new(0.0, 0.0, -1.0);
+    let point_middle = na::Point3::new(0.0, 0.0, -6.0);
+    let point_far = na::Point3::new(0.0, 0.0, -11.0);
+    let projection =
+        na::Perspective3::new(16.0 / 9.0, std::f64::consts::PI / 2.0, 1.0, 11.0).to_homogeneous();
+    println!(
+        "{:?} {:?} {:?}",
+        projection.transform_point(&point_near),
+        projection.transform_point(&point_middle),
+        projection.transform_point(&point_far)
+    );
 }

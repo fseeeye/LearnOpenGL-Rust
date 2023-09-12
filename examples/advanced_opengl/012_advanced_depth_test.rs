@@ -21,7 +21,7 @@ const SCREEN_HEIGHT: u32 = 600;
 const BACKGROUND_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 /* Camera data */
-const CAMERA_POS: [f32; 3] = [0.0, 1.0, 5.0];
+const CAMERA_POS: [f32; 3] = [0.0, 0.5, 2.0];
 
 struct Renderer {
     cube_model: Model,
@@ -40,8 +40,12 @@ impl Renderer {
             BACKGROUND_COLOR[2],
             BACKGROUND_COLOR[3],
         );
-        // Enable Depth Test
-        unsafe { gl::Enable(gl::DEPTH_TEST) };
+        unsafe {
+            // Enable Depth Test
+            gl::Enable(gl::DEPTH_TEST);
+            // Set depth function
+            gl::DepthFunc(gl::LESS);
+        };
 
         /* Object Vertexs & Shader */
 

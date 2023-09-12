@@ -18,4 +18,5 @@ uniform Material material;
 
 void main() {
     frag_color = texture(material.diffuse_map, texture_coord);
+    // frag_color = vec4(vec3(gl_FragCoord.z), 1.0);
 }
