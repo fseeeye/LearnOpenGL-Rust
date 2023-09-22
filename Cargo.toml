@@ -109,3 +109,8 @@ doc-scrape-examples = true
 name = "015_blending"
 path = "examples/advanced_opengl/015_blending.rs"
 doc-scrape-examples = true
+
+[[example]]
+name = "016_face_culling"
+path = "examples/advanced_opengl/016_face_culling.rs"
+doc-scrape-examples = true
