@@ -49,6 +49,11 @@ impl Renderer {
             gl::Enable(gl::BLEND);
             // Set blending function
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
+            // Enable Face Culling
+            gl::Enable(gl::CULL_FACE);
+            // Set Face Culling
+            gl::CullFace(gl::BACK);
+            gl::FrontFace(gl::CW);
         };
 
         /* Object Vertexs & Shader */

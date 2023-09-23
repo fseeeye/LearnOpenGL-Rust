@@ -40,7 +40,7 @@ description for all examples.
 2. [**Advanced Stencil Test**](examples/advanced_opengl/013_advanced_stencil_test.rs)
 3. [**Discard**](examples/advanced_opengl/014_discard.rs)
 4. [**Advanced Stencil Test**](examples/advanced_opengl/015_blending.rs)
-5. [**Advanced Stencil Test**](examples/advanced_opengl/015_face_culling.rs)
+5. [**Face Culling**](examples/advanced_opengl/016_face_culling.rs)
 
 ## TODO
 
