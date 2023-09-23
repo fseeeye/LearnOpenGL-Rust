@@ -174,8 +174,16 @@ impl Texture {
         // Set Texture wrapping & filtering
         unsafe {
             if img_format == gl::RGBA {
-                gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as GLint);
-                gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as GLint);
+                gl::TexParameteri(
+                    gl::TEXTURE_2D,
+                    gl::TEXTURE_WRAP_S,
+                    gl::CLAMP_TO_EDGE as GLint,
+                );
+                gl::TexParameteri(
+                    gl::TEXTURE_2D,
+                    gl::TEXTURE_WRAP_T,
+                    gl::CLAMP_TO_EDGE as GLint,
+                );
             } else {
                 gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as GLint);
                 gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as GLint);
@@ -183,7 +191,7 @@ impl Texture {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as GLint);
         }
-        
+
         // Send Texture image data
         let pixels = img.into_bytes();
         unsafe {
