@@ -22,7 +22,7 @@ const SCREEN_HEIGHT: u32 = 600;
 const BACKGROUND_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 /* Camera data */
-const CAMERA_POS: [f32; 3] = [0.0, 0.7, 2.0];
+const CAMERA_POS: [f32; 3] = [0.0, 6.0, 25.0];
 
 /* Skybox data */
 const SKYBOX_VERTICES: [[f32; 3]; 36] = [
@@ -70,7 +70,7 @@ const SKYBOX_VERTICES: [[f32; 3]; 36] = [
 ];
 
 struct Renderer {
-    cube_model: Model,
+    object_model: Model,
     object_shader: ShaderProgram,
     skybox_vao: VertexArray,
     skybox_shader: ShaderProgram,
@@ -98,7 +98,7 @@ impl Renderer {
         /* Object Vertices & Shader */
 
         // Prepare model of object
-        let cube_model = Model::new(PathBuf::from("assets/models/cube/cube.obj"))?;
+        let object_model = Model::new(PathBuf::from("assets/models/nanosuit/nanosuit.obj"))?;
 
         // Prepare shader of object
         let object_shader = ShaderProgram::create_from_source(
@@ -131,7 +131,7 @@ impl Renderer {
         let skybox_cubemap = Self::load_skybox_texture()?;
 
         Ok(Self {
-            cube_model,
+            object_model,
             object_shader,
             skybox_vao,
             skybox_shader,
@@ -152,7 +152,13 @@ impl Renderer {
 
         // Model Matrix
         let model_name = CString::new("model")?;
+        let normal_matrix_name = CString::new("normal_matrix")?;
         let object_model_matrix = na::Matrix4::identity();
+        let object_normal_matrix = object_model_matrix
+            .fixed_view::<3, 3>(0, 0)
+            .try_inverse()
+            .unwrap()
+            .transpose();
 
         // View Matrix
         let view_name = CString::new("view")?;
@@ -169,6 +175,31 @@ impl Renderer {
         .to_homogeneous(); // Perspective projection
         let projection_name = CString::new("projection")?;
 
+        /* Draw object */
+
+        self.object_shader.bind();
+
+        self.object_shader
+            .set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
+        self.object_shader
+            .set_uniform_mat3fv(normal_matrix_name.as_c_str(), &object_normal_matrix);
+        self.object_shader
+            .set_uniform_mat4fv(view_name.as_c_str(), &object_view_matrix);
+        self.object_shader
+            .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
+        self.object_shader.set_uniform_3f(
+            CString::new("camera_pos")?.as_c_str(),
+            camera.get_pos().x,
+            camera.get_pos().y,
+            camera.get_pos().z,
+        );
+
+        unsafe {
+            gl::BindTexture(gl::TEXTURE_CUBE_MAP, self.skybox_cubemap);
+        }
+
+        self.object_model.draw(&self.object_shader, "material")?;
+
         /* Draw skybox */
 
         self.skybox_shader.bind();
@@ -184,26 +215,15 @@ impl Renderer {
             .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
 
         unsafe {
-            gl::DepthMask(gl::FALSE);
+            gl::DepthFunc(gl::LEQUAL);
 
             gl::BindTexture(gl::TEXTURE_CUBE_MAP, self.skybox_cubemap);
             gl::DrawArrays(gl::TRIANGLES, 0, 36);
 
-            gl::DepthMask(gl::TRUE);
+            gl::DepthFunc(gl::LESS);
         }
 
-        /* Draw object */
-
-        self.object_shader.bind();
-
-        self.object_shader
-            .set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
-        self.object_shader
-            .set_uniform_mat4fv(view_name.as_c_str(), &object_view_matrix);
-        self.object_shader
-            .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
-
-        self.cube_model.draw(&self.object_shader, "material")?;
+        self.skybox_vao.unbind();
 
         // Swap buffers of window
         win.swap_buffers()?;
@@ -296,7 +316,7 @@ fn main() -> anyhow::Result<()> {
     let mut camera = learn::Camera::new(camera_pos, camera_look_at, camera_up);
 
     /* Window */
-    let (win, event_loop) = match WinitWindow::new("Simple Triangle", SCREEN_WIDTH, SCREEN_HEIGHT) {
+    let (win, event_loop) = match WinitWindow::new("Cubemap", SCREEN_WIDTH, SCREEN_HEIGHT) {
         Ok((win, event_loop)) => (win, event_loop),
         Err(e) => {
             error!("Failed to create window: {}", e);
