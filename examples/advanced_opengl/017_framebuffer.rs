@@ -1,4 +1,4 @@
-//! This example is about face culling algorithm in OpenGL.
+//! This example is about impl post-processing by framebuffer.
 
 // remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
@@ -65,7 +65,7 @@ impl Renderer {
             gl::DepthFunc(gl::LESS);
         };
 
-        /* Object Vertexs & Shader */
+        /* Object Vertices & Shader */
 
         // Prepare model of object
         let cube_model = Model::new(PathBuf::from("assets/models/cube/cube.obj"))?;

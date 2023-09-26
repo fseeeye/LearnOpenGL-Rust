@@ -63,7 +63,7 @@ impl Renderer {
             gl::BlendFunc(gl::SRC_ALPHA, gl::ONE_MINUS_SRC_ALPHA);
         };
 
-        /* Object Vertexs & Shader */
+        /* Object Vertices & Shader */
 
         // Prepare model of object
         let cube_model = Model::new(PathBuf::from("assets/models/cube/cube.obj"))?;

@@ -54,7 +54,7 @@ impl Renderer {
             gl::StencilOp(gl::KEEP, gl::KEEP, gl::REPLACE);
         };
 
-        /* Object Vertexs & Shader */
+        /* Object Vertices & Shader */
 
         // Prepare model of object
         let cube_model = Model::new(PathBuf::from("assets/models/cube/cube.obj"))?;

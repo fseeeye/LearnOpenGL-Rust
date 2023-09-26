@@ -119,3 +119,8 @@ doc-scrape-examples = true
 name = "017_framebuffer"
 path = "examples/advanced_opengl/017_framebuffer.rs"
 doc-scrape-examples = true
+
+[[example]]
+name = "018_cubemap"
+path = "examples/advanced_opengl/018_cubemap.rs"
+doc-scrape-examples = true

@@ -164,7 +164,7 @@ impl Renderer {
             LIGHT_COLOR[2],
         );
 
-        /* Cube Vertexs & Shader */
+        /* Cube Vertices & Shader */
 
         // Prepare cube material
         let texture_diffuse =

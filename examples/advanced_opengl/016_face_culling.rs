@@ -52,7 +52,7 @@ impl Renderer {
             gl::FrontFace(gl::CW);
         };
 
-        /* Object Vertexs & Shader */
+        /* Object Vertices & Shader */
 
         // Prepare model of object
         let cube_model = Model::new(PathBuf::from("assets/models/cube/cube.obj"))?;

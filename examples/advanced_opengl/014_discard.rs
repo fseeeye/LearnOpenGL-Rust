@@ -57,7 +57,7 @@ impl Renderer {
             gl::DepthFunc(gl::LESS);
         };
 
-        /* Object Vertexs & Shader */
+        /* Object Vertices & Shader */
 
         // Prepare model of object
         let cube_model = Model::new(PathBuf::from("assets/models/cube/cube.obj"))?;
