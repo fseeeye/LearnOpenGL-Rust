@@ -57,7 +57,7 @@ impl Renderer {
         // Enable Depth Test
         unsafe { gl::Enable(gl::DEPTH_TEST) };
 
-        /* Object Vertexs & Shader */
+        /* Object Vertices & Shader */
 
         // Prepare model of object
         let object_model = Model::new(PathBuf::from("assets/models/nanosuit/nanosuit.obj"))?;

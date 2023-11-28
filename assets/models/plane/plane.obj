@@ -4,16 +4,16 @@ mtllib plane.mtl
 o Plane
 
 # Vertices
-v  5.0  -0.5  5.0
-v  5.0  -0.5 -5.0
-v -5.0  -0.5 -5.0
 v -5.0  -0.5  5.0
+v -5.0  -0.5 -5.0
+v  5.0  -0.5 -5.0
+v  5.0  -0.5  5.0
 
 # Texture Coordinates
-vt 2.0 2.0
-vt 2.0 0.0
-vt 0.0 0.0
 vt 0.0 2.0
+vt 0.0 0.0
+vt 2.0 0.0
+vt 2.0 2.0
 
 # Normals
 vn 0.0 1.0 0.0

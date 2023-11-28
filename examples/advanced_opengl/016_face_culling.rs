@@ -1,4 +1,4 @@
-//! This example has more infos about depth test.
+//! This example is about face culling algorithm in OpenGL.
 
 // remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
@@ -45,6 +45,11 @@ impl Renderer {
             gl::Enable(gl::DEPTH_TEST);
             // Set depth function
             gl::DepthFunc(gl::LESS);
+            // Enable Face Culling
+            gl::Enable(gl::CULL_FACE);
+            // Set Face Culling
+            gl::CullFace(gl::BACK);
+            gl::FrontFace(gl::CW);
         };
 
         /* Object Vertices & Shader */
@@ -55,8 +60,8 @@ impl Renderer {
 
         // Prepare shader of object
         let object_shader = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/advanced_opengl/012-object.vert"),
-            include_str!("../../assets/shaders/advanced_opengl/012-object.frag"),
+            include_str!("../../assets/shaders/advanced_opengl/016-object.vert"),
+            include_str!("../../assets/shaders/advanced_opengl/016-object.frag"),
         )?;
 
         Ok(Self {
@@ -79,13 +84,7 @@ impl Renderer {
 
         // Model Matrix
         let model_name = CString::new("model")?;
-        let normal_matrix_name = CString::new("normal_matrix")?;
         let object_model_matrix = na::Matrix4::identity();
-        let object_normal_matrix = object_model_matrix
-            .fixed_view::<3, 3>(0, 0)
-            .try_inverse()
-            .unwrap()
-            .transpose();
 
         // View Matrix
         let view_name = CString::new("view")?;
@@ -109,17 +108,9 @@ impl Renderer {
         self.object_shader
             .set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
         self.object_shader
-            .set_uniform_mat3fv(normal_matrix_name.as_c_str(), &object_normal_matrix);
-        self.object_shader
             .set_uniform_mat4fv(view_name.as_c_str(), &object_view_matrix);
         self.object_shader
             .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
-        self.object_shader.set_uniform_3f(
-            CString::new("camera_pos")?.as_c_str(),
-            camera.get_pos().x,
-            camera.get_pos().y,
-            camera.get_pos().z,
-        );
 
         self.cube_model.draw(&self.object_shader, "material")?;
         self.plane_model.draw(&self.object_shader, "material")?;

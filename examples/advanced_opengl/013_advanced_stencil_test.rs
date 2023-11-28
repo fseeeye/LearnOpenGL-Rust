@@ -1,4 +1,4 @@
-//! This example has more infos about depth test.
+//! This example is about make object outlining.
 
 // remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
@@ -27,6 +27,7 @@ struct Renderer {
     cube_model: Model,
     plane_model: Model,
     object_shader: ShaderProgram,
+    outline_shader: ShaderProgram,
 }
 
 impl Renderer {
@@ -45,6 +46,12 @@ impl Renderer {
             gl::Enable(gl::DEPTH_TEST);
             // Set depth function
             gl::DepthFunc(gl::LESS);
+            // Enable Stencil Test
+            gl::Enable(gl::STENCIL_TEST);
+            // Set stencil function
+            gl::StencilFunc(gl::NOTEQUAL, 1, 0xFF);
+            // Set stencil operation
+            gl::StencilOp(gl::KEEP, gl::KEEP, gl::REPLACE);
         };
 
         /* Object Vertices & Shader */
@@ -55,14 +62,19 @@ impl Renderer {
 
         // Prepare shader of object
         let object_shader = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/advanced_opengl/012-object.vert"),
-            include_str!("../../assets/shaders/advanced_opengl/012-object.frag"),
+            include_str!("../../assets/shaders/advanced_opengl/013-object.vert"),
+            include_str!("../../assets/shaders/advanced_opengl/013-object.frag"),
+        )?;
+        let outline_shader = ShaderProgram::create_from_source(
+            include_str!("../../assets/shaders/advanced_opengl/013-outlining.vert"),
+            include_str!("../../assets/shaders/advanced_opengl/013-outlining.frag"),
         )?;
 
         Ok(Self {
             cube_model,
             plane_model,
             object_shader,
+            outline_shader,
         })
     }
 
@@ -73,19 +85,15 @@ impl Renderer {
         _delta_time: f32,
     ) -> anyhow::Result<()> {
         clear_color(
-            (BufferBit::ColorBufferBit as GLenum | BufferBit::DepthBufferBit as GLenum)
-                as gl::types::GLbitfield,
+            (BufferBit::ColorBufferBit as GLenum
+                | BufferBit::DepthBufferBit as GLenum
+                | BufferBit::StencilBufferBit as GLenum) as gl::types::GLbitfield,
         );
 
         // Model Matrix
         let model_name = CString::new("model")?;
-        let normal_matrix_name = CString::new("normal_matrix")?;
         let object_model_matrix = na::Matrix4::identity();
-        let object_normal_matrix = object_model_matrix
-            .fixed_view::<3, 3>(0, 0)
-            .try_inverse()
-            .unwrap()
-            .transpose();
+        let object_outline_model_matrix = na::Matrix4::new_scaling(1.1);
 
         // View Matrix
         let view_name = CString::new("view")?;
@@ -104,25 +112,48 @@ impl Renderer {
 
         /* Draw object */
 
-        self.object_shader.bind();
+        self.outline_shader.bind();
+        self.outline_shader
+            .set_uniform_mat4fv(model_name.as_c_str(), &object_outline_model_matrix);
+        self.outline_shader
+            .set_uniform_mat4fv(view_name.as_c_str(), &object_view_matrix);
+        self.outline_shader
+            .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
 
+        self.object_shader.bind();
         self.object_shader
             .set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
-        self.object_shader
-            .set_uniform_mat3fv(normal_matrix_name.as_c_str(), &object_normal_matrix);
         self.object_shader
             .set_uniform_mat4fv(view_name.as_c_str(), &object_view_matrix);
         self.object_shader
             .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
-        self.object_shader.set_uniform_3f(
-            CString::new("camera_pos")?.as_c_str(),
-            camera.get_pos().x,
-            camera.get_pos().y,
-            camera.get_pos().z,
-        );
 
-        self.cube_model.draw(&self.object_shader, "material")?;
+        // Draw Floor : draw floor as normal, but don't write the floor to the stencil buffer, we only care about the containers. We set its mask to 0x00 to not write to the stencil buffer.
+        unsafe {
+            gl::StencilMask(0x00);
+        }
         self.plane_model.draw(&self.object_shader, "material")?;
+
+        // Draw Cube : draw objects as normal, writing to the stencil buffer
+        unsafe {
+            gl::StencilFunc(gl::ALWAYS, 1, 0xFF);
+            gl::StencilMask(0xFF);
+        }
+        self.cube_model.draw(&self.object_shader, "material")?;
+
+        // Draw Outline : now draw slightly scaled versions of the objects, this time disabling stencil writing.
+        unsafe {
+            gl::StencilFunc(gl::NOTEQUAL, 1, 0xFF);
+            gl::StencilMask(0x00);
+            gl::Disable(gl::DEPTH_TEST);
+        }
+        self.outline_shader.bind();
+        self.cube_model.draw(&self.outline_shader, "material")?;
+        unsafe {
+            gl::StencilFunc(gl::ALWAYS, 0, 0xFF);
+            gl::StencilMask(0xFF);
+            gl::Enable(gl::DEPTH_TEST);
+        }
 
         // Swap buffers of window
         win.swap_buffers()?;

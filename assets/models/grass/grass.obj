@@ -1,0 +1,25 @@
+# Simple Grass OBJ
+
+mtllib grass.mtl
+o Grass
+
+# Vertices
+v 0.0  0.5  0.0
+v 0.0 -0.5  0.0
+v 1.0 -0.5  0.0
+v 1.0  0.5  0.0
+
+# Texture Coordinates
+vt 0.0 1.0
+vt 0.0 0.0
+vt 1.0 0.0
+vt 1.0 1.0
+
+# Normals
+vn 0.0 0.0 1.0
+
+# Material
+usemtl grass_material
+
+# Faces
+f 1/1/1 2/2/1 3/3/1 4/4/1

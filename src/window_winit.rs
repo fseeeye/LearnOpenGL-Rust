@@ -51,6 +51,11 @@ impl WinitWindow {
             height as f64 / 2.0,
         ))?;
 
+        info!(
+            "New window: width={}, height={}",
+            window_size.width, window_size.height
+        );
+
         Ok((
             Self {
                 inner_window: window,

@@ -30,7 +30,7 @@ impl GlfwWindow {
         height: u32,
         mode: glfw::WindowMode,
     ) -> anyhow::Result<(Self, GlfwEventloop)> {
-        let mut glfw = match glfw::init(glfw::FAIL_ON_ERRORS) {
+        let mut glfw = match glfw::init(glfw::fail_on_errors) {
             Ok(glfw) => glfw,
             Err(e) => bail!("GLFW window init error: {e}"),
         };

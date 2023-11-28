@@ -152,14 +152,6 @@ impl Texture {
             gl::BindTexture(gl::TEXTURE_2D, texture.id); // Bind Texture
         }
 
-        // Set Texture wrapping & filtering
-        unsafe {
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as GLint);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as GLint);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as GLint);
-        }
-
         // Load Texture image
         let img = image::open(&texture.path).unwrap().flipv();
         let (width, height) = img.dimensions();
@@ -178,9 +170,30 @@ impl Texture {
                 anyhow::bail!("Unsupported image color type: {:?}", img.color())
             }
         }
-        let pixels = img.into_bytes();
+
+        // Set Texture wrapping & filtering
+        unsafe {
+            if img_format == gl::RGBA {
+                gl::TexParameteri(
+                    gl::TEXTURE_2D,
+                    gl::TEXTURE_WRAP_S,
+                    gl::CLAMP_TO_EDGE as GLint,
+                );
+                gl::TexParameteri(
+                    gl::TEXTURE_2D,
+                    gl::TEXTURE_WRAP_T,
+                    gl::CLAMP_TO_EDGE as GLint,
+                );
+            } else {
+                gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as GLint);
+                gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as GLint);
+            }
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as GLint);
+        }
 
         // Send Texture image data
+        let pixels = img.into_bytes();
         unsafe {
             gl::TexImage2D(
                 gl::TEXTURE_2D,

@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 gl = "0.14.0" # OpenGL bindings
-glfw = "0.52.0" # Window: C++ GLFW wrapper
+glfw = "0.53.0" # Window: C++ GLFW wrapper
 tracing = "0.1.37" # logger
 thiserror = "1" # error derive macro
 anyhow = "1" # error handling
@@ -93,4 +93,34 @@ doc-scrape-examples = true
 [[example]]
 name = "012_advanced_depth_test"
 path = "examples/advanced_opengl/012_advanced_depth_test.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "013_advanced_stencil_test"
+path = "examples/advanced_opengl/013_advanced_stencil_test.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "014_discard"
+path = "examples/advanced_opengl/014_discard.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "015_blending"
+path = "examples/advanced_opengl/015_blending.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "016_face_culling"
+path = "examples/advanced_opengl/016_face_culling.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "017_framebuffer"
+path = "examples/advanced_opengl/017_framebuffer.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "018_cubemap"
+path = "examples/advanced_opengl/018_cubemap.rs"
 doc-scrape-examples = true
