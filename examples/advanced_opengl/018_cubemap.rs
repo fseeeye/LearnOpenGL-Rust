@@ -9,7 +9,10 @@ use anyhow::bail;
 use gl::types::*;
 
 use image::GenericImageView;
-use learn::{clear_color, set_clear_color, BufferBit, Camera, Model, ShaderProgram, WinitWindow, VertexArray, Buffer, BufferType, BufferUsage, VertexDescription};
+use learn::{
+    clear_color, set_clear_color, Buffer, BufferBit, BufferType, BufferUsage, Camera, Model,
+    ShaderProgram, VertexArray, VertexDescription, WinitWindow,
+};
 use learn_opengl_rs as learn;
 
 use nalgebra as na;
@@ -26,47 +29,42 @@ const CAMERA_POS: [f32; 3] = [0.0, 6.0, 25.0];
 
 /* Skybox data */
 const SKYBOX_VERTICES: [[f32; 3]; 36] = [
-    [-1.0,  1.0, -1.0],
+    [-1.0, 1.0, -1.0],
     [-1.0, -1.0, -1.0],
-    [ 1.0, -1.0, -1.0],
-    [ 1.0, -1.0, -1.0],
-    [ 1.0,  1.0, -1.0],
-    [-1.0,  1.0, -1.0],
-
-    [-1.0, -1.0,  1.0],
+    [1.0, -1.0, -1.0],
+    [1.0, -1.0, -1.0],
+    [1.0, 1.0, -1.0],
+    [-1.0, 1.0, -1.0],
+    [-1.0, -1.0, 1.0],
     [-1.0, -1.0, -1.0],
-    [-1.0,  1.0, -1.0],
-    [-1.0,  1.0, -1.0],
-    [-1.0,  1.0,  1.0],
-    [-1.0, -1.0,  1.0],
-
-    [ 1.0, -1.0, -1.0],
-    [ 1.0, -1.0,  1.0],
-    [ 1.0,  1.0,  1.0],
-    [ 1.0,  1.0,  1.0],
-    [ 1.0,  1.0, -1.0],
-    [ 1.0, -1.0, -1.0],
-
-    [-1.0, -1.0,  1.0],
-    [-1.0,  1.0,  1.0],
-    [ 1.0,  1.0,  1.0],
-    [ 1.0,  1.0,  1.0],
-    [ 1.0, -1.0,  1.0],
-    [-1.0, -1.0,  1.0],
-
-    [-1.0,  1.0, -1.0],
-    [ 1.0,  1.0, -1.0],
-    [ 1.0,  1.0,  1.0],
-    [ 1.0,  1.0,  1.0],
-    [-1.0,  1.0,  1.0],
-    [-1.0,  1.0, -1.0],
-
+    [-1.0, 1.0, -1.0],
+    [-1.0, 1.0, -1.0],
+    [-1.0, 1.0, 1.0],
+    [-1.0, -1.0, 1.0],
+    [1.0, -1.0, -1.0],
+    [1.0, -1.0, 1.0],
+    [1.0, 1.0, 1.0],
+    [1.0, 1.0, 1.0],
+    [1.0, 1.0, -1.0],
+    [1.0, -1.0, -1.0],
+    [-1.0, -1.0, 1.0],
+    [-1.0, 1.0, 1.0],
+    [1.0, 1.0, 1.0],
+    [1.0, 1.0, 1.0],
+    [1.0, -1.0, 1.0],
+    [-1.0, -1.0, 1.0],
+    [-1.0, 1.0, -1.0],
+    [1.0, 1.0, -1.0],
+    [1.0, 1.0, 1.0],
+    [1.0, 1.0, 1.0],
+    [-1.0, 1.0, 1.0],
+    [-1.0, 1.0, -1.0],
     [-1.0, -1.0, -1.0],
-    [-1.0, -1.0,  1.0],
-    [ 1.0, -1.0, -1.0],
-    [ 1.0, -1.0, -1.0],
-    [-1.0, -1.0,  1.0],
-    [ 1.0, -1.0,  1.0]
+    [-1.0, -1.0, 1.0],
+    [1.0, -1.0, -1.0],
+    [1.0, -1.0, -1.0],
+    [-1.0, -1.0, 1.0],
+    [1.0, -1.0, 1.0],
 ];
 
 struct Renderer {
@@ -74,7 +72,7 @@ struct Renderer {
     object_shader: ShaderProgram,
     skybox_vao: VertexArray,
     skybox_shader: ShaderProgram,
-    skybox_cubemap: GLuint
+    skybox_cubemap: GLuint,
 }
 
 impl Renderer {
@@ -135,7 +133,7 @@ impl Renderer {
             object_shader,
             skybox_vao,
             skybox_shader,
-            skybox_cubemap
+            skybox_cubemap,
         })
     }
 
@@ -251,7 +249,7 @@ impl Renderer {
             "assets/textures/skybox/front.jpg",
             "assets/textures/skybox/back.jpg",
         ];
-        
+
         for (i, face) in faces.iter().enumerate() {
             let img = image::open(face).unwrap();
 
@@ -289,11 +287,31 @@ impl Renderer {
 
             // Set Texture wrapping & filtering
             unsafe {
-                gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
-                gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_MAG_FILTER, gl::LINEAR as GLint);
-                gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as GLint);
-                gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as GLint);
-                gl::TexParameteri(gl::TEXTURE_CUBE_MAP, gl::TEXTURE_WRAP_R, gl::CLAMP_TO_EDGE as GLint);
+                gl::TexParameteri(
+                    gl::TEXTURE_CUBE_MAP,
+                    gl::TEXTURE_MIN_FILTER,
+                    gl::LINEAR as GLint,
+                );
+                gl::TexParameteri(
+                    gl::TEXTURE_CUBE_MAP,
+                    gl::TEXTURE_MAG_FILTER,
+                    gl::LINEAR as GLint,
+                );
+                gl::TexParameteri(
+                    gl::TEXTURE_CUBE_MAP,
+                    gl::TEXTURE_WRAP_S,
+                    gl::CLAMP_TO_EDGE as GLint,
+                );
+                gl::TexParameteri(
+                    gl::TEXTURE_CUBE_MAP,
+                    gl::TEXTURE_WRAP_T,
+                    gl::CLAMP_TO_EDGE as GLint,
+                );
+                gl::TexParameteri(
+                    gl::TEXTURE_CUBE_MAP,
+                    gl::TEXTURE_WRAP_R,
+                    gl::CLAMP_TO_EDGE as GLint,
+                );
             }
         }
 

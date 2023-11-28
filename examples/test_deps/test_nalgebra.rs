@@ -39,7 +39,10 @@ fn main() {
     m_3[(1, 2)] = 1;
     assert_eq!(m_3, na::Matrix2x3::new(1, 0, 0, 0, 1, 1));
 
-    assert_eq!(m_3.fixed_resize::<3, 4>(0), na::Matrix3x4::new(1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0));
+    assert_eq!(
+        m_3.fixed_resize::<3, 4>(0),
+        na::Matrix3x4::new(1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0)
+    );
 
     /* Points */
 
