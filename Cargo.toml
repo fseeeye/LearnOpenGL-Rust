@@ -124,3 +124,8 @@ doc-scrape-examples = true
 name = "018_cubemap"
 path = "examples/advanced_opengl/018_cubemap.rs"
 doc-scrape-examples = true
+
+[[example]]
+name = "019_shadow_mapping"
+path = "examples/advanced_lighting/019_shadow_mapping.rs"
+doc-scrape-examples = true
