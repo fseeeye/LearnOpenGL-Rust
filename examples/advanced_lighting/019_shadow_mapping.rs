@@ -12,7 +12,6 @@ use learn::{clear_color, set_clear_color, BufferBit, Camera, Model, ShaderProgra
 use learn_opengl_rs as learn;
 
 use nalgebra as na;
-use nalgebra_glm as glm;
 use tracing::error;
 use winit::event::Event;
 
@@ -27,47 +26,47 @@ const CAMERA_POS: [f32; 3] = [0.0, 0.5, 2.0];
 /* Shaodw Map data */
 const SHADOW_MAP_WIDTH: i32 = 1024;
 const SHADOW_MAP_HEIGHT: i32 = 1024;
-const SHADOW_MAP_NEAR: f32 = 1.0;
-const SHADOW_MAP_FAR: f32 = 7.5;
-const LIGHT_POS: [f32; 3] = [-2.0, 4.0, -1.0];
-
-// /* Debug Quad data */
-// const QUAD_VERTICES: [[f32; 5]; 4] = [
-//     // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
-//     // positions + texture Coords
-//     [-1.0,  1.0, 0.0, 0.0, 1.0],
-//     [-1.0, -1.0, 0.0, 0.0, 0.0],
-//     [1.0,  1.0, 0.0, 1.0, 1.0],
-//     [1.0, -1.0, 0.0, 1.0, 0.0],
-// ];
 
 struct Renderer {
     cube_model: Model,
     plane_model: Model,
     object_shader: ShaderProgram,
-    shadow_map_texture: u32,
-    shadow_map_fbo: u32,
-    shadow_map_shader: ShaderProgram,
-    // debug_quad_vao: VertexArray,
-    // debug_quad_shader: ShaderProgram,
 }
 
 impl Renderer {
     pub fn new() -> anyhow::Result<Self> {
         /* Extra Settings */
 
+        // Set clear color
+        set_clear_color(
+            BACKGROUND_COLOR[0],
+            BACKGROUND_COLOR[1],
+            BACKGROUND_COLOR[2],
+            BACKGROUND_COLOR[3],
+        );
         // Configure global opengl state
         unsafe {
             // Enable Depth Test
             gl::Enable(gl::DEPTH_TEST);
+            // Set depth function
+            gl::DepthFunc(gl::LESS);
+            // Enable MSAA
+            gl::Enable(gl::MULTISAMPLE);
         };
 
-        /* Object Models */
+        /* Object Vertices & Shader */
 
+        // Prepare model of object
         let cube_model = Model::new(PathBuf::from("assets/models/cube/cube.obj"))?;
         let plane_model = Model::new(PathBuf::from("assets/models/plane_wood/plane.obj"))?;
 
-        /* Shadow Map */
+        // Prepare shader of object
+        let object_shader = ShaderProgram::create_from_source(
+            include_str!("../../assets/shaders/advanced_lighting/019-object.vert"),
+            include_str!("../../assets/shaders/advanced_lighting/019-object.frag"),
+        )?;
+
+        /* Shadow Map Framebuffer */
 
         // Generate texture for framebuffer
         let mut shadow_map_texture = 0;
@@ -81,28 +80,14 @@ impl Renderer {
                 SHADOW_MAP_WIDTH,
                 SHADOW_MAP_HEIGHT,
                 0,
+                gl::RGB,
                 gl::DEPTH_COMPONENT,
-                gl::FLOAT,
                 core::ptr::null(),
             );
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as GLint);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as GLint);
-            gl::TexParameteri(
-                gl::TEXTURE_2D,
-                gl::TEXTURE_WRAP_S,
-                gl::CLAMP_TO_BORDER as GLint,
-            );
-            gl::TexParameteri(
-                gl::TEXTURE_2D,
-                gl::TEXTURE_WRAP_T,
-                gl::CLAMP_TO_BORDER as GLint,
-            );
-            let border_color: [GLfloat; 4] = [1.0, 1.0, 1.0, 1.0];
-            gl::TexParameterfv(
-                gl::TEXTURE_2D,
-                gl::TEXTURE_BORDER_COLOR,
-                border_color.as_ptr(),
-            );
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as GLint);
             gl::BindTexture(gl::TEXTURE_2D, 0);
         }
 
@@ -114,7 +99,7 @@ impl Renderer {
             // Bind texture to framebuffer
             gl::FramebufferTexture2D(
                 gl::FRAMEBUFFER,
-                gl::DEPTH_ATTACHMENT,
+                gl::COLOR_ATTACHMENT0,
                 gl::TEXTURE_2D,
                 shadow_map_texture,
                 0,
@@ -124,72 +109,10 @@ impl Renderer {
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
         }
 
-        /* Shaders */
-
-        // Prepare light_space_matrix
-        let projection_matrix_light =
-            glm::ortho(-10.0, 10.0, -10.0, 10.0, SHADOW_MAP_NEAR, SHADOW_MAP_FAR);
-        let view_matrix_light = glm::look_at(
-            &glm::vec3(LIGHT_POS[0], LIGHT_POS[1], LIGHT_POS[2]),
-            &glm::vec3(0.0, 0.0, 0.0),
-            &glm::vec3(0.0, 1.0, 0.0),
-        );
-        let light_space_matrix = projection_matrix_light * view_matrix_light;
-
-        // Create shader of object
-        let object_shader = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/advanced_lighting/019-object.vert"),
-            include_str!("../../assets/shaders/advanced_lighting/019-object.frag"),
-        )?;
-        object_shader.set_uniform_3f(
-            CString::new("light_pos")?.as_c_str(),
-            LIGHT_POS[0],
-            LIGHT_POS[1],
-            LIGHT_POS[2],
-        );
-        object_shader.set_uniform_mat4fv(
-            CString::new("light_space_matrix")?.as_c_str(),
-            &light_space_matrix,
-        );
-        object_shader.set_uniform_1i(CString::new("shadow_map")?.as_c_str(), 0);
-
-        // Create shader of shadow map
-        let shadow_map_shader = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/advanced_lighting/019-shadow-map.vert"),
-            include_str!("../../assets/shaders/advanced_lighting/019-shadow-map.frag"),
-        )?;
-        shadow_map_shader.set_uniform_mat4fv(
-            CString::new("light_space_matrix")?.as_c_str(),
-            &light_space_matrix,
-        );
-
-        // // create shader of debug quad
-        // let debug_quad_shader = ShaderProgram::create_from_source(
-        //     include_str!("../../assets/shaders/advanced_opengl/017-screen.vert"),
-        //     include_str!("../../assets/shaders/advanced_opengl/017-screen.frag"),
-        // )?;
-        // debug_quad_shader.set_uniform_1i(CString::new("shadow_map")?.as_c_str(), 0);
-
-        // /* Debug Quad */
-        // let debug_quad_vao = VertexArray::new()?;
-        // let debug_quad_vbo = Buffer::new(BufferType::VertexBuffer)?;
-        // debug_quad_vao.bind();
-        // debug_quad_vbo.bind();
-        // debug_quad_vbo.set_buffer_data(QUAD_VERTICES.as_slice(), BufferUsage::StaticDraw);
-        // let mut debug_quad_vertex_desc = VertexDescription::new();
-        // debug_quad_vertex_desc.add_attribute(gl::FLOAT, 3); // set coords attribute
-        // debug_quad_vertex_desc.add_attribute(gl::FLOAT, 2); // set Texture coord attribute
-        // debug_quad_vertex_desc.bind_to(&debug_quad_vbo, Some(&debug_quad_vao));
-
         Ok(Self {
             cube_model,
             plane_model,
             object_shader,
-            shadow_map_texture,
-            shadow_map_fbo,
-            shadow_map_shader,
-            // debug_quad_vao,
-            // debug_quad_shader,
         })
     }
 
@@ -199,17 +122,20 @@ impl Renderer {
         camera: &Camera,
         _delta_time: f32,
     ) -> anyhow::Result<()> {
-        // Set clear color
-        set_clear_color(
-            BACKGROUND_COLOR[0],
-            BACKGROUND_COLOR[1],
-            BACKGROUND_COLOR[2],
-            BACKGROUND_COLOR[3],
-        );
         clear_color(
             (BufferBit::ColorBufferBit as GLenum | BufferBit::DepthBufferBit as GLenum)
                 as gl::types::GLbitfield,
         );
+
+        // Model Matrix
+        let model_name = CString::new("model")?;
+        let normal_matrix_name = CString::new("normal_matrix")?;
+        let object_model_matrix = na::Matrix4::identity();
+        let object_normal_matrix = object_model_matrix
+            .fixed_view::<3, 3>(0, 0)
+            .try_inverse()
+            .unwrap()
+            .transpose();
 
         // View Matrix
         let view_name = CString::new("view")?;
@@ -226,49 +152,14 @@ impl Renderer {
         .to_homogeneous(); // Perspective projection
         let projection_name = CString::new("projection")?;
 
-        /* Pass1 : Generate Shadow Map */
-
-        // initialize sth. and bind framebuffer
-        unsafe {
-            gl::Viewport(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-            gl::BindFramebuffer(gl::FRAMEBUFFER, self.shadow_map_fbo);
-        }
-        clear_color(BufferBit::DepthBufferBit as GLenum);
-
-        // Generate shadow map
-        self.shadow_map_shader.bind();
-        self.render_scence(&self.shadow_map_shader)?;
-
-        // /* Pass2 : Draw Debug Quad */
-        // unsafe {
-        //     gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
-        //     gl::Viewport(0, 0, window_width as i32, window_height as i32);
-        //     // Disable depth test
-        //     // gl::Disable(gl::DEPTH_TEST);
-        // }
-        // clear_color((BufferBit::ColorBufferBit as GLenum) as gl::types::GLbitfield);
-
-        // self.debug_quad_vao.bind();
-        // self.debug_quad_shader.bind();
-        // unsafe {
-        //     gl::ActiveTexture(gl::TEXTURE0);
-        //     gl::BindTexture(gl::TEXTURE_2D, self.shadow_map_texture);
-
-        //     gl::DrawArrays(gl::TRIANGLE_STRIP, 0, 4);
-        // }
-
-        /* Pass 2 : Draw object */
-        unsafe {
-            gl::Viewport(0, 0, window_width as i32, window_height as i32);
-            gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
-        }
-        clear_color(
-            (BufferBit::ColorBufferBit as GLenum | BufferBit::DepthBufferBit as GLenum)
-                as gl::types::GLbitfield,
-        );
+        /* Draw object */
 
         self.object_shader.bind();
 
+        self.object_shader
+            .set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
+        self.object_shader
+            .set_uniform_mat3fv(normal_matrix_name.as_c_str(), &object_normal_matrix);
         self.object_shader
             .set_uniform_mat4fv(view_name.as_c_str(), &object_view_matrix);
         self.object_shader
@@ -280,47 +171,11 @@ impl Renderer {
             camera.get_pos().z,
         );
 
-        unsafe {
-            gl::ActiveTexture(gl::TEXTURE0);
-            gl::BindTexture(gl::TEXTURE_2D, self.shadow_map_texture);
-        }
-
-        self.render_scence(&self.object_shader)?;
+        self.cube_model.draw(&self.object_shader, "material")?;
+        self.plane_model.draw(&self.object_shader, "material")?;
 
         // Swap buffers of window
         win.swap_buffers()?;
-
-        Ok(())
-    }
-
-    pub fn render_scence(&self, shader: &ShaderProgram) -> anyhow::Result<()> {
-        let model_name = CString::new("model")?;
-
-        // Plane
-        let mut object_model_matrix = na::Matrix4::identity();
-        shader.set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
-        self.plane_model.draw(shader, "material")?;
-        // Cube 1
-        object_model_matrix = na::Matrix4::identity();
-        object_model_matrix = glm::translate(&object_model_matrix, &glm::vec3(0.0, 1.5, 0.0));
-        shader.set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
-        self.cube_model.draw(shader, "material")?;
-        // Cube 2
-        object_model_matrix = na::Matrix4::identity();
-        object_model_matrix = glm::translate(&object_model_matrix, &glm::vec3(2.0, 0.0, 1.0));
-        shader.set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
-        self.cube_model.draw(shader, "material")?;
-        // Cube 3
-        object_model_matrix = na::Matrix4::identity();
-        object_model_matrix = glm::translate(&object_model_matrix, &glm::vec3(-1.0, 0.0, 2.0));
-        object_model_matrix = glm::rotate(
-            &object_model_matrix,
-            glm::radians(&glm::TVec::<f32, 1>::new(60.0))[0],
-            &glm::normalize(&glm::vec3(1.0, 0.0, 1.0)),
-        );
-        object_model_matrix = glm::scale(&object_model_matrix, &glm::vec3(0.5, 0.5, 0.5));
-        shader.set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
-        self.cube_model.draw(shader, "material")?;
 
         Ok(())
     }
