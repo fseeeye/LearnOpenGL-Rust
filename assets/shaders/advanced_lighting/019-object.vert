@@ -7,19 +7,15 @@ layout (location = 2) in vec2 a_texture_coord; // texture coord from vertex attr
 uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
-uniform mat4 light_space_matrix;
+uniform mat3 normal_matrix;
 
-out VS_OUT {
-    vec3 world_pos;
-    vec3 normal;
-    vec2 texture_coord;
-    vec4 ortho_pos_light_space;
-} vs_out;
+out vec3 normal;
+out vec3 world_pos;
+out vec2 texture_coord;
 
 void main() {
+    normal = normal_matrix * a_normal;
+    world_pos = vec3(model * vec4(a_pos, 1.0));
+    texture_coord = a_texture_coord;
     gl_Position = projection * view * model * vec4(a_pos, 1.0);
-    vs_out.world_pos = vec3(model * vec4(a_pos, 1.0));
-    vs_out.normal = transpose(inverse(mat3(model))) * a_normal;
-    vs_out.texture_coord = a_texture_coord;
-    vs_out.ortho_pos_light_space = light_space_matrix * vec4(vs_out.world_pos, 1.0);
 }
