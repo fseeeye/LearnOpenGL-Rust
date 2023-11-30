@@ -22,7 +22,7 @@ use winit::event::Event;
 /* Screen info */
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
-const BACKGROUND_COLOR: [f32; 4] = [0.1, 0.1, 0.1, 0.1];
+const BACKGROUND_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 0.0];
 
 /* Camera data */
 const CAMERA_POS: [f32; 3] = [0.0, 0.5, 2.0];
@@ -52,8 +52,8 @@ struct Renderer {
     shadow_map_texture: u32,
     shadow_map_fbo: u32,
     shadow_map_shader: ShaderProgram,
-    screen_vao: VertexArray,
-    screen_shader: ShaderProgram,
+    debug_quad_vao: VertexArray,
+    debug_quad_shader: ShaderProgram,
 }
 
 impl Renderer {
@@ -71,19 +71,15 @@ impl Renderer {
         unsafe {
             // Enable Depth Test
             gl::Enable(gl::DEPTH_TEST);
-            // Set depth function
-            gl::DepthFunc(gl::LESS);
-            // Enable MSAA
-            gl::Enable(gl::MULTISAMPLE);
         };
 
-        /* Object Vertices & Shader */
+        /* Object Models */
 
-        // Prepare model of object
         let cube_model = Model::new(PathBuf::from("assets/models/cube/cube.obj"))?;
         let plane_model = Model::new(PathBuf::from("assets/models/plane_wood/plane.obj"))?;
 
-        // Prepare shader of object
+        /* Shaders */
+
         let object_shader = ShaderProgram::create_from_source(
             include_str!("../../assets/shaders/advanced_lighting/019-object.vert"),
             include_str!("../../assets/shaders/advanced_lighting/019-object.frag"),
@@ -92,8 +88,13 @@ impl Renderer {
             include_str!("../../assets/shaders/advanced_lighting/019-shadow-map.vert"),
             include_str!("../../assets/shaders/advanced_lighting/019-shadow-map.frag"),
         )?;
+        let debug_quad_shader = ShaderProgram::create_from_source(
+            include_str!("../../assets/shaders/advanced_opengl/017-screen.vert"),
+            include_str!("../../assets/shaders/advanced_opengl/017-screen.frag"),
+        )?;
+        debug_quad_shader.set_uniform_1i(CString::new("shadow_map")?.as_c_str(), 0);
 
-        /* Shadow Map Framebuffer */
+        /* Shadow Map */
 
         // Generate texture for framebuffer
         let mut shadow_map_texture = 0;
@@ -107,8 +108,8 @@ impl Renderer {
                 SHADOW_MAP_WIDTH,
                 SHADOW_MAP_HEIGHT,
                 0,
-                gl::RGB,
                 gl::DEPTH_COMPONENT,
+                gl::FLOAT,
                 core::ptr::null(),
             );
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as GLint);
@@ -126,7 +127,7 @@ impl Renderer {
             // Bind texture to framebuffer
             gl::FramebufferTexture2D(
                 gl::FRAMEBUFFER,
-                gl::COLOR_ATTACHMENT0,
+                gl::DEPTH_ATTACHMENT,
                 gl::TEXTURE_2D,
                 shadow_map_texture,
                 0,
@@ -136,26 +137,17 @@ impl Renderer {
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
         }
 
-        /* Screen */
+        /* Debug Quad */
 
-        let screen_vao = VertexArray::new()?;
-
-        let screen_vbo = Buffer::new(BufferType::VertexBuffer)?;
-        screen_vbo.bind();
-        screen_vbo.set_buffer_data(SCREEN_VERTICES.as_slice(), BufferUsage::StaticDraw);
-
-        screen_vao.bind();
-        let mut screen_vertex_desc = VertexDescription::new();
-        screen_vertex_desc.add_attribute(gl::FLOAT, 2); // set coords attribute
-        screen_vertex_desc.add_attribute(gl::FLOAT, 2); // set Texture coord attribute
-        screen_vertex_desc.bind_to(&screen_vbo, Some(&screen_vao));
-
-        // Prepare shader of screen
-        let screen_shader = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/advanced_opengl/017-screen.vert"),
-            include_str!("../../assets/shaders/advanced_opengl/017-screen.frag"),
-        )?;
-        screen_shader.set_uniform_1i(CString::new("screen_texture")?.as_c_str(), 0);
+        let debug_quad_vao = VertexArray::new()?;
+        let debug_quad_vbo = Buffer::new(BufferType::VertexBuffer)?;
+        debug_quad_vao.bind();
+        debug_quad_vbo.bind();
+        debug_quad_vbo.set_buffer_data(SCREEN_VERTICES.as_slice(), BufferUsage::StaticDraw);
+        let mut debug_quad_vectex_desc = VertexDescription::new();
+        debug_quad_vectex_desc.add_attribute(gl::FLOAT, 2); // set coords attribute
+        debug_quad_vectex_desc.add_attribute(gl::FLOAT, 2); // set Texture coord attribute
+        debug_quad_vectex_desc.bind_to(&debug_quad_vbo, Some(&debug_quad_vao));
 
         Ok(Self {
             cube_model,
@@ -164,8 +156,8 @@ impl Renderer {
             shadow_map_texture,
             shadow_map_fbo,
             shadow_map_shader,
-            screen_vao,
-            screen_shader,
+            debug_quad_vao,
+            debug_quad_shader,
         })
     }
 
@@ -195,7 +187,7 @@ impl Renderer {
         .to_homogeneous(); // Perspective projection
         let projection_name = CString::new("projection")?;
 
-        /* Pass1 : Draw Shadow Map */
+        /* Pass1 : Generate Shadow Map */
 
         // prepare shader of shadow map
         self.shadow_map_shader.bind();
@@ -212,29 +204,28 @@ impl Renderer {
             &light_space_matrix,
         );
 
+        // initialize sth. and bind framebuffer
         unsafe {
             gl::Viewport(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
             gl::BindFramebuffer(gl::FRAMEBUFFER, self.shadow_map_fbo);
         }
         clear_color(BufferBit::DepthBufferBit as GLenum);
 
-        // do drawing shadow map
-        self.render_scence(&self.object_shader)?;
+        // generate shadow map
+        self.render_scence(&self.shadow_map_shader)?;
 
-        /* Draw Screen */
+        /* Pass2 : Draw Debug Quad */
 
         unsafe {
-            gl::Viewport(0, 0, window_width as i32, window_height as i32);
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+            gl::Viewport(0, 0, window_width as i32, window_height as i32);
             // Disable depth test
             gl::Disable(gl::DEPTH_TEST);
         }
-
         clear_color((BufferBit::ColorBufferBit as GLenum) as gl::types::GLbitfield);
 
-        // Draw screen
-        self.screen_vao.bind();
-        self.screen_shader.bind();
+        self.debug_quad_vao.bind();
+        self.debug_quad_shader.bind();
         unsafe {
             gl::ActiveTexture(gl::TEXTURE0);
             gl::BindTexture(gl::TEXTURE_2D, self.shadow_map_texture);
