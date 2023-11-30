@@ -8,17 +8,21 @@ use std::{ffi::CString, path::PathBuf};
 use anyhow::bail;
 use gl::types::*;
 
-use learn::{clear_color, set_clear_color, BufferBit, Camera, Model, ShaderProgram, WinitWindow};
+use learn::{
+    clear_color, set_clear_color, Buffer, BufferBit, BufferType, BufferUsage, Camera, Model,
+    ShaderProgram, VertexArray, VertexDescription, WinitWindow,
+};
 use learn_opengl_rs as learn;
 
 use nalgebra as na;
+use nalgebra_glm as glm;
 use tracing::error;
 use winit::event::Event;
 
 /* Screen info */
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
-const BACKGROUND_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
+const BACKGROUND_COLOR: [f32; 4] = [0.1, 0.1, 0.1, 0.1];
 
 /* Camera data */
 const CAMERA_POS: [f32; 3] = [0.0, 0.5, 2.0];
@@ -26,11 +30,30 @@ const CAMERA_POS: [f32; 3] = [0.0, 0.5, 2.0];
 /* Shaodw Map data */
 const SHADOW_MAP_WIDTH: i32 = 1024;
 const SHADOW_MAP_HEIGHT: i32 = 1024;
+const SHADOW_MAP_NEAR: f32 = 1.0;
+const SHADOW_MAP_FAR: f32 = 7.5;
+const LIGHT_POS: [f32; 3] = [-2.0, 4.0, -1.0];
+
+/* Screen data */
+const SCREEN_VERTICES: [[f32; 4]; 6] = [
+    // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
+    [-1.0, 1.0, 0.0, 1.0],
+    [-1.0, -1.0, 0.0, 0.0],
+    [1.0, -1.0, 1.0, 0.0],
+    [-1.0, 1.0, 0.0, 1.0],
+    [1.0, -1.0, 1.0, 0.0],
+    [1.0, 1.0, 1.0, 1.0],
+];
 
 struct Renderer {
     cube_model: Model,
     plane_model: Model,
     object_shader: ShaderProgram,
+    shadow_map_texture: u32,
+    shadow_map_fbo: u32,
+    shadow_map_shader: ShaderProgram,
+    screen_vao: VertexArray,
+    screen_shader: ShaderProgram,
 }
 
 impl Renderer {
@@ -64,6 +87,10 @@ impl Renderer {
         let object_shader = ShaderProgram::create_from_source(
             include_str!("../../assets/shaders/advanced_lighting/019-object.vert"),
             include_str!("../../assets/shaders/advanced_lighting/019-object.frag"),
+        )?;
+        let shadow_map_shader = ShaderProgram::create_from_source(
+            include_str!("../../assets/shaders/advanced_lighting/019-shadow-map.vert"),
+            include_str!("../../assets/shaders/advanced_lighting/019-shadow-map.frag"),
         )?;
 
         /* Shadow Map Framebuffer */
@@ -109,10 +136,36 @@ impl Renderer {
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
         }
 
+        /* Screen */
+
+        let screen_vao = VertexArray::new()?;
+
+        let screen_vbo = Buffer::new(BufferType::VertexBuffer)?;
+        screen_vbo.bind();
+        screen_vbo.set_buffer_data(SCREEN_VERTICES.as_slice(), BufferUsage::StaticDraw);
+
+        screen_vao.bind();
+        let mut screen_vertex_desc = VertexDescription::new();
+        screen_vertex_desc.add_attribute(gl::FLOAT, 2); // set coords attribute
+        screen_vertex_desc.add_attribute(gl::FLOAT, 2); // set Texture coord attribute
+        screen_vertex_desc.bind_to(&screen_vbo, Some(&screen_vao));
+
+        // Prepare shader of screen
+        let screen_shader = ShaderProgram::create_from_source(
+            include_str!("../../assets/shaders/advanced_opengl/017-screen.vert"),
+            include_str!("../../assets/shaders/advanced_opengl/017-screen.frag"),
+        )?;
+        screen_shader.set_uniform_1i(CString::new("screen_texture")?.as_c_str(), 0);
+
         Ok(Self {
             cube_model,
             plane_model,
             object_shader,
+            shadow_map_texture,
+            shadow_map_fbo,
+            shadow_map_shader,
+            screen_vao,
+            screen_shader,
         })
     }
 
@@ -126,16 +179,6 @@ impl Renderer {
             (BufferBit::ColorBufferBit as GLenum | BufferBit::DepthBufferBit as GLenum)
                 as gl::types::GLbitfield,
         );
-
-        // Model Matrix
-        let model_name = CString::new("model")?;
-        let normal_matrix_name = CString::new("normal_matrix")?;
-        let object_model_matrix = na::Matrix4::identity();
-        let object_normal_matrix = object_model_matrix
-            .fixed_view::<3, 3>(0, 0)
-            .try_inverse()
-            .unwrap()
-            .transpose();
 
         // View Matrix
         let view_name = CString::new("view")?;
@@ -152,30 +195,112 @@ impl Renderer {
         .to_homogeneous(); // Perspective projection
         let projection_name = CString::new("projection")?;
 
-        /* Draw object */
+        /* Pass1 : Draw Shadow Map */
 
-        self.object_shader.bind();
-
-        self.object_shader
-            .set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
-        self.object_shader
-            .set_uniform_mat3fv(normal_matrix_name.as_c_str(), &object_normal_matrix);
-        self.object_shader
-            .set_uniform_mat4fv(view_name.as_c_str(), &object_view_matrix);
-        self.object_shader
-            .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
-        self.object_shader.set_uniform_3f(
-            CString::new("camera_pos")?.as_c_str(),
-            camera.get_pos().x,
-            camera.get_pos().y,
-            camera.get_pos().z,
+        // prepare shader of shadow map
+        self.shadow_map_shader.bind();
+        let projection_matrix_light =
+            glm::ortho(-10.0, 10.0, -10.0, 10.0, SHADOW_MAP_NEAR, SHADOW_MAP_FAR);
+        let view_matrix_light = glm::look_at(
+            &glm::vec3(LIGHT_POS[0], LIGHT_POS[1], LIGHT_POS[2]),
+            &glm::vec3(0.0, 0.0, 0.0),
+            &glm::vec3(0.0, 1.0, 0.0),
+        );
+        let light_space_matrix = projection_matrix_light * view_matrix_light;
+        self.shadow_map_shader.set_uniform_mat4fv(
+            CString::new("light_space_matrix")?.as_c_str(),
+            &light_space_matrix,
         );
 
-        self.cube_model.draw(&self.object_shader, "material")?;
-        self.plane_model.draw(&self.object_shader, "material")?;
+        unsafe {
+            gl::Viewport(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+            gl::BindFramebuffer(gl::FRAMEBUFFER, self.shadow_map_fbo);
+        }
+        clear_color(BufferBit::DepthBufferBit as GLenum);
+
+        // do drawing shadow map
+        self.render_scence(&self.object_shader)?;
+
+        /* Draw Screen */
+
+        unsafe {
+            gl::Viewport(0, 0, window_width as i32, window_height as i32);
+            gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+            // Disable depth test
+            gl::Disable(gl::DEPTH_TEST);
+        }
+
+        clear_color((BufferBit::ColorBufferBit as GLenum) as gl::types::GLbitfield);
+
+        // Draw screen
+        self.screen_vao.bind();
+        self.screen_shader.bind();
+        unsafe {
+            gl::ActiveTexture(gl::TEXTURE0);
+            gl::BindTexture(gl::TEXTURE_2D, self.shadow_map_texture);
+
+            gl::DrawArrays(gl::TRIANGLES, 0, 6);
+        }
+
+        // /* Draw object */
+        // unsafe {
+        //     gl::Viewport(0, 0, window_width as i32, window_height as i32);
+        //     gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+        // }
+        // clear_color(
+        //     (BufferBit::ColorBufferBit as GLenum | BufferBit::DepthBufferBit as GLenum)
+        //         as gl::types::GLbitfield,
+        // );
+
+        // self.object_shader.bind();
+
+        // self.object_shader
+        //     .set_uniform_mat4fv(view_name.as_c_str(), &object_view_matrix);
+        // self.object_shader
+        //     .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
+        // self.object_shader.set_uniform_3f(
+        //     CString::new("camera_pos")?.as_c_str(),
+        //     camera.get_pos().x,
+        //     camera.get_pos().y,
+        //     camera.get_pos().z,
+        // );
+
+        // self.render_scence(&self.object_shader)?;
 
         // Swap buffers of window
         win.swap_buffers()?;
+
+        Ok(())
+    }
+
+    pub fn render_scence(&self, shader: &ShaderProgram) -> anyhow::Result<()> {
+        let model_name = CString::new("model")?;
+
+        // Plane
+        let mut object_model_matrix = na::Matrix4::identity();
+        shader.set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
+        self.plane_model.draw(shader, "material")?;
+        // Cube 1
+        object_model_matrix = na::Matrix4::identity();
+        object_model_matrix = glm::translate(&object_model_matrix, &glm::vec3(0.0, 1.5, 0.0));
+        shader.set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
+        self.cube_model.draw(shader, "material")?;
+        // Cube 2
+        object_model_matrix = na::Matrix4::identity();
+        object_model_matrix = glm::translate(&object_model_matrix, &glm::vec3(2.0, 0.0, 1.0));
+        shader.set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
+        self.cube_model.draw(shader, "material")?;
+        // Cube 3
+        object_model_matrix = na::Matrix4::identity();
+        object_model_matrix = glm::translate(&object_model_matrix, &glm::vec3(-1.0, 0.0, 2.0));
+        object_model_matrix = glm::rotate(
+            &object_model_matrix,
+            glm::radians(&glm::TVec::<f32, 1>::new(60.0))[0],
+            &glm::normalize(&glm::vec3(1.0, 0.0, 1.0)),
+        );
+        object_model_matrix = glm::scale(&object_model_matrix, &glm::vec3(0.5, 0.5, 0.5));
+        shader.set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
+        self.cube_model.draw(shader, "material")?;
 
         Ok(())
     }
