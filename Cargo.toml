@@ -13,6 +13,7 @@ thiserror = "1" # error derive macro
 anyhow = "1" # error handling
 image = "0.24.5" # image processing
 nalgebra = "0.32.2" # Linear algebra : https://nalgebra.org/docs/
+nalgebra-glm = "0.18.0" # GLM port for nalgebra
 tobj = "4.0.0" # OBJ loader
 
 # window related dependencies
