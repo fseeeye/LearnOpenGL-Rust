@@ -22,7 +22,7 @@ use winit::event::Event;
 /* Screen info */
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
-const BACKGROUND_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 0.0];
+const BACKGROUND_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 /* Camera data */
 const CAMERA_POS: [f32; 3] = [0.0, 0.5, 2.0];
@@ -35,14 +35,13 @@ const SHADOW_MAP_FAR: f32 = 7.5;
 const LIGHT_POS: [f32; 3] = [-2.0, 4.0, -1.0];
 
 /* Screen data */
-const SCREEN_VERTICES: [[f32; 4]; 6] = [
+const SCREEN_VERTICES: [[f32; 5]; 4] = [
     // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
-    [-1.0, 1.0, 0.0, 1.0],
-    [-1.0, -1.0, 0.0, 0.0],
-    [1.0, -1.0, 1.0, 0.0],
-    [-1.0, 1.0, 0.0, 1.0],
-    [1.0, -1.0, 1.0, 0.0],
-    [1.0, 1.0, 1.0, 1.0],
+    // positions + texture Coords
+    [-1.0,  1.0, 0.0, 0.0, 1.0],
+    [-1.0, -1.0, 0.0, 0.0, 0.0],
+    [1.0,  1.0, 0.0, 1.0, 1.0],
+    [1.0, -1.0, 0.0, 1.0, 0.0],
 ];
 
 struct Renderer {
@@ -60,13 +59,6 @@ impl Renderer {
     pub fn new() -> anyhow::Result<Self> {
         /* Extra Settings */
 
-        // Set clear color
-        set_clear_color(
-            BACKGROUND_COLOR[0],
-            BACKGROUND_COLOR[1],
-            BACKGROUND_COLOR[2],
-            BACKGROUND_COLOR[3],
-        );
         // Configure global opengl state
         unsafe {
             // Enable Depth Test
@@ -144,10 +136,10 @@ impl Renderer {
         debug_quad_vao.bind();
         debug_quad_vbo.bind();
         debug_quad_vbo.set_buffer_data(SCREEN_VERTICES.as_slice(), BufferUsage::StaticDraw);
-        let mut debug_quad_vectex_desc = VertexDescription::new();
-        debug_quad_vectex_desc.add_attribute(gl::FLOAT, 2); // set coords attribute
-        debug_quad_vectex_desc.add_attribute(gl::FLOAT, 2); // set Texture coord attribute
-        debug_quad_vectex_desc.bind_to(&debug_quad_vbo, Some(&debug_quad_vao));
+        let mut debug_quad_vertex_desc = VertexDescription::new();
+        debug_quad_vertex_desc.add_attribute(gl::FLOAT, 3); // set coords attribute
+        debug_quad_vertex_desc.add_attribute(gl::FLOAT, 2); // set Texture coord attribute
+        debug_quad_vertex_desc.bind_to(&debug_quad_vbo, Some(&debug_quad_vao));
 
         Ok(Self {
             cube_model,
@@ -167,6 +159,13 @@ impl Renderer {
         camera: &Camera,
         _delta_time: f32,
     ) -> anyhow::Result<()> {
+        // Set clear color
+        set_clear_color(
+            BACKGROUND_COLOR[0],
+            BACKGROUND_COLOR[1],
+            BACKGROUND_COLOR[2],
+            BACKGROUND_COLOR[3],
+        );
         clear_color(
             (BufferBit::ColorBufferBit as GLenum | BufferBit::DepthBufferBit as GLenum)
                 as gl::types::GLbitfield,
@@ -190,15 +189,15 @@ impl Renderer {
         /* Pass1 : Generate Shadow Map */
 
         // prepare shader of shadow map
-        self.shadow_map_shader.bind();
         let projection_matrix_light =
-            glm::ortho(-10.0, 10.0, -10.0, 10.0, SHADOW_MAP_NEAR, SHADOW_MAP_FAR);
+        glm::ortho(-10.0, 10.0, -10.0, 10.0, SHADOW_MAP_NEAR, SHADOW_MAP_FAR);
         let view_matrix_light = glm::look_at(
             &glm::vec3(LIGHT_POS[0], LIGHT_POS[1], LIGHT_POS[2]),
             &glm::vec3(0.0, 0.0, 0.0),
             &glm::vec3(0.0, 1.0, 0.0),
         );
         let light_space_matrix = projection_matrix_light * view_matrix_light;
+        self.shadow_map_shader.bind();
         self.shadow_map_shader.set_uniform_mat4fv(
             CString::new("light_space_matrix")?.as_c_str(),
             &light_space_matrix,
@@ -220,7 +219,7 @@ impl Renderer {
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
             gl::Viewport(0, 0, window_width as i32, window_height as i32);
             // Disable depth test
-            gl::Disable(gl::DEPTH_TEST);
+            // gl::Disable(gl::DEPTH_TEST);
         }
         clear_color((BufferBit::ColorBufferBit as GLenum) as gl::types::GLbitfield);
 
@@ -230,10 +229,10 @@ impl Renderer {
             gl::ActiveTexture(gl::TEXTURE0);
             gl::BindTexture(gl::TEXTURE_2D, self.shadow_map_texture);
 
-            gl::DrawArrays(gl::TRIANGLES, 0, 6);
+            gl::DrawArrays(gl::TRIANGLE_STRIP, 0, 4);
         }
 
-        // /* Draw object */
+        // /* Pass 2 : Draw object */
         // unsafe {
         //     gl::Viewport(0, 0, window_width as i32, window_height as i32);
         //     gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
