@@ -93,7 +93,7 @@ impl Mesh {
             );
         }
 
-        let mut texture_unit = TextureUnit::TEXTURE0;
+        let mut texture_unit = TextureUnit::TEXTURE1;
         if let Some(diffuse_texture) = &self.diffuse_texture {
             shader.set_texture_unit(
                 &CString::new(format!("{material_uniform_name}.diffuse_map"))?,
