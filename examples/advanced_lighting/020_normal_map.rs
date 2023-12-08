@@ -1,4 +1,4 @@
-//! This example has more infos about shadow mapping.
+//! This example has more infos about normal map.
 
 // remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
@@ -23,33 +23,19 @@ const BACKGROUND_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
 
 /* Camera data */
 const CAMERA_POS: [f32; 3] = [0.0, 0.5, 2.0];
+const CAMERA_LOOK_AT: [f32; 3] = [0.0, 0.0, -1.0];
+const CAMERA_UP: [f32; 3] = [0.0, 1.0, 0.0];
+const PROJECTION_FOV: f32 = std::f32::consts::FRAC_PI_4;
+const PROJECTION_NEAR: f32 = 0.1;
+const PROJECTION_FAR: f32 = 100.0;
 
-/* Shaodw Map data */
-const SHADOW_MAP_WIDTH: i32 = 1024;
-const SHADOW_MAP_HEIGHT: i32 = 1024;
-const SHADOW_MAP_NEAR: f32 = 1.0;
-const SHADOW_MAP_FAR: f32 = 7.5;
+/* Light data */
 const LIGHT_POS: [f32; 3] = [-2.0, 4.0, -1.0];
-
-// /* Debug Quad data */
-// const QUAD_VERTICES: [[f32; 5]; 4] = [
-//     // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
-//     // positions + texture Coords
-//     [-1.0,  1.0, 0.0, 0.0, 1.0],
-//     [-1.0, -1.0, 0.0, 0.0, 0.0],
-//     [1.0,  1.0, 0.0, 1.0, 1.0],
-//     [1.0, -1.0, 0.0, 1.0, 0.0],
-// ];
 
 struct Renderer {
     cube_model: Model,
     plane_model: Model,
     object_shader: ShaderProgram,
-    shadow_map_texture: u32,
-    shadow_map_fbo: u32,
-    shadow_map_shader: ShaderProgram,
-    // debug_quad_vao: VertexArray,
-    // debug_quad_shader: ShaderProgram,
 }
 
 impl Renderer {
@@ -67,79 +53,12 @@ impl Renderer {
         let cube_model = Model::new(PathBuf::from("assets/models/cube/cube.obj"))?;
         let plane_model = Model::new(PathBuf::from("assets/models/plane_wood/plane.obj"))?;
 
-        /* Shadow Map */
-
-        // Generate texture for framebuffer
-        let mut shadow_map_texture = 0;
-        unsafe {
-            gl::GenTextures(1, &mut shadow_map_texture);
-            gl::BindTexture(gl::TEXTURE_2D, shadow_map_texture);
-            gl::TexImage2D(
-                gl::TEXTURE_2D,
-                0,
-                gl::DEPTH_COMPONENT as GLint,
-                SHADOW_MAP_WIDTH,
-                SHADOW_MAP_HEIGHT,
-                0,
-                gl::DEPTH_COMPONENT,
-                gl::FLOAT,
-                core::ptr::null(),
-            );
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as GLint);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as GLint);
-            gl::TexParameteri(
-                gl::TEXTURE_2D,
-                gl::TEXTURE_WRAP_S,
-                gl::CLAMP_TO_BORDER as GLint,
-            );
-            gl::TexParameteri(
-                gl::TEXTURE_2D,
-                gl::TEXTURE_WRAP_T,
-                gl::CLAMP_TO_BORDER as GLint,
-            );
-            let border_color: [GLfloat; 4] = [1.0, 1.0, 1.0, 1.0];
-            gl::TexParameterfv(
-                gl::TEXTURE_2D,
-                gl::TEXTURE_BORDER_COLOR,
-                border_color.as_ptr(),
-            );
-            gl::BindTexture(gl::TEXTURE_2D, 0);
-        }
-
-        // Create framebuffer object
-        let mut shadow_map_fbo = 0;
-        unsafe {
-            gl::GenFramebuffers(1, &mut shadow_map_fbo);
-            gl::BindFramebuffer(gl::FRAMEBUFFER, shadow_map_fbo);
-            // Bind texture to framebuffer
-            gl::FramebufferTexture2D(
-                gl::FRAMEBUFFER,
-                gl::DEPTH_ATTACHMENT,
-                gl::TEXTURE_2D,
-                shadow_map_texture,
-                0,
-            );
-            gl::DrawBuffer(gl::NONE);
-            gl::ReadBuffer(gl::NONE);
-            gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
-        }
-
         /* Shaders */
-
-        // Prepare light_space_matrix for shadow mapping
-        let projection_matrix_light =
-            glm::ortho(-10.0, 10.0, -10.0, 10.0, SHADOW_MAP_NEAR, SHADOW_MAP_FAR);
-        let view_matrix_light = glm::look_at(
-            &glm::vec3(LIGHT_POS[0], LIGHT_POS[1], LIGHT_POS[2]),
-            &glm::vec3(0.0, 0.0, 0.0),
-            &glm::vec3(0.0, 1.0, 0.0),
-        );
-        let light_space_matrix = projection_matrix_light * view_matrix_light;
 
         // Create shader of object
         let object_shader = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/advanced_lighting/019-object.vert"),
-            include_str!("../../assets/shaders/advanced_lighting/019-object.frag"),
+            include_str!("../../assets/shaders/advanced_lighting/020-object.vert"),
+            include_str!("../../assets/shaders/advanced_lighting/020-object.frag"),
         )?;
         object_shader.set_uniform_3f(
             CString::new("light_pos")?.as_c_str(),
@@ -147,49 +66,11 @@ impl Renderer {
             LIGHT_POS[1],
             LIGHT_POS[2],
         );
-        object_shader.set_uniform_mat4fv(
-            CString::new("light_space_matrix")?.as_c_str(),
-            &light_space_matrix,
-        );
-        object_shader.set_uniform_1i(CString::new("shadow_map")?.as_c_str(), 0);
-
-        // Create shader of shadow map
-        let shadow_map_shader = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/advanced_lighting/019-shadow-map.vert"),
-            include_str!("../../assets/shaders/advanced_lighting/019-shadow-map.frag"),
-        )?;
-        shadow_map_shader.set_uniform_mat4fv(
-            CString::new("light_space_matrix")?.as_c_str(),
-            &light_space_matrix,
-        );
-
-        // // create shader of debug quad
-        // let debug_quad_shader = ShaderProgram::create_from_source(
-        //     include_str!("../../assets/shaders/advanced_opengl/017-screen.vert"),
-        //     include_str!("../../assets/shaders/advanced_opengl/017-screen.frag"),
-        // )?;
-        // debug_quad_shader.set_uniform_1i(CString::new("shadow_map")?.as_c_str(), 0);
-
-        // /* Debug Quad */
-        // let debug_quad_vao = VertexArray::new()?;
-        // let debug_quad_vbo = Buffer::new(BufferType::VertexBuffer)?;
-        // debug_quad_vao.bind();
-        // debug_quad_vbo.bind();
-        // debug_quad_vbo.set_buffer_data(QUAD_VERTICES.as_slice(), BufferUsage::StaticDraw);
-        // let mut debug_quad_vertex_desc = VertexDescription::new();
-        // debug_quad_vertex_desc.add_attribute(gl::FLOAT, 3); // set coords attribute
-        // debug_quad_vertex_desc.add_attribute(gl::FLOAT, 2); // set Texture coord attribute
-        // debug_quad_vertex_desc.bind_to(&debug_quad_vbo, Some(&debug_quad_vao));
 
         Ok(Self {
             cube_model,
             plane_model,
             object_shader,
-            shadow_map_texture,
-            shadow_map_fbo,
-            shadow_map_shader,
-            // debug_quad_vao,
-            // debug_quad_shader,
         })
     }
 
@@ -219,54 +100,14 @@ impl Renderer {
         let (window_width, window_height) = win.get_window_size();
         let projection_matrix = na::Perspective3::new(
             (window_width as f32) / (window_height as f32),
-            std::f32::consts::FRAC_PI_4,
-            0.1,
-            100.0,
+            PROJECTION_FOV,
+            PROJECTION_NEAR,
+            PROJECTION_FAR,
         )
         .to_homogeneous(); // Perspective projection
         let projection_name = CString::new("projection")?;
 
-        /* Pass1 : Generate Shadow Map */
-
-        // initialize sth. and bind framebuffer
-        unsafe {
-            gl::Viewport(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
-            gl::BindFramebuffer(gl::FRAMEBUFFER, self.shadow_map_fbo);
-        }
-        clear_color(BufferBit::DepthBufferBit as GLenum);
-
-        // Generate shadow map
-        self.shadow_map_shader.bind();
-        self.render_scence(&self.shadow_map_shader)?;
-
-        // /* Pass2 : Draw Debug Quad */
-        // unsafe {
-        //     gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
-        //     gl::Viewport(0, 0, window_width as i32, window_height as i32);
-        //     // Disable depth test
-        //     // gl::Disable(gl::DEPTH_TEST);
-        // }
-        // clear_color((BufferBit::ColorBufferBit as GLenum) as gl::types::GLbitfield);
-
-        // self.debug_quad_vao.bind();
-        // self.debug_quad_shader.bind();
-        // unsafe {
-        //     gl::ActiveTexture(gl::TEXTURE0);
-        //     gl::BindTexture(gl::TEXTURE_2D, self.shadow_map_texture);
-
-        //     gl::DrawArrays(gl::TRIANGLE_STRIP, 0, 4);
-        // }
-
-        /* Pass 2 : Draw object */
-        unsafe {
-            gl::Viewport(0, 0, window_width as i32, window_height as i32);
-            gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
-        }
-        clear_color(
-            (BufferBit::ColorBufferBit as GLenum | BufferBit::DepthBufferBit as GLenum)
-                as gl::types::GLbitfield,
-        );
-
+        /* Pass 1 : Draw object */
         self.object_shader.bind();
 
         self.object_shader
@@ -279,11 +120,6 @@ impl Renderer {
             camera.get_pos().y,
             camera.get_pos().z,
         );
-
-        unsafe {
-            gl::ActiveTexture(gl::TEXTURE0);
-            gl::BindTexture(gl::TEXTURE_2D, self.shadow_map_texture);
-        }
 
         self.render_scence(&self.object_shader)?;
 
@@ -340,8 +176,8 @@ fn main() -> anyhow::Result<()> {
     /* Camera */
     // Init camera at pos(0,0,3) look-at(0,0,0) up(0,1,0)
     let camera_pos = na::Point3::new(CAMERA_POS[0], CAMERA_POS[1], CAMERA_POS[2]);
-    let camera_look_at = na::Vector3::new(0.0, 0.0, -1.0);
-    let camera_up = na::Vector3::new(0.0, 1.0, 0.0);
+    let camera_look_at = na::Vector3::new(CAMERA_LOOK_AT[0], CAMERA_LOOK_AT[1], CAMERA_LOOK_AT[2]);
+    let camera_up = na::Vector3::new(CAMERA_UP[0], CAMERA_UP[1], CAMERA_UP[2]);
     let mut camera = learn::Camera::new(camera_pos, camera_look_at, camera_up);
 
     /* Window */
