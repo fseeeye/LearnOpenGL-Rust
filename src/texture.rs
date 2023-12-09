@@ -22,7 +22,7 @@ pub enum TextureType {
     Unknown,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum TextureUnit {
     TEXTURE0,

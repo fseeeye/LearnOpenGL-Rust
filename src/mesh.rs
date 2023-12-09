@@ -17,7 +17,7 @@ pub struct Mesh {
     ibo: Buffer,
     pub vertices: Vec<Vertex>,
     pub indices: Vec<u32>,
-    // attributes about
+    // attributes about material
     pub diffuse_texture: Option<Texture>,
     pub specular_texture: Option<Texture>,
     pub normal_texture: Option<Texture>,
@@ -80,6 +80,7 @@ impl Mesh {
     pub fn draw(&self, shader: &ShaderProgram, material_uniform_name: &str) -> anyhow::Result<()> {
         /* Bind uniforms */
 
+        // Set uniform: shininess
         if let Some(shininess) = self.shininess {
             assert!(shininess >= 0.0);
             shader.set_uniform_1f(
@@ -93,7 +94,8 @@ impl Mesh {
             );
         }
 
-        let mut texture_unit = TextureUnit::TEXTURE1;
+        // Set uniform: diffuse map & specular map & normal map
+        let mut texture_unit = TextureUnit::TEXTURE10;
         if let Some(diffuse_texture) = &self.diffuse_texture {
             shader.set_texture_unit(
                 &CString::new(format!("{material_uniform_name}.diffuse_map"))?,
