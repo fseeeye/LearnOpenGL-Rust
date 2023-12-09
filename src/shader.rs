@@ -264,7 +264,11 @@ impl ShaderProgram {
         // Bind texture to spec texture unit
         texture.bind(unit);
 
-        self.set_uniform_1i(uniform_name, unit.into()); // unnecessary for TEXTURE 0
+        // Bind uniform location to spec texture unit.
+        // It's unnecessary for TEXTURE 0
+        if unit != TextureUnit::TEXTURE0 {
+            self.set_uniform_1i(uniform_name, unit.into());
+        }
     }
 
     /// Send uniform data: 1 int
