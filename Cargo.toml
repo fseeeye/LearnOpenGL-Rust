@@ -136,3 +136,8 @@ doc-scrape-examples = true
 name = "020_normal_map"
 path = "examples/advanced_lighting/020_normal_map.rs"
 doc-scrape-examples = true
+
+[[example]]
+name = "021_parallax_map"
+path = "examples/advanced_lighting/021_parallax_map.rs"
+doc-scrape-examples = true
