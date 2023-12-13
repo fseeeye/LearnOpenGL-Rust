@@ -1,4 +1,4 @@
-//! This example has more infos about normal map.
+//! This example has more infos about parallax map.
 
 // remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
@@ -23,7 +23,7 @@ use winit::event::Event;
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
 const BACKGROUND_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
-const WINDOW_TITLE: &str = "Normal Map";
+const WINDOW_TITLE: &str = "Parallax Map";
 
 /* Camera data */
 const CAMERA_POS: [f32; 3] = [0.0, 0.0, 3.0];

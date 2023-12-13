@@ -104,7 +104,6 @@ impl Renderer {
         let mut framebuffer = 0;
         unsafe {
             gl::GenFramebuffers(1, &mut framebuffer);
-            gl::BindFramebuffer(gl::FRAMEBUFFER, framebuffer);
         }
 
         // Create texture as color attachment
@@ -126,15 +125,6 @@ impl Renderer {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as GLint);
             gl::BindTexture(gl::TEXTURE_2D, 0);
-
-            // Bind texture to framebuffer
-            gl::FramebufferTexture2D(
-                gl::FRAMEBUFFER,
-                gl::COLOR_ATTACHMENT0,
-                gl::TEXTURE_2D,
-                color_texture,
-                0,
-            );
         }
 
         // Create renderbuffer as depth and stencil attachment
@@ -149,7 +139,20 @@ impl Renderer {
                 win.get_window_size().1.try_into()?,
             );
             gl::BindRenderbuffer(gl::RENDERBUFFER, 0);
-            // Bind rbo to framebuffer
+        }
+
+        // Attach buffers to framebuffer
+        unsafe {
+            gl::BindFramebuffer(gl::FRAMEBUFFER, framebuffer);
+            // Attach color texture to framebuffer
+            gl::FramebufferTexture2D(
+                gl::FRAMEBUFFER,
+                gl::COLOR_ATTACHMENT0,
+                gl::TEXTURE_2D,
+                color_texture,
+                0,
+            );
+            // Attach depth and stencil rbo to framebuffer
             gl::FramebufferRenderbuffer(
                 gl::FRAMEBUFFER,
                 gl::DEPTH_STENCIL_ATTACHMENT,

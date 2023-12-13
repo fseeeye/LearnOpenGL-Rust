@@ -6,7 +6,7 @@ struct Material {
     sampler2D diffuse_map;
     // sampler2D specular_map;
     // sampler2D normal_map;
-    // float shininess;
+    float shininess;
 };
 
 in VS_OUT {
@@ -39,13 +39,13 @@ vec3 blinn_phong_diffuse_term(vec3 light_dir, vec3 light_intensity, vec3 n) {
 
 vec3 blinn_phong_specular_term(vec3 light_dir, vec3 light_intensity, vec3 n, vec3 view_dir) {
     // vec3 k_s = vec3(texture(material.specular_map, texture_coord));
-    // float p = material.shininess;
+    vec3 k_s = vec3(texture(material.diffuse_map, fs_in.texture_coord));
+    float p = material.shininess;
 
     vec3 half_vec = normalize(light_dir + view_dir);
-    float cos_term = pow(max(0.0, dot(n, half_vec)), 64.0); // Blinn-Phong Model
+    float cos_term = pow(max(0.0, dot(n, half_vec)), p); // Blinn-Phong Model
 
-    // return k_s * light_intensity * cos_term;
-    return light_intensity * cos_term;
+    return k_s * light_intensity * cos_term;
 }
 
 float calc_visibility() {
