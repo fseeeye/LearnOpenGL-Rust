@@ -315,7 +315,7 @@ impl Renderer {
         object_model_matrix = glm::translate(&object_model_matrix, &glm::vec3(-1.0, 0.0, 2.0));
         object_model_matrix = glm::rotate(
             &object_model_matrix,
-            glm::radians(&glm::TVec::<f32, 1>::new(60.0))[0],
+            glm::radians(&glm::Vec1::new(60.0))[0],
             &glm::normalize(&glm::vec3(1.0, 0.0, 1.0)),
         );
         object_model_matrix = glm::scale(&object_model_matrix, &glm::vec3(0.5, 0.5, 0.5));

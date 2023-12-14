@@ -146,3 +146,8 @@ doc-scrape-examples = true
 name = "022_tone_mapping"
 path = "examples/advanced_lighting/022_tone_mapping.rs"
 doc-scrape-examples = true
+
+[[example]]
+name = "023_bloom"
+path = "examples/advanced_lighting/023_bloom.rs"
+doc-scrape-examples = true

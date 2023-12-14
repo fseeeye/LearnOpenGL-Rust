@@ -13,23 +13,14 @@ void main()
     const float gamma = 2.2;
     vec3 hdr_color = texture(hdr_buffer, texture_coord).rgb;
 
-    if(enable_tone_mapping)
+    if (enable_tone_mapping)
     {
         // Reinhard tone mapping
-        // vec3 rst = hdr_color / (hdr_color + vec3(1.0));
-        // Exposure
-        vec3 rst = vec3(1.0) - exp(-hdr_color * exposure);
-
-        // Gamma correct
-        rst = pow(rst, vec3(1.0 / gamma));
-
-        frag_color = vec4(rst, 1.0);
+        // hdr_color = hdr_color / (hdr_color + vec3(1.0));
+        // Exposure tone mapping
+        hdr_color = vec3(1.0) - exp(-hdr_color * exposure);
     }
-    else
-    {
-        // Gamma correct
-        vec3 rst = pow(hdr_color, vec3(1.0 / gamma));
 
-        frag_color = vec4(rst, 1.0);
-    }
+    vec3 rst = pow(hdr_color, vec3(1.0 / gamma)); // Gamma correct
+    frag_color = vec4(rst, 1.0);
 }
