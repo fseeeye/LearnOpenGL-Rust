@@ -357,7 +357,7 @@ impl Renderer {
         let mut object_model_matrix = glm::Mat4::identity();
         object_model_matrix = glm::rotate(
             &object_model_matrix,
-            glm::radians(&glm::TVec::<f32, 1>::new(
+            glm::radians(&glm::Vec1::new(
                 SYSTEM_TIME.elapsed().unwrap().as_secs_f32() * -20.0,
             ))[0],
             &glm::normalize(&glm::vec3(1.0, 0.0, 1.0)),

@@ -1,4 +1,4 @@
-//! This example has more infos about tone mapping.
+//! This example has more infos about blooming.
 
 // remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
@@ -23,7 +23,7 @@ use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEve
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
 const BACKGROUND_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
-const WINDOW_TITLE: &str = "Tone Mapping";
+const WINDOW_TITLE: &str = "Bloom";
 const SCREEN_VERTICES: [[f32; 5]; 4] = [
     // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
     [-1.0, 1.0, 0.0, 0.0, 1.0],
@@ -33,8 +33,8 @@ const SCREEN_VERTICES: [[f32; 5]; 4] = [
 ];
 
 /* Camera data */
-const CAMERA_POS: [f32; 3] = [0.0, 0.0, -2.5];
-const CAMERA_LOOK_AT: [f32; 3] = [0.0, 0.0, 1.0];
+const CAMERA_POS: [f32; 3] = [0.0, 0.0, 5.0];
+const CAMERA_LOOK_AT: [f32; 3] = [0.0, 0.0, -1.0];
 const CAMERA_UP: [f32; 3] = [0.0, 1.0, 0.0];
 const PROJECTION_FOV: f32 = std::f32::consts::FRAC_PI_4;
 const PROJECTION_NEAR: f32 = 0.1;
@@ -42,28 +42,33 @@ const PROJECTION_FAR: f32 = 100.0;
 
 /* Scene data */
 const LIGHT_POS: [[f32; 3]; 4] = [
-    [0.0, 0.0, 49.5],  // back light
-    [-1.4, -1.9, 9.0], // top light
-    [0.0, -1.8, 4.0],  // front light
-    [0.8, -1.7, 6.0],  // right light
+    [0.0, 0.5, 1.5],   // back light
+    [-4.0, 0.5, -3.0], // top light
+    [3.0, 0.5, 1.0],   // front light
+    [-0.8, 2.4, -1.0], // right light
 ];
 const LIGHT_COLOR: [[f32; 3]; 4] = [
-    [200.0, 200.0, 200.0], // back light
-    [0.1, 0.0, 0.0],       // top light
-    [0.0, 0.0, 0.2],       // front light
-    [0.0, 0.1, 0.0],       // right light
+    [5.0, 5.0, 5.0],  // back light
+    [10.0, 0.0, 0.0], // top light
+    [0.0, 0.0, 15.0], // front light
+    [0.0, 5.0, 0.0],  // right light
 ];
 
 /* Tone Mapping data */
-static ENABLE_HDR: Mutex<bool> = Mutex::new(true);
+static ENABLE_BLOOM: Mutex<bool> = Mutex::new(true);
 static EXPOSURE: Mutex<f32> = Mutex::new(1.0);
 
 struct Renderer {
     cube_model: Model,
-    object_shader: ShaderProgram,
 
-    color_texture: u32,
+    color_textures: [u32; 2],
     hdr_fbo: u32,
+    object_shader: ShaderProgram,
+    light_shader: ShaderProgram,
+
+    blur_fbos: [u32; 2],
+    blur_color_textures: [u32; 2],
+    blur_shader: ShaderProgram,
 
     screen_vao: VertexArray,
     tone_mapping_shader: ShaderProgram,
@@ -105,8 +110,8 @@ impl Renderer {
 
         // Create shader of object
         let object_shader = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/advanced_lighting/022-object.vert"),
-            include_str!("../../assets/shaders/advanced_lighting/022-object.frag"),
+            include_str!("../../assets/shaders/advanced_lighting/023-object.vert"),
+            include_str!("../../assets/shaders/advanced_lighting/023-object.frag"),
         )?;
         for i in 0..LIGHT_POS.len() {
             let light_name = format!("lights[{}].position", i);
@@ -116,19 +121,31 @@ impl Renderer {
                 LIGHT_POS[i][1],
                 LIGHT_POS[i][2],
             );
-            let light_name = format!("lights[{}].color", i);
+            let light_color_name = format!("lights[{}].color", i);
             object_shader.set_uniform_3f(
-                CString::new(light_name)?.as_c_str(),
+                CString::new(light_color_name)?.as_c_str(),
                 LIGHT_COLOR[i][0],
                 LIGHT_COLOR[i][1],
                 LIGHT_COLOR[i][2],
             );
         }
 
+        // Create shader of lights
+        let light_shader = ShaderProgram::create_from_source(
+            include_str!("../../assets/shaders/advanced_lighting/023-light.vert"),
+            include_str!("../../assets/shaders/advanced_lighting/023-light.frag"),
+        )?;
+
+        // Create shader of Gaussian blur
+        let blur_shader = ShaderProgram::create_from_source(
+            include_str!("../../assets/shaders/advanced_lighting/023-gaussian-blur.vert"),
+            include_str!("../../assets/shaders/advanced_lighting/023-gaussian-blur.frag"),
+        )?;
+
         // Create shader of Tone Mapping
         let tone_mapping_shader = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/advanced_lighting/022-tone-mapping.vert"),
-            include_str!("../../assets/shaders/advanced_lighting/022-tone-mapping.frag"),
+            include_str!("../../assets/shaders/advanced_lighting/023-bloom-final.vert"),
+            include_str!("../../assets/shaders/advanced_lighting/023-bloom-final.frag"),
         )?;
 
         /* Floating-point Framebuffer for HDR rendering */
@@ -137,25 +154,38 @@ impl Renderer {
         let mut hdr_fbo = 0;
         unsafe {
             gl::GenFramebuffers(1, &mut hdr_fbo);
+            gl::BindFramebuffer(gl::FRAMEBUFFER, hdr_fbo);
         }
         // Create texture as color attachment
-        let mut color_texture = 0;
+        let mut color_textures: [u32; 2] = [0; 2];
         unsafe {
-            gl::GenTextures(1, &mut color_texture);
-            gl::BindTexture(gl::TEXTURE_2D, color_texture);
-            gl::TexImage2D(
-                gl::TEXTURE_2D,
-                0,
-                gl::RGBA16F as GLint, // use RGBA16F to restore HDR content
-                win.get_window_size().0.try_into()?,
-                win.get_window_size().1.try_into()?,
-                0,
-                gl::RGBA,
-                gl::FLOAT,
-                core::ptr::null(),
-            );
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
-            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as GLint);
+            // Create two color textures for color and brightness space result
+            gl::GenTextures(2, color_textures.as_mut_ptr());
+
+            for i in 0..color_textures.len() {
+                gl::BindTexture(gl::TEXTURE_2D, color_textures[i]);
+                gl::TexImage2D(
+                    gl::TEXTURE_2D,
+                    0,
+                    gl::RGB16F as GLint, // use RGB16F to restore HDR content
+                    win.get_window_size().0.try_into()?,
+                    win.get_window_size().1.try_into()?,
+                    0,
+                    gl::RGB,
+                    gl::FLOAT,
+                    core::ptr::null(),
+                );
+                gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
+                gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as GLint);
+                // Attach color texture to framebuffer
+                gl::FramebufferTexture2D(
+                    gl::FRAMEBUFFER,
+                    gl::COLOR_ATTACHMENT0 + i as GLenum,
+                    gl::TEXTURE_2D,
+                    color_textures[i],
+                    0,
+                );
+            }
             gl::BindTexture(gl::TEXTURE_2D, 0);
         }
         // Create renderbuffer as depth attachment
@@ -170,18 +200,6 @@ impl Renderer {
                 win.get_window_size().1.try_into()?,
             );
             gl::BindRenderbuffer(gl::RENDERBUFFER, 0);
-        }
-        // Attach buffers to framebuffer
-        unsafe {
-            gl::BindFramebuffer(gl::FRAMEBUFFER, hdr_fbo);
-            // Attach color texture to framebuffer
-            gl::FramebufferTexture2D(
-                gl::FRAMEBUFFER,
-                gl::COLOR_ATTACHMENT0,
-                gl::TEXTURE_2D,
-                color_texture,
-                0,
-            );
             // Attach depth rbo to framebuffer
             gl::FramebufferRenderbuffer(
                 gl::FRAMEBUFFER,
@@ -189,6 +207,11 @@ impl Renderer {
                 gl::RENDERBUFFER,
                 depth_rbo,
             );
+        }
+        // Tell OpenGL which color attachments we'll use (of this framebuffer) for rendering
+        let attachments: [u32; 2] = [gl::COLOR_ATTACHMENT0, gl::COLOR_ATTACHMENT1];
+        unsafe {
+            gl::DrawBuffers(2, attachments.as_ptr());
         }
         // Check framebuffer status
         let status = unsafe { gl::CheckFramebufferStatus(gl::FRAMEBUFFER) };
@@ -200,11 +223,70 @@ impl Renderer {
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
         }
 
+        /* Framebuffers for Gaussian blur rendering */
+        let mut blur_fbos = [0; 2];
+        let mut blur_color_textures = [0; 2];
+        unsafe {
+            gl::GenFramebuffers(2, blur_fbos.as_mut_ptr());
+            gl::GenTextures(2, blur_color_textures.as_mut_ptr());
+
+            for i in 0..2 {
+                gl::BindFramebuffer(gl::FRAMEBUFFER, blur_fbos[i]);
+                gl::BindTexture(gl::TEXTURE_2D, blur_color_textures[i]);
+
+                gl::TexImage2D(
+                    gl::TEXTURE_2D,
+                    0,
+                    gl::RGB16F as GLint,
+                    win.get_window_size().0.try_into()?,
+                    win.get_window_size().1.try_into()?,
+                    0,
+                    gl::RGB,
+                    gl::FLOAT,
+                    core::ptr::null(),
+                );
+                gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
+                gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as GLint);
+                gl::TexParameteri(
+                    gl::TEXTURE_2D,
+                    gl::TEXTURE_WRAP_S,
+                    gl::CLAMP_TO_EDGE as GLint,
+                );
+                gl::TexParameteri(
+                    gl::TEXTURE_2D,
+                    gl::TEXTURE_WRAP_T,
+                    gl::CLAMP_TO_EDGE as GLint,
+                );
+
+                // Attach color texture to framebuffer
+                gl::FramebufferTexture2D(
+                    gl::FRAMEBUFFER,
+                    gl::COLOR_ATTACHMENT0 as GLenum,
+                    gl::TEXTURE_2D,
+                    blur_color_textures[i],
+                    0,
+                );
+
+                // Check framebuffer status
+                let status = gl::CheckFramebufferStatus(gl::FRAMEBUFFER);
+                if status != gl::FRAMEBUFFER_COMPLETE {
+                    bail!("Gaussian Blur Framebuffer is not complete!");
+                }
+
+                gl::BindTexture(gl::TEXTURE_2D, 0);
+                gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+            }
+        }
+
         Ok(Self {
             cube_model,
-            object_shader,
-            color_texture,
+            color_textures,
             hdr_fbo,
+            object_shader,
+            light_shader,
+            blur_fbos,
+            blur_color_textures,
+            blur_shader,
             screen_vao,
             tone_mapping_shader,
         })
@@ -260,31 +342,114 @@ impl Renderer {
 
         self.render_scence(&self.object_shader)?;
 
+        /* Pass 2 : Draw lights */
+
+        self.light_shader.bind();
+        self.light_shader
+            .set_uniform_mat4fv(view_name.as_c_str(), &object_view_matrix);
+        self.light_shader
+            .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
+
+        for i in 0..LIGHT_POS.len() {
+            let mut light_model_matrix = na::Matrix4::identity();
+            light_model_matrix = glm::translate(
+                &light_model_matrix,
+                &glm::vec3(LIGHT_POS[i][0], LIGHT_POS[i][1], LIGHT_POS[i][2]),
+            );
+            light_model_matrix = glm::scale(&light_model_matrix, &glm::vec3(0.1, 0.1, 0.1));
+            self.light_shader
+                .set_uniform_mat4fv(CString::new("model")?.as_c_str(), &light_model_matrix);
+
+            self.light_shader.set_uniform_3f(
+                CString::new("light_color")?.as_c_str(),
+                LIGHT_COLOR[i][0],
+                LIGHT_COLOR[i][1],
+                LIGHT_COLOR[i][2],
+            );
+
+            self.cube_model.draw(&self.light_shader, "material")?;
+        }
+
+        /* Pass 3 : Gaussian Blur */
+
+        let mut horizontal_blur = true;
+        let mut first_iteration = true;
+        let blur_amount = 5;
+
+        self.blur_shader.bind();
+
+        for _ in 0..(blur_amount * 2) {
+            unsafe {
+                gl::BindFramebuffer(gl::FRAMEBUFFER, self.blur_fbos[horizontal_blur as usize]);
+            }
+            // Prepare uniforms
+            self.blur_shader.set_uniform_1i(
+                CString::new("horizontal_blur")?.as_c_str(),
+                horizontal_blur as i32,
+            );
+            unsafe {
+                gl::ActiveTexture(gl::TEXTURE0);
+                gl::BindTexture(
+                    gl::TEXTURE_2D,
+                    if first_iteration {
+                        self.color_textures[1]
+                    } else {
+                        self.blur_color_textures[!horizontal_blur as usize]
+                    },
+                );
+            }
+            // Draw to color texture as a quad
+            self.screen_vao.bind();
+            unsafe {
+                gl::DrawArrays(gl::TRIANGLE_STRIP, 0, 4);
+            }
+            self.screen_vao.unbind();
+            // Update vars
+            horizontal_blur = !horizontal_blur;
+            if first_iteration {
+                first_iteration = false;
+            }
+        }
+
+        /* Pass 4 : Draw to quad */
         unsafe {
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
         }
-
-        /* Pass 2 : Draw to quad */
 
         clear_color(
             (BufferBit::ColorBufferBit as GLenum | BufferBit::DepthBufferBit as GLenum)
                 as gl::types::GLbitfield,
         );
 
+        // Prepare uniforms
         self.tone_mapping_shader.bind();
         unsafe {
+            // Set base color texture
             gl::ActiveTexture(gl::TEXTURE0);
-            gl::BindTexture(gl::TEXTURE_2D, self.color_texture);
+            gl::BindTexture(gl::TEXTURE_2D, self.color_textures[0]);
+            // Set gaussian blur texture
+            gl::ActiveTexture(gl::TEXTURE1);
+            gl::BindTexture(
+                gl::TEXTURE_2D,
+                self.blur_color_textures[!horizontal_blur as usize],
+            );
+            let location: i32 = gl::GetUniformLocation(
+                self.tone_mapping_shader.id,
+                CString::new("bloom_blur_buffer")?
+                    .as_c_str()
+                    .as_ptr()
+                    .cast(),
+            );
+            gl::Uniform1i(location, 1);
         }
-        let tm_lock: std::sync::MutexGuard<'_, bool> = ENABLE_HDR.lock().unwrap();
+        let tm_lock: std::sync::MutexGuard<'_, bool> = ENABLE_BLOOM.lock().unwrap();
         let ex_lock: std::sync::MutexGuard<'_, f32> = EXPOSURE.lock().unwrap();
-        self.tone_mapping_shader.set_uniform_1i(
-            CString::new("enable_tone_mapping")?.as_c_str(),
-            *tm_lock as i32,
-        );
+        self.tone_mapping_shader
+            .set_uniform_1i(CString::new("enable_bloom")?.as_c_str(), *tm_lock as i32);
         self.tone_mapping_shader
             .set_uniform_1f(CString::new("exposure")?.as_c_str(), *ex_lock);
 
+        // Draw final image
         self.screen_vao.bind();
         unsafe {
             gl::DrawArrays(gl::TRIANGLE_STRIP, 0, 4);
@@ -298,11 +463,62 @@ impl Renderer {
     }
 
     pub fn render_scence(&self, shader: &ShaderProgram) -> anyhow::Result<()> {
-        // Draw cube
         let model_name = CString::new("model")?;
+
+        /* Draw cubes */
+        // Cube1
         let mut object_model_matrix = na::Matrix4::identity();
-        object_model_matrix = glm::translate(&object_model_matrix, &glm::vec3(0.0, 0.0, 25.0));
-        object_model_matrix = glm::scale(&object_model_matrix, &glm::vec3(2.5, 2.5, 27.5));
+        object_model_matrix = glm::translate(&object_model_matrix, &glm::vec3(0.0, -1.0, 0.0));
+        object_model_matrix = glm::scale(&object_model_matrix, &glm::vec3(12.5, 0.5, 12.5));
+        shader.set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
+        self.cube_model.draw(shader, "material")?;
+        // Cube2
+        let mut object_model_matrix = na::Matrix4::identity();
+        object_model_matrix = glm::translate(&object_model_matrix, &glm::vec3(0.0, 1.5, 0.0));
+        object_model_matrix = glm::scale(&object_model_matrix, &glm::vec3(0.5, 0.5, 0.5));
+        shader.set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
+        self.cube_model.draw(shader, "material")?;
+        // Cube3
+        let mut object_model_matrix = na::Matrix4::identity();
+        object_model_matrix = glm::translate(&object_model_matrix, &glm::vec3(2.0, 0.0, 1.0));
+        object_model_matrix = glm::scale(&object_model_matrix, &glm::vec3(0.5, 0.5, 0.5));
+        shader.set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
+        self.cube_model.draw(shader, "material")?;
+        // Cube4
+        let mut object_model_matrix = na::Matrix4::identity();
+        object_model_matrix = glm::translate(&object_model_matrix, &glm::vec3(-1.0, -1.0, 2.0));
+        object_model_matrix = glm::rotate(
+            &object_model_matrix,
+            glm::radians(&glm::Vec1::new(60.0))[0],
+            &glm::vec3(1.0, 0.0, 1.0),
+        );
+        shader.set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
+        self.cube_model.draw(shader, "material")?;
+        // Cube5
+        let mut object_model_matrix = na::Matrix4::identity();
+        object_model_matrix = glm::translate(&object_model_matrix, &glm::vec3(0.0, 2.7, 4.0));
+        object_model_matrix = glm::rotate(
+            &object_model_matrix,
+            glm::radians(&glm::Vec1::new(23.0))[0],
+            &glm::vec3(1.0, 0.0, 1.0),
+        );
+        object_model_matrix = glm::scale(&object_model_matrix, &glm::vec3(1.25, 1.25, 1.25));
+        shader.set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
+        self.cube_model.draw(shader, "material")?;
+        // Cube6
+        let mut object_model_matrix = na::Matrix4::identity();
+        object_model_matrix = glm::translate(&object_model_matrix, &glm::vec3(-2.0, 1.0, -3.0));
+        object_model_matrix = glm::rotate(
+            &object_model_matrix,
+            glm::radians(&glm::Vec1::new(124.0))[0],
+            &glm::vec3(1.0, 0.0, 1.0),
+        );
+        shader.set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
+        self.cube_model.draw(shader, "material")?;
+        // Cube7
+        let mut object_model_matrix = na::Matrix4::identity();
+        object_model_matrix = glm::translate(&object_model_matrix, &glm::vec3(-3.0, 0.0, 0.0));
+        object_model_matrix = glm::scale(&object_model_matrix, &glm::vec3(0.5, 0.5, 0.5));
         shader.set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
         self.cube_model.draw(shader, "material")?;
 
@@ -386,7 +602,7 @@ fn main() -> anyhow::Result<()> {
                             ..
                         } => {
                             let mut lock: std::sync::MutexGuard<'_, bool> =
-                                ENABLE_HDR.lock().unwrap();
+                                ENABLE_BLOOM.lock().unwrap();
                             *lock = !(*lock);
                         }
                         WindowEvent::KeyboardInput {

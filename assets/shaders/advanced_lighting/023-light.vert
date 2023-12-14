@@ -18,6 +18,5 @@ void main() {
     gl_Position = projection * view * model * vec4(a_pos, 1.0);
     vs_out.world_pos = vec3(model * vec4(a_pos, 1.0));
     vs_out.normal = transpose(inverse(mat3(model))) * a_normal;
-    vs_out.normal = -vs_out.normal; // WARN: flip the normal for showing the cube inside face
     vs_out.texture_coord = a_texture_coord;
 }

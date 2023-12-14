@@ -1,6 +1,7 @@
 #version 330 core
 
-out vec4 frag_color;
+layout (location = 0) out vec4 frag_color;
+layout (location = 1) out vec4 bright_color;
 
 struct Material {
     sampler2D diffuse_map;
@@ -34,6 +35,7 @@ vec3 blinn_phong_diffuse_term(vec3 light_dir, vec3 light_intensity, vec3 n) {
 void main() {
     vec3 n = normalize(fs_in.normal);
 
+    /* Calculate fragment color */
     vec3 rst = vec3(0.0);
     for(int i = 0; i < 4; i++) {
         vec3  light_dir = normalize(lights[i].position - fs_in.world_pos);
@@ -49,6 +51,13 @@ void main() {
 
         rst += diffuse_term;
     }
-
     frag_color = vec4(rst, 1.0);
+
+    /* Calculate brightness color */
+    float brightness = dot(frag_color.rgb, vec3(0.2126, 0.7152, 0.0722));
+    // Check whether fragment output is higher than threshold, if so output as brightness color
+    if (brightness > 1.0)
+        bright_color = vec4(frag_color.rgb, 1.0);
+    else
+        bright_color = vec4(0.0, 0.0, 0.0, 1.0);
 }
