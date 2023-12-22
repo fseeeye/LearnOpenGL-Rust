@@ -166,9 +166,21 @@ impl Texture {
                 img_format = gl::RGBA;
                 img_type = gl::UNSIGNED_BYTE;
             }
-            _ => {
-                anyhow::bail!("Unsupported image color type: {:?}", img.color())
-            }
+            _ => match img.color().channel_count() {
+                1 => {
+                    img_format = gl::RED;
+                    img_type = gl::UNSIGNED_BYTE;
+                }
+                3 => {
+                    img_format = gl::RGB;
+                    img_type = gl::UNSIGNED_BYTE;
+                }
+                4 => {
+                    img_format = gl::RGBA;
+                    img_type = gl::UNSIGNED_BYTE;
+                }
+                _ => anyhow::bail!("Unsupported image color type: {:?}", img.color()),
+            },
         }
 
         // Set Texture wrapping & filtering

@@ -16,6 +16,7 @@ nalgebra = "0.32.2" # Linear algebra : https://nalgebra.org/docs/
 nalgebra-glm = "0.18.0" # GLM port for nalgebra
 tobj = "4.0.0" # OBJ loader
 lazy_static = "1.4.0"
+rand = "0.8"
 
 # window related dependencies
 winit = "0.28"
@@ -150,4 +151,9 @@ doc-scrape-examples = true
 [[example]]
 name = "023_bloom"
 path = "examples/advanced_lighting/023_bloom.rs"
+doc-scrape-examples = true
+
+[[example]]
+name = "024_deferred_rendering"
+path = "examples/advanced_lighting/024_deferred_rendering.rs"
 doc-scrape-examples = true

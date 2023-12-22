@@ -8,15 +8,6 @@ uniform mat4 model;
 uniform mat4 view;
 uniform mat4 projection;
 
-out VS_OUT {
-    vec3 world_pos;
-    vec3 normal;
-    vec2 texture_coord;
-} vs_out;
-
 void main() {
     gl_Position = projection * view * model * vec4(a_pos, 1.0);
-    vs_out.world_pos = vec3(model * vec4(a_pos, 1.0));
-    vs_out.normal = transpose(inverse(mat3(model))) * a_normal;
-    vs_out.texture_coord = a_texture_coord;
 }
