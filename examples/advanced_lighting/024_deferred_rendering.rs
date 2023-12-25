@@ -67,10 +67,10 @@ struct Renderer {
 
     screen_vao: VertexArray,
     lighting_pass_shader: ShaderProgram,
-    // light_postions: Vec<glm::Vec3>,
-    // light_colors: Vec<glm::Vec3>,
-    // cube_model: Model,
-    // light_box_shader: ShaderProgram,
+    light_postions: Vec<glm::Vec3>,
+    light_colors: Vec<glm::Vec3>,
+    cube_model: Model,
+    light_box_shader: ShaderProgram,
 }
 
 impl Renderer {
@@ -97,7 +97,7 @@ impl Renderer {
         for _ in 0..LIGHT_NUM {
             let mut rng = rand::thread_rng();
             let x = rng.gen_range(-3.0..=3.0);
-            let y = rng.gen_range(-4.0..=2.0);
+            let y = rng.gen_range(-3.0..=3.0);
             let z = rng.gen_range(-3.0..=3.0);
             let r = rng.gen_range(0.5..=1.0);
             let g = rng.gen_range(0.5..=1.0);
@@ -111,7 +111,7 @@ impl Renderer {
         // backpack object
         let backpack_model = Model::new(PathBuf::from("assets/models/backpack/backpack.obj"))?;
         // // cube object
-        // let cube_model = Model::new(PathBuf::from("assets/models/cube_wood/cube.obj"))?;
+        let cube_model = Model::new(PathBuf::from("assets/models/cube_wood/cube.obj"))?;
         // screen quad
         let screen_vao = VertexArray::new()?;
         let screen_vbo = Buffer::new(BufferType::VertexBuffer)?;
@@ -153,11 +153,11 @@ impl Renderer {
             );
         }
 
-        // // Create shader of light box
-        // let light_box_shader = ShaderProgram::create_from_source(
-        //     include_str!("../../assets/shaders/advanced_lighting/024-light-box.vert"),
-        //     include_str!("../../assets/shaders/advanced_lighting/024-light-box.frag"),
-        // )?;
+        // Create shader of light box
+        let light_box_shader = ShaderProgram::create_from_source(
+            include_str!("../../assets/shaders/advanced_lighting/024-light-box.vert"),
+            include_str!("../../assets/shaders/advanced_lighting/024-light-box.frag"),
+        )?;
 
         /* GBuffer */
 
@@ -299,10 +299,10 @@ impl Renderer {
             gbuffer_shader,
             screen_vao,
             lighting_pass_shader,
-            // light_postions,
-            // light_colors,
-            // cube_model,
-            // light_box_shader
+            light_postions,
+            light_colors,
+            cube_model,
+            light_box_shader,
         })
     }
 
@@ -350,11 +350,11 @@ impl Renderer {
 
         self.render_scence(&self.gbuffer_shader)?;
 
+        /* Pass 2 : Lighting Pass */
+
         unsafe {
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
         }
-
-        /* Pass 2 : Lighting Pass */
 
         clear_color(
             (BufferBit::ColorBufferBit as GLenum | BufferBit::DepthBufferBit as GLenum)
@@ -393,31 +393,49 @@ impl Renderer {
         }
         self.screen_vao.unbind();
 
-        // /* Pass 3 : Draw light box */
-        // self.light_box_shader.bind();
-        // self.light_box_shader
-        //     .set_uniform_mat4fv(view_name.as_c_str(), &object_view_matrix);
-        // self.light_box_shader
-        //     .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
+        /* Pass 3 : Draw light box with Forward Rendering */
 
-        // for i in 0..LIGHT_NUM {
-        //     let mut light_model_matrix = glm::translate(
-        //         &na::Matrix4::identity(),
-        //         &self.light_postions[i],
-        //     );
-        //     light_model_matrix = glm::scale(&light_model_matrix, &glm::vec3(0.1, 0.1, 0.1));
-        //     self.light_box_shader
-        //         .set_uniform_mat4fv(CString::new("model")?.as_c_str(), &light_model_matrix);
+        // Copy content of geometry's depth buffer to default framebuffer's depth buffer
+        unsafe {
+            gl::BindFramebuffer(gl::READ_FRAMEBUFFER, self.g_buffer);
+            gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, 0); // write to default framebuffer
+            gl::BlitFramebuffer(
+                0,
+                0,
+                window_width as i32,
+                window_height as i32,
+                0,
+                0,
+                window_width as i32,
+                window_height as i32,
+                gl::DEPTH_BUFFER_BIT,
+                gl::NEAREST,
+            ); // Blit to default framebuffer.
+            gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+        }
 
-        //     self.light_box_shader.set_uniform_3f(
-        //         CString::new("light_color")?.as_c_str(),
-        //         self.light_colors[i].x,
-        //         self.light_colors[i].y,
-        //         self.light_colors[i].z,
-        //     );
+        self.light_box_shader.bind();
+        self.light_box_shader
+            .set_uniform_mat4fv(view_name.as_c_str(), &object_view_matrix);
+        self.light_box_shader
+            .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
 
-        //     self.cube_model.draw(&self.light_box_shader, "")?;
-        // }
+        for i in 0..LIGHT_NUM {
+            let mut light_model_matrix =
+                glm::translate(&na::Matrix4::identity(), &self.light_postions[i]);
+            light_model_matrix = glm::scale(&light_model_matrix, &glm::vec3(0.1, 0.1, 0.1));
+            self.light_box_shader
+                .set_uniform_mat4fv(CString::new("model")?.as_c_str(), &light_model_matrix);
+
+            self.light_box_shader.set_uniform_3f(
+                CString::new("light_color")?.as_c_str(),
+                self.light_colors[i].x,
+                self.light_colors[i].y,
+                self.light_colors[i].z,
+            );
+
+            self.cube_model.draw(&self.light_box_shader, "")?;
+        }
 
         // Swap buffers of window
         win.swap_buffers()?;
