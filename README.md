@@ -47,6 +47,12 @@ description for all examples.
 ### advanced lighting
 
 1. [**Shadow Map**](examples/advanced_lighting/019_shadow_mapping.rs)
+2. [**Normal Map**](examples/advanced_lighting/020_normal_map.rs)
+3. [**Parallax Map**](examples/advanced_lighting/021_parallax_map.rs)
+4. [**Tone Mapping**](examples/advanced_lighting/022_tone_mapping.rs)
+5. [**Bloom**](examples/advanced_lighting/023_bloom.rs)
+6. [**Deferred Rendering**](examples/advanced_lighting/024_deferred_rendering.rs)
+7. [**SSAO**](examples/advanced_lighting/025_ssao.rs)
 
 ## TODO
 
