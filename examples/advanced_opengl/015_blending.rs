@@ -79,7 +79,7 @@ impl Renderer {
         )?;
 
         // Sort windows by distance
-        let mut windows_pos = WINDOW_POS.clone();
+        let mut windows_pos = WINDOW_POS;
         windows_pos.sort_by(|pos1, pos2| {
             let camera_pos = camera.get_pos();
             let distance1 = distance(pos1, &camera_pos);

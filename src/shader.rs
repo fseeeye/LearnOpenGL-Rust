@@ -3,6 +3,7 @@ use std::ffi::{CStr, CString};
 use anyhow::bail;
 use gl::types::*;
 use nalgebra as na;
+use nalgebra_glm as glm;
 
 use crate::{
     get_gl_error, Camera, DirectionalLight, FlashLight, MaterialPhong, PointLight, Texture,
@@ -317,6 +318,18 @@ impl ShaderProgram {
 
         self.bind();
         unsafe { gl::Uniform3f(uniform_loc, v0, v1, v2) }
+    }
+
+    /// Send uniform data: 3fv
+    ///
+    /// wrap `glUniform3fv`
+    ///
+    /// Tips: it'll call `bind()` automatically.
+    pub fn set_uniform_3fv(&self, uniform_name: &CStr, value: &glm::Vec3) {
+        let uniform_loc = self.get_uniform_location(uniform_name);
+
+        self.bind();
+        unsafe { gl::Uniform3fv(uniform_loc, 1, value.as_ptr()) }
     }
 
     /// Send uniform data: mat4fv

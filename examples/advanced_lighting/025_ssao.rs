@@ -1,9 +1,9 @@
-//! This example is about deferred rendering.
+//! This example is about SSAO.
 
 // remove console window : https://rust-lang.github.io/rfcs/1665-windows-subsystem.html
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{ffi::CString, path::PathBuf};
+use std::{ffi::CString, path::PathBuf, sync::Mutex};
 
 use anyhow::bail;
 use gl::types::*;
@@ -18,13 +18,13 @@ use learn_opengl_rs as learn;
 use nalgebra as na;
 use nalgebra_glm as glm;
 use tracing::error;
-use winit::event::Event;
+use winit::event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
 
 /* Screen info */
 const SCREEN_WIDTH: u32 = 800;
 const SCREEN_HEIGHT: u32 = 600;
 const BACKGROUND_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 1.0];
-const WINDOW_TITLE: &str = "Deferred Rendering";
+const WINDOW_TITLE: &str = "SSAO";
 const SCREEN_VERTICES: [[f32; 5]; 4] = [
     // vertex attributes for a quad that fills the entire screen in Normalized Device Coordinates.
     [-1.0, 1.0, 0.0, 0.0, 1.0],
@@ -42,36 +42,37 @@ const PROJECTION_NEAR: f32 = 0.1;
 const PROJECTION_FAR: f32 = 100.0;
 
 /* Scene data */
-const LIGHT_NUM: usize = 32;
+const LIGHT_POS: [f32; 3] = [2.0, 4.0, -2.0];
+const LIGHT_COLOR: [f32; 3] = [0.8, 0.8, 1.0];
 
-/* Object data */
-const BACKPACK_POS: [[f32; 3]; 9] = [
-    [-3.0, -0.5, -3.0],
-    [0.0, -0.5, -3.0],
-    [3.0, -0.5, -3.0],
-    [-3.0, -0.5, 0.0],
-    [0.0, -0.5, 0.0],
-    [3.0, -0.5, 0.0],
-    [-3.0, -0.5, 3.0],
-    [0.0, -0.5, 3.0],
-    [3.0, -0.5, 3.0],
-];
+/* SSAO data */
+const SSAO_KERNEL_SIZE: usize = 64;
+const SSAO_RADIUS: f32 = 0.5;
+const SSAO_BIAS: f32 = 0.025;
+static ENABLE_SSAO: Mutex<bool> = Mutex::new(true);
 
 struct Renderer {
     backpack_model: Model,
+    cube_model: Model,
+
     g_buffer: u32,
     g_position: u32,
     g_normal: u32,
     g_albedo_specular: u32,
     gbuffer_shader: ShaderProgram,
 
+    ssao_kernel: Vec<glm::Vec3>,
+    ssao_noise_texture: u32,
+    ssao_fbo: u32,
+    ssao_color_texture: u32,
+    ssao_shader: ShaderProgram,
+
+    ssao_denosing_fbo: u32,
+    ssao_denosing_color_texture: u32,
+    ssao_denosing_shader: ShaderProgram,
+
     screen_vao: VertexArray,
     lighting_pass_shader: ShaderProgram,
-    light_postions: Vec<glm::Vec3>,
-    light_colors: Vec<glm::Vec3>,
-
-    cube_model: Model,
-    light_box_shader: ShaderProgram,
 }
 
 impl Renderer {
@@ -90,22 +91,6 @@ impl Renderer {
             BACKGROUND_COLOR[2],
             BACKGROUND_COLOR[3],
         );
-
-        /* Lights */
-
-        let mut light_postions: Vec<glm::Vec3> = Vec::new();
-        let mut light_colors: Vec<glm::Vec3> = Vec::new();
-        for _ in 0..LIGHT_NUM {
-            let mut rng = rand::thread_rng();
-            let x = rng.gen_range(-3.0..=3.0);
-            let y = rng.gen_range(-3.0..=3.0);
-            let z = rng.gen_range(-3.0..=3.0);
-            let r = rng.gen_range(0.5..=1.0);
-            let g = rng.gen_range(0.5..=1.0);
-            let b = rng.gen_range(0.5..=1.0);
-            light_postions.push(glm::Vec3::new(x, y, z));
-            light_colors.push(glm::Vec3::new(r, g, b));
-        }
 
         /* Object Models */
 
@@ -128,36 +113,26 @@ impl Renderer {
 
         // Create shader of G-Buffer (Geometry Pass)
         let gbuffer_shader = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/advanced_lighting/024-gbuffer.vert"),
-            include_str!("../../assets/shaders/advanced_lighting/024-gbuffer.frag"),
+            include_str!("../../assets/shaders/advanced_lighting/025-gbuffer.vert"),
+            include_str!("../../assets/shaders/advanced_lighting/025-gbuffer.frag"),
+        )?;
+
+        // Create shader of SSAO
+        let ssao_shader = ShaderProgram::create_from_source(
+            include_str!("../../assets/shaders/advanced_lighting/025-ssao.vert"),
+            include_str!("../../assets/shaders/advanced_lighting/025-ssao.frag"),
+        )?;
+
+        // Create shader of SSAO denosing
+        let ssao_denosing_shader = ShaderProgram::create_from_source(
+            include_str!("../../assets/shaders/advanced_lighting/025-ssao-denosing.vert"),
+            include_str!("../../assets/shaders/advanced_lighting/025-ssao-denosing.frag"),
         )?;
 
         // Create shader of Lighting Pass
         let lighting_pass_shader = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/advanced_lighting/024-lighting-pass.vert"),
-            include_str!("../../assets/shaders/advanced_lighting/024-lighting-pass.frag"),
-        )?;
-        for i in 0..LIGHT_NUM {
-            let light_name = format!("lights[{}].position", i);
-            lighting_pass_shader.set_uniform_3f(
-                CString::new(light_name)?.as_c_str(),
-                light_postions[i][0],
-                light_postions[i][1],
-                light_postions[i][2],
-            );
-            let light_name = format!("lights[{}].color", i);
-            lighting_pass_shader.set_uniform_3f(
-                CString::new(light_name)?.as_c_str(),
-                light_colors[i][0],
-                light_colors[i][1],
-                light_colors[i][2],
-            );
-        }
-
-        // Create shader of light box
-        let light_box_shader = ShaderProgram::create_from_source(
-            include_str!("../../assets/shaders/advanced_lighting/024-light-box.vert"),
-            include_str!("../../assets/shaders/advanced_lighting/024-light-box.frag"),
+            include_str!("../../assets/shaders/advanced_lighting/025-lighting-pass.vert"),
+            include_str!("../../assets/shaders/advanced_lighting/025-lighting-pass.frag"),
         )?;
 
         /* GBuffer */
@@ -180,12 +155,22 @@ impl Renderer {
                 win.get_window_size().0.try_into()?,
                 win.get_window_size().1.try_into()?,
                 0,
-                gl::RGB,
+                gl::RGBA,
                 gl::FLOAT,
                 core::ptr::null(),
             );
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as GLint);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as GLint);
+            gl::TexParameteri(
+                gl::TEXTURE_2D,
+                gl::TEXTURE_WRAP_S,
+                gl::CLAMP_TO_EDGE as GLint,
+            );
+            gl::TexParameteri(
+                gl::TEXTURE_2D,
+                gl::TEXTURE_WRAP_T,
+                gl::CLAMP_TO_EDGE as GLint,
+            );
             gl::BindTexture(gl::TEXTURE_2D, 0);
             // Attach color texture to framebuffer
             gl::FramebufferTexture2D(
@@ -291,19 +276,156 @@ impl Renderer {
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
         }
 
+        /* SSAO data */
+
+        // Generate samples in a unit hemisphere
+        let mut rng = rand::thread_rng();
+        let mut ssao_kernel: Vec<glm::Vec3> = Vec::with_capacity(SSAO_KERNEL_SIZE);
+        for i in 0..SSAO_KERNEL_SIZE {
+            let x = rng.gen_range(-1.0..=1.0);
+            let y = rng.gen_range(-1.0..=1.0);
+            let z = rng.gen_range(0.0..=1.0);
+            let mut sample = glm::normalize(&glm::vec3(x, y, z));
+            sample *= rng.gen_range(0.0..=1.0);
+
+            // scale samples s.t. they're more aligned to center of kernel
+            let scale = i as f32 / SSAO_KERNEL_SIZE as f32;
+            let scale = 0.1 + (scale * scale) * (1.0 - 0.1); // lerp(0.1, 1.0, scale * scale)
+            sample *= scale;
+
+            ssao_kernel.push(sample);
+        }
+
+        // Generate 4x4 noise texture to rotate samples randomly
+        let mut ssao_noise: Vec<glm::Vec3> = Vec::with_capacity(16);
+        for _ in 0..16 {
+            let x = rng.gen_range(-1.0..=1.0);
+            let y = rng.gen_range(-1.0..=1.0);
+            let noise = glm::vec3(x, y, 0.0);
+            ssao_noise.push(noise);
+        }
+        let mut ssao_noise_texture = 0;
+        unsafe {
+            gl::GenTextures(1, &mut ssao_noise_texture);
+            gl::BindTexture(gl::TEXTURE_2D, ssao_noise_texture);
+            gl::TexImage2D(
+                gl::TEXTURE_2D,
+                0,
+                gl::RGBA16F as GLint,
+                4,
+                4,
+                0,
+                gl::RGB,
+                gl::FLOAT,
+                ssao_noise.as_ptr() as *const GLvoid,
+            );
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::REPEAT as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::REPEAT as GLint);
+            gl::BindTexture(gl::TEXTURE_2D, 0);
+        }
+
+        // Create framebuffer for SSAO
+        let mut ssao_fbo = 0;
+        unsafe {
+            gl::GenFramebuffers(1, &mut ssao_fbo);
+            gl::BindFramebuffer(gl::FRAMEBUFFER, ssao_fbo);
+        }
+        let mut ssao_color_texture = 0;
+        unsafe {
+            gl::GenTextures(1, &mut ssao_color_texture);
+            gl::BindTexture(gl::TEXTURE_2D, ssao_color_texture);
+            gl::TexImage2D(
+                gl::TEXTURE_2D,
+                0,
+                gl::RED as GLint, // use RED to restore ambient occlusion
+                win.get_window_size().0.try_into()?,
+                win.get_window_size().1.try_into()?,
+                0,
+                gl::RGB,
+                gl::FLOAT,
+                core::ptr::null(),
+            );
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as GLint);
+            gl::BindTexture(gl::TEXTURE_2D, 0);
+            // Attach color texture to framebuffer
+            gl::FramebufferTexture2D(
+                gl::FRAMEBUFFER,
+                gl::COLOR_ATTACHMENT0,
+                gl::TEXTURE_2D,
+                ssao_color_texture,
+                0,
+            );
+        }
+        let status = unsafe { gl::CheckFramebufferStatus(gl::FRAMEBUFFER) };
+        if status != gl::FRAMEBUFFER_COMPLETE {
+            bail!("Framebuffer is not complete!");
+        }
+        unsafe {
+            gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+        }
+
+        // Create framebuffer for SSAO Denosie
+        let mut ssao_denosing_fbo = 0;
+        unsafe {
+            gl::GenFramebuffers(1, &mut ssao_denosing_fbo);
+            gl::BindFramebuffer(gl::FRAMEBUFFER, ssao_denosing_fbo);
+        }
+        let mut ssao_denosing_color_texture = 0;
+        unsafe {
+            gl::GenTextures(1, &mut ssao_denosing_color_texture);
+            gl::BindTexture(gl::TEXTURE_2D, ssao_denosing_color_texture);
+            gl::TexImage2D(
+                gl::TEXTURE_2D,
+                0,
+                gl::RED as GLint, // use RED to restore ambient occlusion after denosing
+                win.get_window_size().0.try_into()?,
+                win.get_window_size().1.try_into()?,
+                0,
+                gl::RGB,
+                gl::FLOAT,
+                core::ptr::null(),
+            );
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::NEAREST as GLint);
+            gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::NEAREST as GLint);
+            gl::BindTexture(gl::TEXTURE_2D, 0);
+            // Attach color texture to framebuffer
+            gl::FramebufferTexture2D(
+                gl::FRAMEBUFFER,
+                gl::COLOR_ATTACHMENT0,
+                gl::TEXTURE_2D,
+                ssao_denosing_color_texture,
+                0,
+            );
+        }
+        let status = unsafe { gl::CheckFramebufferStatus(gl::FRAMEBUFFER) };
+        if status != gl::FRAMEBUFFER_COMPLETE {
+            bail!("Framebuffer is not complete!");
+        }
+        unsafe {
+            gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+        }
+
         Ok(Self {
             backpack_model,
+            cube_model,
             g_buffer,
             g_position,
             g_normal,
             g_albedo_specular,
             gbuffer_shader,
+            ssao_kernel,
+            ssao_noise_texture,
+            ssao_fbo,
+            ssao_color_texture,
+            ssao_shader,
+            ssao_denosing_fbo,
+            ssao_denosing_color_texture,
+            ssao_denosing_shader,
             screen_vao,
             lighting_pass_shader,
-            light_postions,
-            light_colors,
-            cube_model,
-            light_box_shader,
         })
     }
 
@@ -351,7 +473,70 @@ impl Renderer {
 
         self.render_scence(&self.gbuffer_shader)?;
 
-        /* Pass 2 : Lighting Pass */
+        /* Pass 2 : SSAO */
+
+        unsafe {
+            gl::BindFramebuffer(gl::FRAMEBUFFER, self.ssao_fbo);
+        }
+        clear_color(BufferBit::ColorBufferBit as gl::types::GLbitfield);
+
+        self.ssao_shader.bind();
+        unsafe {
+            gl::ActiveTexture(gl::TEXTURE0);
+            gl::BindTexture(gl::TEXTURE_2D, self.g_position);
+            gl::ActiveTexture(gl::TEXTURE1);
+            gl::BindTexture(gl::TEXTURE_2D, self.g_normal);
+            let location: i32 = gl::GetUniformLocation(
+                self.ssao_shader.id,
+                CString::new("g_normal")?.as_c_str().as_ptr().cast(),
+            );
+            gl::Uniform1i(location, 1);
+            gl::ActiveTexture(gl::TEXTURE2);
+            gl::BindTexture(gl::TEXTURE_2D, self.ssao_noise_texture);
+            let location: i32 = gl::GetUniformLocation(
+                self.ssao_shader.id,
+                CString::new("ssao_noise")?.as_c_str().as_ptr().cast(),
+            );
+            gl::Uniform1i(location, 2);
+        }
+        for i in 0..SSAO_KERNEL_SIZE {
+            let name = format!("ssao_samples[{}]", i);
+            self.ssao_shader
+                .set_uniform_3fv(CString::new(name)?.as_c_str(), &self.ssao_kernel[i]);
+        }
+        self.ssao_shader
+            .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
+        self.ssao_shader
+            .set_uniform_1f(CString::new("ssao_radius")?.as_c_str(), SSAO_RADIUS);
+        self.ssao_shader
+            .set_uniform_1f(CString::new("ssao_bias")?.as_c_str(), SSAO_BIAS);
+
+        self.screen_vao.bind();
+        unsafe {
+            gl::DrawArrays(gl::TRIANGLE_STRIP, 0, 4);
+        }
+        self.screen_vao.unbind();
+
+        /* Pass 3 : SSAO Blur */
+
+        unsafe {
+            gl::BindFramebuffer(gl::FRAMEBUFFER, self.ssao_denosing_fbo);
+        }
+        clear_color(BufferBit::ColorBufferBit as gl::types::GLbitfield);
+
+        self.ssao_denosing_shader.bind();
+        unsafe {
+            gl::ActiveTexture(gl::TEXTURE0);
+            gl::BindTexture(gl::TEXTURE_2D, self.ssao_color_texture);
+        }
+
+        self.screen_vao.bind();
+        unsafe {
+            gl::DrawArrays(gl::TRIANGLE_STRIP, 0, 4);
+        }
+        self.screen_vao.unbind();
+
+        /* Pass 4 : Lighting Pass */
 
         unsafe {
             gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
@@ -363,11 +548,24 @@ impl Renderer {
         );
 
         self.lighting_pass_shader.bind();
+        let light_pos_view =
+            object_view_matrix * glm::vec4(LIGHT_POS[0], LIGHT_POS[1], LIGHT_POS[2], 1.0);
         self.lighting_pass_shader.set_uniform_3f(
-            CString::new("camera_pos")?.as_c_str(),
-            camera.get_pos().x,
-            camera.get_pos().y,
-            camera.get_pos().z,
+            CString::new("light.position")?.as_c_str(),
+            light_pos_view[0],
+            light_pos_view[1],
+            light_pos_view[2],
+        );
+        self.lighting_pass_shader.set_uniform_3f(
+            CString::new("light.color")?.as_c_str(),
+            LIGHT_COLOR[0],
+            LIGHT_COLOR[1],
+            LIGHT_COLOR[2],
+        );
+        let enable_ssao_lock: std::sync::MutexGuard<'_, bool> = ENABLE_SSAO.lock().unwrap();
+        self.lighting_pass_shader.set_uniform_1i(
+            CString::new("enable_ssao")?.as_c_str(),
+            *enable_ssao_lock as i32,
         );
         unsafe {
             gl::ActiveTexture(gl::TEXTURE0);
@@ -386,6 +584,13 @@ impl Renderer {
                 CString::new("g_albedo_spec")?.as_c_str().as_ptr().cast(),
             );
             gl::Uniform1i(location, 2);
+            gl::ActiveTexture(gl::TEXTURE3);
+            gl::BindTexture(gl::TEXTURE_2D, self.ssao_denosing_color_texture);
+            let location: i32 = gl::GetUniformLocation(
+                self.lighting_pass_shader.id,
+                CString::new("ssao")?.as_c_str().as_ptr().cast(),
+            );
+            gl::Uniform1i(location, 3);
         }
 
         self.screen_vao.bind();
@@ -394,50 +599,6 @@ impl Renderer {
         }
         self.screen_vao.unbind();
 
-        /* Pass 3 : Draw light box with Forward Rendering */
-
-        // Copy content of geometry's depth buffer to default framebuffer's depth buffer
-        unsafe {
-            gl::BindFramebuffer(gl::READ_FRAMEBUFFER, self.g_buffer);
-            gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, 0); // write to default framebuffer
-            gl::BlitFramebuffer(
-                0,
-                0,
-                window_width as i32,
-                window_height as i32,
-                0,
-                0,
-                window_width as i32,
-                window_height as i32,
-                gl::DEPTH_BUFFER_BIT,
-                gl::NEAREST,
-            ); // Blit to default framebuffer.
-            gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
-        }
-
-        self.light_box_shader.bind();
-        self.light_box_shader
-            .set_uniform_mat4fv(view_name.as_c_str(), &object_view_matrix);
-        self.light_box_shader
-            .set_uniform_mat4fv(projection_name.as_c_str(), &projection_matrix);
-
-        for i in 0..LIGHT_NUM {
-            let mut light_model_matrix =
-                glm::translate(&na::Matrix4::identity(), &self.light_postions[i]);
-            light_model_matrix = glm::scale(&light_model_matrix, &glm::vec3(0.1, 0.1, 0.1));
-            self.light_box_shader
-                .set_uniform_mat4fv(CString::new("model")?.as_c_str(), &light_model_matrix);
-
-            self.light_box_shader.set_uniform_3f(
-                CString::new("light_color")?.as_c_str(),
-                self.light_colors[i].x,
-                self.light_colors[i].y,
-                self.light_colors[i].z,
-            );
-
-            self.cube_model.draw(&self.light_box_shader, "")?;
-        }
-
         // Swap buffers of window
         win.swap_buffers()?;
 
@@ -445,18 +606,27 @@ impl Renderer {
     }
 
     pub fn render_scence(&self, shader: &ShaderProgram) -> anyhow::Result<()> {
-        /* Draw backpacks */
         let model_name = CString::new("model")?;
-        for pos in &BACKPACK_POS {
-            let mut object_model_matrix = na::Matrix4::identity();
-            object_model_matrix = glm::translate(
-                &object_model_matrix,
-                &glm::Vec3::new(pos[0], pos[1], pos[2]),
-            );
-            object_model_matrix = glm::scale(&object_model_matrix, &glm::vec3(0.5, 0.5, 0.5));
-            shader.set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
-            self.backpack_model.draw(shader, "material")?;
-        }
+        let normal_inverted_name = CString::new("normal_inverted")?;
+        /* Draw room cube */
+        let mut object_model_matrix = na::Matrix4::identity();
+        object_model_matrix = glm::translate(&object_model_matrix, &glm::Vec3::new(0.0, 7.0, 0.0));
+        object_model_matrix = glm::scale(&object_model_matrix, &glm::vec3(7.5, 7.5, 7.5));
+        shader.set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
+        shader.set_uniform_1i(normal_inverted_name.as_c_str(), 1);
+        self.cube_model.draw(shader, "material")?;
+        shader.set_uniform_1i(normal_inverted_name.as_c_str(), 0);
+
+        /* Draw backpacks */
+        let mut object_model_matrix = na::Matrix4::identity();
+        object_model_matrix = glm::translate(&object_model_matrix, &glm::Vec3::new(0.0, 0.5, 0.0));
+        object_model_matrix = glm::rotate(
+            &object_model_matrix,
+            glm::radians(&glm::Vec1::new(-90.0))[0],
+            &glm::vec3(1.0, 0.0, 0.0),
+        );
+        shader.set_uniform_mat4fv(model_name.as_c_str(), &object_model_matrix);
+        self.backpack_model.draw(shader, "material")?;
 
         Ok(())
     }
@@ -524,7 +694,24 @@ fn main() -> anyhow::Result<()> {
                     control_flow.set_exit();
                 }
             }
-            Event::WindowEvent { event, .. } => if !camera.handle_winit_event(&event) {},
+            Event::WindowEvent { event, .. } => {
+                if !camera.handle_winit_event(&event) {
+                    if let WindowEvent::KeyboardInput {
+                        input:
+                            KeyboardInput {
+                                state: ElementState::Pressed,
+                                virtual_keycode: Some(VirtualKeyCode::Space),
+                                ..
+                            },
+                        is_synthetic: false,
+                        ..
+                    } = event
+                    {
+                        let mut lock: std::sync::MutexGuard<'_, bool> = ENABLE_SSAO.lock().unwrap();
+                        *lock = !(*lock);
+                    }
+                }
+            }
             _ => (),
         }
     });

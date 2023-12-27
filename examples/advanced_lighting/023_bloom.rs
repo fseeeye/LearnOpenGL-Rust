@@ -162,8 +162,8 @@ impl Renderer {
             // Create two color textures for color and brightness space result
             gl::GenTextures(2, color_textures.as_mut_ptr());
 
-            for i in 0..color_textures.len() {
-                gl::BindTexture(gl::TEXTURE_2D, color_textures[i]);
+            for (i, color_texture) in color_textures.iter().enumerate() {
+                gl::BindTexture(gl::TEXTURE_2D, *color_texture);
                 gl::TexImage2D(
                     gl::TEXTURE_2D,
                     0,
@@ -182,7 +182,7 @@ impl Renderer {
                     gl::FRAMEBUFFER,
                     gl::COLOR_ATTACHMENT0 + i as GLenum,
                     gl::TEXTURE_2D,
-                    color_textures[i],
+                    *color_texture,
                     0,
                 );
             }
