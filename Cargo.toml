@@ -165,5 +165,5 @@ doc-scrape-examples = true
 
 [[example]]
 name = "026_pbr"
-path = "examples/pbr/026_pbr_lighting.rs"
+path = "examples/pbr/026_pbr_shading.rs"
 doc-scrape-examples = true
