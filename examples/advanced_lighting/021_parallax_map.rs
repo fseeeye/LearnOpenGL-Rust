@@ -101,15 +101,15 @@ impl Renderer {
         // Textures of wall
         let wall_diffuse_map = Texture::create(
             PathBuf::from("assets/textures/bricks2.jpg"),
-            Some(TextureType::Diffuse),
+            Some(TextureType::BlinnDiffuse),
         )?;
         let wall_normal_map = Texture::create(
             PathBuf::from("assets/textures/bricks2_normal.jpg"),
-            Some(TextureType::Diffuse),
+            Some(TextureType::BlinnDiffuse),
         )?;
         let wall_displacement_map = Texture::create(
             PathBuf::from("assets/textures/bricks2_disp.jpg"),
-            Some(TextureType::Diffuse),
+            Some(TextureType::BlinnDiffuse),
         )?;
 
         // Calculate TB(tangent & bitangent) vectors of Triangle 1
