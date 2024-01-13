@@ -55,10 +55,10 @@ impl Mesh {
 
         // Check texture type
         if let Some(diffuse_texture) = diffuse_texture.as_ref() {
-            Self::check_texture_type(diffuse_texture, TextureType::Diffuse)?;
+            Self::check_texture_type(diffuse_texture, TextureType::BlinnDiffuse)?;
         }
         if let Some(specular_texture) = specular_texture.as_ref() {
-            Self::check_texture_type(specular_texture, TextureType::Specular)?;
+            Self::check_texture_type(specular_texture, TextureType::BlinnSpecular)?;
         }
         if let Some(normal_texture) = normal_texture.as_ref() {
             Self::check_texture_type(normal_texture, TextureType::Normal)?;

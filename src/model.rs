@@ -113,14 +113,14 @@ impl Model {
             // load diffuse map
             if let Some(ref diffuse_texture_filename) = material.diffuse_texture {
                 diffuse_texture =
-                    Some(self.load_texture(diffuse_texture_filename, TextureType::Diffuse)?);
+                    Some(self.load_texture(diffuse_texture_filename, TextureType::BlinnDiffuse)?);
             } else {
                 warn!("No diffuse texture for mesh in model({})!", model_name)
             }
             // load specular map
             if let Some(ref specular_texture_filename) = material.specular_texture {
                 specular_texture =
-                    Some(self.load_texture(specular_texture_filename, TextureType::Specular)?);
+                    Some(self.load_texture(specular_texture_filename, TextureType::BlinnSpecular)?);
             } else {
                 warn!("No specular texture for mesh in model({})!", model_name)
             }

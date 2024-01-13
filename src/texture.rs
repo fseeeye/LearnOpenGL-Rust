@@ -16,9 +16,13 @@ pub struct Texture {
 #[repr(u8)]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum TextureType {
-    Diffuse,
-    Specular,
     Normal,
+    BlinnDiffuse,  // Blinn-Phong
+    BlinnSpecular, // Blinn-Phong
+    PbrAlbedo,     // PBR
+    PbrMetallic,   // PBR
+    PbrRoughness,  // PBR
+    PbrAO,         // PBR
     Unknown,
 }
 

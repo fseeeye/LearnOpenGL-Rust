@@ -162,3 +162,8 @@ doc-scrape-examples = true
 name = "025_ssao"
 path = "examples/advanced_lighting/025_ssao.rs"
 doc-scrape-examples = true
+
+[[example]]
+name = "026_pbr"
+path = "examples/pbr/026_pbr_lighting.rs"
+doc-scrape-examples = true
