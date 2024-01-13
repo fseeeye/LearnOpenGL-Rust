@@ -54,6 +54,10 @@ description for all examples.
 6. [**Deferred Rendering**](examples/advanced_lighting/024_deferred_rendering.rs)
 7. [**SSAO**](examples/advanced_lighting/025_ssao.rs)
 
+### PBR
+
+1. [**PBR**](examples/pbr/026_pbr_shading.rs)
+
 ## TODO
 
 * [ ] add imgui.

@@ -150,6 +150,7 @@ module.exports = {
 		{ name: 'model' },
 		{ name: 'advanced_opengl' },
 		{ name: 'advanced_lighting' },
+		{ name: 'pbr' },
 	],
 
 	// it needs to match the value for field type. Eg.: 'fix'
