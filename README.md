@@ -16,12 +16,15 @@ My OpenGL Learning code in Rust, depends on OpenGL3.3.
 description for all examples.
 
 ### foundation
+
 1. [**Draw Triangle**](examples/foundation/001_draw_triangle.rs): Draw a solid color triangle on window.
 2. [**Draw Quad**](examples/foundation/002_draw_quad.rs): Draw a solid color quad on window.
 3. [**Texture**](examples/foundation/003_texture.rs): Apply texture on quad simply.
 4. [**Transform**](examples/foundation/004_transform.rs): Apply MVP Transform.
 5. [**Depth Test**](examples/foundation/005_depth_test.rs): Apply Depth Test to show multiple cubes.
 6. [**Camera**](examples/foundation/006_camera.rs): Impl a camera.
+
+![camera example screenshot](assets/img/camera_shot.png)
 
 ### lighting
 
@@ -30,9 +33,13 @@ description for all examples.
 3. [**Material Map**](examples/lighting/009_material_map.rs): Abstract simplest Blinn-Phong material.
 4. [**Multiple Lights**](examples/lighting/010_multi_lights.rs): implement multiple types of light source.
 
+![multi lights example screenshot](assets/img/multi_lights_shot.png)
+
 ### model loading
 
 1. [**Model Loading**](examples/model_loading/011_model_loading.rs): Load OBJ model from file.
+
+![model loading example screenshot](assets/img/model_loading_shot.png)
 
 ### advanced opengl
 
@@ -44,6 +51,8 @@ description for all examples.
 6. [**FrameBuffer**](examples/advanced_opengl/017_frame_buffer.rs)
 7. [**CubeMap**](examples/advanced_opengl/018_cube_map.rs)
 
+![cubemap example screenshot](assets/img/cubemap_shot.png)
+
 ### advanced lighting
 
 1. [**Shadow Map**](examples/advanced_lighting/019_shadow_mapping.rs)
@@ -54,22 +63,25 @@ description for all examples.
 6. [**Deferred Rendering**](examples/advanced_lighting/024_deferred_rendering.rs)
 7. [**SSAO**](examples/advanced_lighting/025_ssao.rs)
 
+![deferred rendering example screenshot](assets/img/deferred_rendering_shot.png)
+
 ### PBR
 
 1. [**PBR**](examples/pbr/026_pbr_shading.rs)
+2. [**IBL**](examples/pbr/027_ibl.rs)
 
-## TODO
-
-* [ ] add imgui.
+![ibl example screenshot](assets/img/ibl_shot.png)
 
 ## Core Dependencies
 
 * [gl](https://crates.io/crates/gl) : OpenGL bindings.
 * [glfw](https://crates.io/crates/glfw) : Window - C++ GLFW3 bindings and idiomatic wrapper.
 * [nalgebra](https://crates.io/crates/nalgebra) : General-purpose linear algebra library with transformations and statically-sized or dynamically-sized matrices.
-* [bytemuck](https://crates.io/crates/bytemuck) : bit cast between data types
 * [image](https://crates.io/crates/image) : basic image processing functions and methods for converting to and from various image formats.
+* [stb_image](https://crates.io/crates/stb_image) : Rust bindings to stb_image library.. Using to HDR image based on RGBE format.
+* [tobj](https://crates.io/crates/tobj) : tiny OBJ loader.
 * [tracing](https://crates.io/crates/tracing) : logger.
+* [anyhow](https://crates.io/crates/anyhow) : error handling.
 
 ## Ref
 
