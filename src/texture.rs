@@ -23,6 +23,7 @@ pub enum TextureType {
     PbrMetallic,   // PBR
     PbrRoughness,  // PBR
     PbrAO,         // PBR
+    Cubemap,
     Unknown,
 }
 
@@ -125,7 +126,7 @@ impl From<TextureUnit> for GLenum {
 }
 
 impl Texture {
-    fn new(path: PathBuf, texture_type: TextureType) -> anyhow::Result<Self> {
+    pub fn new(path: PathBuf, texture_type: TextureType) -> anyhow::Result<Self> {
         let mut texture = 0;
         unsafe {
             gl::GenTextures(1, &mut texture);
@@ -187,6 +188,13 @@ impl Texture {
             },
         }
 
+        tracing::debug!(
+            "Texture image loaded. path: {:?}, color type: {:?}, size: {:?}",
+            texture.path,
+            img.color(),
+            img.dimensions()
+        );
+
         // Set Texture wrapping & filtering
         unsafe {
             if img_format == gl::RGBA {
@@ -236,7 +244,11 @@ impl Texture {
         Self::active(unit);
 
         // Bind Texture
-        unsafe { gl::BindTexture(gl::TEXTURE_2D, self.id) }
+        if self.tex_type == TextureType::Cubemap {
+            unsafe { gl::BindTexture(gl::TEXTURE_CUBE_MAP, self.id) }
+        } else {
+            unsafe { gl::BindTexture(gl::TEXTURE_2D, self.id) }
+        }
     }
 
     pub fn active(unit: TextureUnit) {
